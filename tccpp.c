@@ -359,13 +359,13 @@ static int tcc_peekc_slow(BufferedFile *bf)
     int len;
     /* only tries to read if really end of buffer */
     if (bf->buf_ptr >= bf->buf_end) {
-        if (bf->fd != -1) {
+        if (bf->fd.fd != -1) {
 #if defined(PARSE_DEBUG)
             len = 8;
 #else
             len = IO_BUF_SIZE;
 #endif
-            len = read(bf->fd, bf->buffer, len);
+            len = vio_read(bf->fd, bf->buffer, len);
             if (len < 0)
                 len = 0;
         } else {
@@ -1437,6 +1437,7 @@ ST_FUNC void preprocess(int is_bof)
             CachedInclude *e;
             BufferedFile **f;
             const char *path;
+            vio_fd fd;
 
             if (i == -2) {
                 /* check absolute include path */
@@ -1464,6 +1465,7 @@ ST_FUNC void preprocess(int is_bof)
 
             pstrcat(buf1, sizeof(buf1), buf);
 
+include_trynext:
             if (tok == TOK_INCLUDE_NEXT)
                 for (f = s1->include_stack_ptr; f >= s1->include_stack; --f)
                     if (0 == PATHCMP((*f)->filename, buf1)) {
@@ -1480,12 +1482,23 @@ ST_FUNC void preprocess(int is_bof)
 #ifdef INC_DEBUG
                 printf("%s: skipping cached %s\n", file->filename, buf1);
 #endif
-                goto include_done;
+                vio_initialize(&fd);
+				fd.fd = 0;
+            } else {
+                fd = tcc_open(s1, buf1);
+                if (fd.fd < 0)
+                    continue;
             }
 
-            if (tcc_open(s1, buf1) < 0)
-include_trynext:
+            if (tok == TOK_INCLUDE_NEXT) {
+                tok = TOK_INCLUDE;
+                if (fd.fd)
+                    tcc_close();
                 continue;
+            }
+
+            if (0 == fd.fd)
+                goto include_done;
 
 #ifdef INC_DEBUG
             printf("%s: including %s\n", file->prev->filename, file->filename);

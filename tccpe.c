@@ -1667,16 +1667,20 @@ static int pe_load_dll(TCCState *s1, const char *dllname, int fd)
 }
 
 /* ------------------------------------------------------------- */
-ST_FUNC int pe_load_file(struct TCCState *s1, const char *filename, int fd)
+ST_FUNC int pe_load_file(struct TCCState *s1, const char *filename, vio_fd fd)
 {
+    FILE *fp = fdopen(dup(fd.fd), "rb");
     int ret = -1;
     char buf[10];
-    if (0 == strcmp(tcc_fileextension(filename), ".def"))
-        ret = pe_load_def(s1, fd);
-    else if (pe_load_res(s1, fd) == 0)
-        ret = 0;
-    else if (read_mem(fd, 0, buf, sizeof buf) && 0 == strncmp(buf, "MZ", 2))
-        ret = pe_load_dll(s1, tcc_basename(filename), fd);
+    if (fp) {
+        if (0 == strcmp(tcc_fileextension(filename), ".def"))
+            ret = pe_load_def(s1, fp);
+        else if (pe_load_res(s1, fp) == 0)
+            ret = 0;
+        else if (read_mem(fp, 0, buf, sizeof buf) && 0 == strncmp(buf, "MZ", 2))
+            ret = pe_load_dll(s1, tcc_basename(filename), fp);
+        fclose(fp);
+    }
     return ret;
 }
 

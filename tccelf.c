@@ -2432,13 +2432,13 @@ LIBTCCAPI int tcc_output_file(TCCState *s, const char *filename)
     return ret;
 }
 
-static void *load_data(int fd, unsigned long file_offset, unsigned long size)
+static void *load_data(vio_fd fd, unsigned long file_offset, unsigned long size)
 {
     void *data;
 
     data = tcc_malloc(size);
-    lseek(fd, file_offset, SEEK_SET);
-    read(fd, data, size);
+    vio_lseek(fd, file_offset, SEEK_SET);
+    vio_read(fd, data, size);
     return data;
 }
 
@@ -2452,7 +2452,7 @@ typedef struct SectionMergeInfo {
 /* load an object file and merge it with current files */
 /* XXX: handle correctly stab (debug) info */
 ST_FUNC int tcc_load_object_file(TCCState *s1,
-                                int fd, unsigned long file_offset)
+                                vio_fd fd, unsigned long file_offset)
 {
     ElfW(Ehdr) ehdr;
     ElfW(Shdr) *shdr, *sh;
@@ -2470,7 +2470,7 @@ ST_FUNC int tcc_load_object_file(TCCState *s1,
 
     stab_index = stabstr_index = 0;
 
-    if (read(fd, &ehdr, sizeof(ehdr)) != sizeof(ehdr))
+    if (vio_read(fd, &ehdr, sizeof(ehdr)) != sizeof(ehdr))
         goto fail1;
     if (ehdr.e_ident[0] != ELFMAG0 ||
         ehdr.e_ident[1] != ELFMAG1 ||
@@ -2597,9 +2597,9 @@ ST_FUNC int tcc_load_object_file(TCCState *s1,
         size = sh->sh_size;
         if (sh->sh_type != SHT_NOBITS) {
             unsigned char *ptr;
-            lseek(fd, file_offset + sh->sh_offset, SEEK_SET);
+            vio_lseek(fd, file_offset + sh->sh_offset, SEEK_SET);
             ptr = section_ptr_add(s, size);
-            read(fd, ptr, size);
+            vio_read(fd, ptr, size);
         } else {
             s->data_offset += size;
         }
@@ -2752,7 +2752,7 @@ static int get_be32(const uint8_t *b)
 }
 
 /* load only the objects which resolve undefined symbols */
-static int tcc_load_alacarte(TCCState *s1, int fd, int size)
+static int tcc_load_alacarte(TCCState *s1, vio_fd fd, int size)
 {
     int i, bound, nsyms, sym_index, off, ret;
     uint8_t *data;
@@ -2761,7 +2761,7 @@ static int tcc_load_alacarte(TCCState *s1, int fd, int size)
     ElfW(Sym) *sym;
 
     data = tcc_malloc(size);
-    if (read(fd, data, size) != size)
+    if (vio_read(fd, data, size) != size)
         goto fail;
     nsyms = get_be32(data);
     ar_index = data + 4;
@@ -2776,7 +2776,7 @@ static int tcc_load_alacarte(TCCState *s1, int fd, int size)
                 if(sym->st_shndx == SHN_UNDEF) {
                     off = get_be32(ar_index + i * 4) + sizeof(ArchiveHeader);
                     ++bound;
-                    lseek(fd, off, SEEK_SET);
+                    vio_lseek(fd, off, SEEK_SET);
                     if(tcc_load_object_file(s1, fd, off) < 0) {
                     fail:
                         ret = -1;
@@ -2793,7 +2793,7 @@ static int tcc_load_alacarte(TCCState *s1, int fd, int size)
 }
 
 /* load a '.a' file */
-ST_FUNC int tcc_load_archive(TCCState *s1, int fd)
+ST_FUNC int tcc_load_archive(TCCState *s1, vio_fd fd)
 {
     ArchiveHeader hdr;
     char ar_size[11];
@@ -2803,10 +2803,10 @@ ST_FUNC int tcc_load_archive(TCCState *s1, int fd)
     unsigned long file_offset;
 
     /* skip magic which was already checked */
-    read(fd, magic, sizeof(magic));
-
+    vio_read(fd, magic, sizeof(magic));
+    
     for(;;) {
-        len = read(fd, &hdr, sizeof(hdr));
+        len = vio_read(fd, &hdr, sizeof(hdr));
         if (len == 0)
             break;
         if (len != sizeof(hdr)) {
@@ -2822,7 +2822,7 @@ ST_FUNC int tcc_load_archive(TCCState *s1, int fd)
                 break;
         }
         ar_name[i + 1] = '\0';
-        file_offset = lseek(fd, 0, SEEK_CUR);
+        file_offset = vio_lseek(fd, 0, SEEK_CUR);
         /* align to even */
         size = (size + 1) & ~1;
         if (!strcmp(ar_name, "/")) {
@@ -2838,7 +2838,7 @@ ST_FUNC int tcc_load_archive(TCCState *s1, int fd)
             if (tcc_load_object_file(s1, fd, file_offset) < 0)
                 return -1;
         }
-        lseek(fd, file_offset + size, SEEK_SET);
+        vio_lseek(fd, file_offset + size, SEEK_SET);
     }
     return 0;
 }
@@ -2847,7 +2847,7 @@ ST_FUNC int tcc_load_archive(TCCState *s1, int fd)
 /* load a DLL and all referenced DLLs. 'level = 0' means that the DLL
    is referenced by the user (so it should be added as DT_NEEDED in
    the generated ELF file) */
-ST_FUNC int tcc_load_dll(TCCState *s1, int fd, const char *filename, int level)
+ST_FUNC int tcc_load_dll(TCCState *s1, vio_fd fd, const char *filename, int level)
 {
     ElfW(Ehdr) ehdr;
     ElfW(Shdr) *shdr, *sh, *sh1;
@@ -2858,7 +2858,7 @@ ST_FUNC int tcc_load_dll(TCCState *s1, int fd, const char *filename, int level)
     const char *name, *soname;
     DLLReference *dllref;
 
-    read(fd, &ehdr, sizeof(ehdr));
+    vio_read(fd, &ehdr, sizeof(ehdr));
 
     /* test CPU specific stuff */
     if (ehdr.e_ident[5] != ELFDATA2LSB ||

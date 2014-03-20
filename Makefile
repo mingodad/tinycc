@@ -155,15 +155,20 @@ PROGS+=$(PROGS_CROSS)
 TCCLIBS+=$(LIBTCC1_CROSS)
 endif
 
-all: $(PROGS) $(TCCLIBS) $(TCCDOCS)
+ifdef CONFIG_USE_ATTACHMENTS
+FILE_ATTACHMENTS= tcc_attachments.o
+CFLAGS += -DWITH_ATTACHMENTS=1
+endif
+
+all: $(PROGS) $(TCCLIBS) $(FILE_ATTACHMENTS) $(TCCDOCS) 
 
 # Host Tiny C Compiler
 tcc$(EXESUF): tcc.o $(LIBTCC)
-	$(CC) -o $@ $^ $(LIBS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(LINK_LIBTCC)
+	$(CC) -o $@ $^ $(LIBS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS)  $(FILE_ATTACHMENTS)  $(LINK_LIBTCC)
 
 # Cross Tiny C Compilers
 %-tcc$(EXESUF): tcc.c
-	$(CC) -o $@ $< -DONE_SOURCE $(DEFINES) $(CPPFLAGS) $(CFLAGS) $(LIBS) $(LDFLAGS)
+	$(CC) -o $@ $< -DONE_SOURCE $(DEFINES) $(CPPFLAGS) $(CFLAGS) $(FILE_ATTACHMENTS) $(LIBS) $(LDFLAGS)
 	$(if $($@_LINK),ln -sf $@ $($@_LINK))
 
 # profiling version
@@ -216,6 +221,9 @@ libtcc.so.1.0: $(LIBTCC_OBJ)
 	$(CC) -shared -Wl,-soname,$@ -o $@ $^ $(LDFLAGS)
 
 libtcc.so.1.0: CFLAGS+=-fPIC
+
+#tcc_attachments.o: libtcc.c
+#	mk-attachments.sh
 
 ifdef LIBTCC_DLL
 libtcc.dll libtcc.def libtcc.a: $(LIBTCC_OBJ)
