@@ -87,7 +87,7 @@ static int execvp_win32(const char *prog, char **argv)
 }
 #define execvp execvp_win32
 #endif
-static void exec_other_tcc(TCCState *s, char **argv, const char *optarg)
+static void exec_other_tcc(TCCState *tcc_state, char **argv, const char *optarg)
 {
     char child_path[4096], *child_name; const char *target;
     switch (atoi(optarg)) {
@@ -106,22 +106,22 @@ static void exec_other_tcc(TCCState *s, char **argv, const char *optarg)
 #endif
             strcat(child_name, "-tcc");
             if (strcmp(argv[0], child_path)) {
-                if (s->verbose > 0)
+                if (tcc_state->verbose > 0)
                     printf("tcc: using '%s'\n", child_name), fflush(stdout);
                 execvp(argv[0] = child_path, argv);
             }
-            tcc_error("'%s' not found", child_name);
+            tcc_error(tcc_state, "'%s' not found");
         case 0: /* ignore -march etc. */
             break;
         default:
-            tcc_warning("unsupported option \"-m%s\"", optarg);
+            tcc_warning(tcc_state, "unsupported option \"-m%s\"", optarg);
     }
 }
 #else
 #define exec_other_tcc(s, argv, optarg)
 #endif
 
-static void gen_makedeps(TCCState *s, const char *target, const char *filename)
+static void gen_makedeps(TCCState *tcc_state, const char *target, const char *filename)
 {
     FILE *depout;
     char buf[1024], *ext;
@@ -136,22 +136,22 @@ static void gen_makedeps(TCCState *s, const char *target, const char *filename)
         filename = buf;
     }
 
-    if (s->verbose)
+    if (tcc_state->verbose)
         printf("<- %s\n", filename);
 
     /* XXX return err codes instead of error() ? */
     depout = fopen(filename, "w");
     if (!depout)
-        tcc_error("could not open '%s'", filename);
+        tcc_error(tcc_state, "could not open '%s'");
 
     fprintf(depout, "%s : \\\n", target);
-    for (i=0; i<s->nb_target_deps; ++i)
-        fprintf(depout, " %s \\\n", s->target_deps[i]);
+    for (i=0; i<tcc_state->nb_target_deps; ++i)
+        fprintf(depout, " %s \\\n", tcc_state->target_deps[i]);
     fprintf(depout, "\n");
     fclose(depout);
 }
 
-static char *default_outputfile(TCCState *s, const char *first_file)
+static char *default_outputfile(TCCState *tcc_state, const char *first_file)
 {
     char buf[1024];
     char *ext;
@@ -162,21 +162,21 @@ static char *default_outputfile(TCCState *s, const char *first_file)
     pstrcpy(buf, sizeof(buf), name);
     ext = tcc_fileextension(buf);
 #ifdef TCC_TARGET_PE
-    if (s->output_type == TCC_OUTPUT_DLL)
+    if (tcc_state->output_type == TCC_OUTPUT_DLL)
         strcpy(ext, ".dll");
     else
-    if (s->output_type == TCC_OUTPUT_EXE)
+    if (tcc_state->output_type == TCC_OUTPUT_EXE)
         strcpy(ext, ".exe");
     else
 #endif
-    if (( (s->output_type == TCC_OUTPUT_OBJ && !s->option_r) ||
-          (s->output_type == TCC_OUTPUT_PREPROCESS) )
+    if (( (tcc_state->output_type == TCC_OUTPUT_OBJ && !tcc_state->option_r) ||
+          (tcc_state->output_type == TCC_OUTPUT_PREPROCESS) )
         && *ext)
         strcpy(ext, ".o");
     else
         strcpy(buf, "a.out");
 
-    return tcc_strdup(buf);
+    return tcc_strdup(tcc_state, buf);
 }
 
 static void print_paths(const char *msg, char **paths, int nb_paths)
@@ -261,7 +261,7 @@ static int vio_mem_open(vio_fd *fd, const char *fn, int oflag) {
         for(i=0; i < count; ++i) {
             //printf("%s:%s\n", fn, bin2c_filesAttached[i].file_name);
             if(strcmp(fn, bin2c_filesAttached[i].file_name) == 0) {
-                vio_memfile_t *mf = (vio_memfile_t*)tcc_malloc(sizeof(vio_memfile_t));
+                vio_memfile_t *mf = (vio_memfile_t*)tcc_malloc(fd->vio_module->tcc_state, sizeof(vio_memfile_t));
                 mf->mem = bin2c_filesAttached[i].sym_name;
                 mf->size = bin2c_filesAttached[i].size;
                 mf->pos = 0;
@@ -336,85 +336,85 @@ void set_vio_module(TCCState *s){
 
 int main(int argc, char **argv)
 {
-    TCCState *s;
+    TCCState *tcc_state;
     int ret, optind, i, bench;
     int64_t start_time = 0;
     const char *first_file = NULL;
 
-    s = tcc_new();
-    s->output_type = TCC_OUTPUT_EXE;
+    tcc_state = tcc_new();
+    tcc_state->output_type = TCC_OUTPUT_EXE;
 
 #ifdef WITH_ATTACHMENTS
-    tcc_set_lib_path(s, ATTACH_PREFIX);
-    tcc_add_include_path(s, ATTACH_PREFIX);
-    set_vio_module(s);
+    tcc_set_lib_path(tcc_state, ATTACH_PREFIX);
+    tcc_add_include_path(tcc_state, ATTACH_PREFIX);
+    set_vio_module(tcc_state);
 #endif
 
-    optind = tcc_parse_args(s, argc - 1, argv + 1);
-    tcc_set_environment(s);
+    optind = tcc_parse_args(tcc_state, argc - 1, argv + 1);
+    tcc_set_environment(tcc_state);
 
     if (optind == 0) {
         help();
         return 1;
     }
 
-    if (s->option_m)
-        exec_other_tcc(s, argv, s->option_m);
+    if (tcc_state->option_m)
+        exec_other_tcc(tcc_state, argv, tcc_state->option_m);
 
-    if (s->verbose)
-        display_info(s, 0);
+    if (tcc_state->verbose)
+        display_info(tcc_state, 0);
 
-    if (s->print_search_dirs || (s->verbose == 2 && optind == 1)) {
-        tcc_set_output_type(s, TCC_OUTPUT_MEMORY);
-        display_info(s, 1);
+    if (tcc_state->print_search_dirs || (tcc_state->verbose == 2 && optind == 1)) {
+        tcc_set_output_type(tcc_state, TCC_OUTPUT_MEMORY);
+        display_info(tcc_state, 1);
         return 0;
     }
 
-    if (s->verbose && optind == 1)
+    if (tcc_state->verbose && optind == 1)
         return 0;
 
-    if (s->nb_files == 0)
-        tcc_error("no input files\n");
+    if (tcc_state->nb_files == 0)
+        tcc_error(tcc_state, "no input files\n");
 
     /* check -c consistency : only single file handled. XXX: checks file type */
-    if (s->output_type == TCC_OUTPUT_OBJ && !s->option_r) {
-        if (s->nb_libraries != 0)
-            tcc_error("cannot specify libraries with -c");
+    if (tcc_state->output_type == TCC_OUTPUT_OBJ && !tcc_state->option_r) {
+        if (tcc_state->nb_libraries != 0)
+            tcc_error(tcc_state, "cannot specify libraries with -c");
         /* accepts only a single input file */
-        if (s->nb_files != 1)
-            tcc_error("cannot specify multiple files with -c");
+        if (tcc_state->nb_files != 1)
+            tcc_error(tcc_state, "cannot specify multiple files with -c");
     }
     
-    if (s->output_type == TCC_OUTPUT_PREPROCESS) {
-        if (!s->outfile) {
-            s->ppfp = stdout;
+    if (tcc_state->output_type == TCC_OUTPUT_PREPROCESS) {
+        if (!tcc_state->outfile) {
+            tcc_state->ppfp = stdout;
         } else {
-            s->ppfp = fopen(s->outfile, "w");
-            if (!s->ppfp)
-                tcc_error("could not write '%s'", s->outfile);
+            tcc_state->ppfp = fopen(tcc_state->outfile, "w");
+            if (!tcc_state->ppfp)
+                tcc_error(tcc_state, "could not write '%s'");
         }
     }
 
-    bench = s->do_bench;
+    bench = tcc_state->do_bench;
     if (bench)
         start_time = getclock_us();
 
-    tcc_set_output_type(s, s->output_type);
+    tcc_set_output_type(tcc_state, tcc_state->output_type);
 
     /* compile or add each files or library */
-    for(i = ret = 0; i < s->nb_files && ret == 0; i++) {
+    for(i = ret = 0; i < tcc_state->nb_files && ret == 0; i++) {
         const char *filename;
 
-        filename = s->files[i];
+        filename = tcc_state->files[i];
         if (filename[0] == '-' && filename[1] == 'l') {
-            if (tcc_add_library(s, filename + 2) < 0) {
-                tcc_error_noabort("cannot find '%s'", filename);
+            if (tcc_add_library(tcc_state, filename + 2) < 0) {
+                tcc_error_noabort(tcc_state, "cannot find '%s'", filename);
                 ret = 1;
             }
         } else {
-            if (1 == s->verbose)
+            if (1 == tcc_state->verbose)
                 printf("-> %s\n", filename);
-            if (tcc_add_file(s, filename) < 0)
+            if (tcc_add_file(tcc_state, filename) < 0)
                 ret = 1;
             if (!first_file)
                 first_file = filename;
@@ -423,29 +423,29 @@ int main(int argc, char **argv)
 
     if (0 == ret) {
         if (bench)
-            tcc_print_stats(s, getclock_us() - start_time);
+            tcc_print_stats(tcc_state, getclock_us() - start_time);
 
-        if (s->output_type == TCC_OUTPUT_MEMORY) {
+        if (tcc_state->output_type == TCC_OUTPUT_MEMORY) {
 #ifdef TCC_IS_NATIVE
-            ret = tcc_run(s, argc - 1 - optind, argv + 1 + optind);
+            ret = tcc_run(tcc_state, argc - 1 - optind, argv + 1 + optind);
 #else
-            tcc_error_noabort("-run is not available in a cross compiler");
+            tcc_error_noabort(tcc_state, "-run is not available in a cross compiler");
             ret = 1;
 #endif
-        } else if (s->output_type == TCC_OUTPUT_PREPROCESS) {
-             if (s->outfile)
-                fclose(s->ppfp);
+        } else if (tcc_state->output_type == TCC_OUTPUT_PREPROCESS) {
+             if (tcc_state->outfile)
+                fclose(tcc_state->ppfp);
         } else {
-            if (!s->outfile)
-                s->outfile = default_outputfile(s, first_file);
-            ret = !!tcc_output_file(s, s->outfile);
+            if (!tcc_state->outfile)
+                tcc_state->outfile = default_outputfile(tcc_state, first_file);
+            ret = !!tcc_output_file(tcc_state, tcc_state->outfile);
             /* dump collected dependencies */
-            if (s->gen_deps && !ret)
-                gen_makedeps(s, s->outfile, s->deps_outfile);
+            if (tcc_state->gen_deps && !ret)
+                gen_makedeps(tcc_state, tcc_state->outfile, tcc_state->deps_outfile);
         }
     }
 
-    tcc_delete(s);
+    tcc_delete(tcc_state);
     if (bench)
         tcc_memstats();
     return ret;

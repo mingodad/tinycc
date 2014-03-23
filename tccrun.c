@@ -23,6 +23,8 @@
 /* only native compiler supports -run */
 #ifdef TCC_IS_NATIVE
 
+TCCState *_rt_tcc_state = 0;
+
 #ifdef CONFIG_TCC_BACKTRACE
 ST_DATA int rt_num_callers = 6;
 ST_DATA const char **rt_bound_error_msg;
@@ -47,14 +49,14 @@ static void win64_add_function_table(TCCState *s1);
 /* Do all relocations (needed before using tcc_get_symbol())
    Returns -1 on error. */
 
-LIBTCCAPI int tcc_relocate(TCCState *s1, void *ptr)
+LIBTCCAPI int tcc_relocate(TCCState *tcc_state, void *ptr)
 {
     int ret;
 
     if (TCC_RELOCATE_AUTO != ptr)
-        return tcc_relocate_ex(s1, ptr);
+        return tcc_relocate_ex(tcc_state, ptr);
 
-    ret = tcc_relocate_ex(s1, NULL);
+    ret = tcc_relocate_ex(tcc_state, NULL);
     if (ret < 0)
         return ret;
 
@@ -65,49 +67,51 @@ LIBTCCAPI int tcc_relocate(TCCState *s1, void *ptr)
         char tmpfname[] = "/tmp/.tccrunXXXXXX";
         int fd = mkstemp (tmpfname);
 
-        s1->mem_size = ret;
+        tcc_state->mem_size = ret;
         unlink (tmpfname);
-        ftruncate (fd, s1->mem_size);
+        ftruncate (fd, tcc_state->mem_size);
 
-        s1->write_mem = mmap (NULL, ret, PROT_READ|PROT_WRITE,
+        tcc_state->write_mem = mmap (NULL, ret, PROT_READ|PROT_WRITE,
             MAP_SHARED, fd, 0);
-        if (s1->write_mem == MAP_FAILED)
-            tcc_error("/tmp not writeable");
+        if (tcc_state->write_mem == MAP_FAILED)
+            tcc_error(tcc_state, "/tmp not writeable");
 
-        s1->runtime_mem = mmap (NULL, ret, PROT_READ|PROT_EXEC,
+        tcc_state->runtime_mem = mmap (NULL, ret, PROT_READ|PROT_EXEC,
             MAP_SHARED, fd, 0);
-        if (s1->runtime_mem == MAP_FAILED)
-            tcc_error("/tmp not executable");
+        if (tcc_state->runtime_mem == MAP_FAILED)
+            tcc_error(tcc_state, "/tmp not executable");
 
-        ret = tcc_relocate_ex(s1, s1->write_mem);
+        ret = tcc_relocate_ex(tcc_state, tcc_state->write_mem);
     }
 #else
-    s1->runtime_mem = tcc_malloc(ret);
-    ret = tcc_relocate_ex(s1, s1->runtime_mem);
+    tcc_state->runtime_mem = tcc_malloc(tcc_state, ret);
+    ret = tcc_relocate_ex(tcc_state, tcc_state->runtime_mem);
 #endif
     return ret;
 }
 
 /* launch the compiled program with the given arguments */
-LIBTCCAPI int tcc_run(TCCState *s1, int argc, char **argv)
+LIBTCCAPI int tcc_run(TCCState *tcc_state, int argc, char **argv)
 {
     int (*prog_main)(int, char **);
     int ret;
 
-    if (tcc_relocate(s1, TCC_RELOCATE_AUTO) < 0)
+    if (tcc_relocate(tcc_state, TCC_RELOCATE_AUTO) < 0)
         return -1;
 
-    prog_main = tcc_get_symbol_err(s1, s1->runtime_main);
+    _rt_tcc_state = tcc_state; /*for now use this global*/
+    
+    prog_main = tcc_get_symbol_err(tcc_state, tcc_state->runtime_main);
 
 #ifdef CONFIG_TCC_BACKTRACE
-    if (s1->do_debug) {
+    if (tcc_state->do_debug) {
         set_exception_handler();
         rt_prog_main = prog_main;
     }
 #endif
 
 #ifdef CONFIG_TCC_BCHECK
-    if (s1->do_bounds_check) {
+    if (tcc_state->do_bounds_check) {
         void (*bound_init)(void);
         void (*bound_exit)(void);
         void (*bound_new_region)(void *p, unsigned long size);
@@ -115,12 +119,12 @@ LIBTCCAPI int tcc_run(TCCState *s1, int argc, char **argv)
         int i;
 
         /* set error function */
-        rt_bound_error_msg = tcc_get_symbol_err(s1, "__bound_error_msg");
+        rt_bound_error_msg = tcc_get_symbol_err(tcc_state, "__bound_error_msg");
         /* XXX: use .init section so that it also work in binary ? */
-        bound_init = tcc_get_symbol_err(s1, "__bound_init");
-        bound_exit = tcc_get_symbol_err(s1, "__bound_exit");
-        bound_new_region = tcc_get_symbol_err(s1, "__bound_new_region");
-        bound_delete_region = tcc_get_symbol_err(s1, "__bound_delete_region");
+        bound_init = tcc_get_symbol_err(tcc_state, "__bound_init");
+        bound_exit = tcc_get_symbol_err(tcc_state, "__bound_exit");
+        bound_new_region = tcc_get_symbol_err(tcc_state, "__bound_new_region");
+        bound_delete_region = tcc_get_symbol_err(tcc_state, "__bound_delete_region");
         bound_init();
         /* mark argv area as valid */
         bound_new_region(argv, argc*sizeof(argv[0]));
@@ -143,7 +147,7 @@ LIBTCCAPI int tcc_run(TCCState *s1, int argc, char **argv)
 
 /* relocate code. Return -1 on error, required size if ptr is NULL,
    otherwise copy code into buffer passed by the caller */
-static int tcc_relocate_ex(TCCState *s1, void *ptr)
+static int tcc_relocate_ex(TCCState *tcc_state, void *ptr)
 {
     Section *s;
     unsigned long offset, length;
@@ -151,22 +155,22 @@ static int tcc_relocate_ex(TCCState *s1, void *ptr)
     int i;
 
     if (NULL == ptr) {
-        s1->nb_errors = 0;
+        tcc_state->nb_errors = 0;
 #ifdef TCC_TARGET_PE
-        pe_output_file(s1, NULL);
+        pe_output_file(tcc_state, NULL);
 #else
-        tcc_add_runtime(s1);
-        relocate_common_syms();
-        tcc_add_linker_symbols(s1);
-        build_got_entries(s1);
+        tcc_add_runtime(tcc_state);
+        relocate_common_syms(tcc_state);
+        tcc_add_linker_symbols(tcc_state);
+        build_got_entries(tcc_state);
 #endif
-        if (s1->nb_errors)
+        if (tcc_state->nb_errors)
             return -1;
     }
 
     offset = 0, mem = (addr_t)ptr;
-    for(i = 1; i < s1->nb_sections; i++) {
-        s = s1->sections[i];
+    for(i = 1; i < tcc_state->nb_sections; i++) {
+        s = tcc_state->sections[i];
         if (0 == (s->sh_flags & SHF_ALLOC))
             continue;
         length = s->data_offset;
@@ -176,13 +180,13 @@ static int tcc_relocate_ex(TCCState *s1, void *ptr)
     offset += 16;
 
     /* relocate symbols */
-    relocate_syms(s1, 1);
-    if (s1->nb_errors)
+    relocate_syms(tcc_state, 1);
+    if (tcc_state->nb_errors)
         return -1;
 
 #ifdef TCC_HAS_RUNTIME_PLTGOT
-    s1->runtime_plt_and_got_offset = 0;
-    s1->runtime_plt_and_got = (char *)(mem + offset);
+    tcc_state->runtime_plt_and_got_offset = 0;
+    tcc_state->runtime_plt_and_got = (char *)(mem + offset);
     /* double the size of the buffer for got and plt entries
        XXX: calculate exact size for them? */
     offset *= 2;
@@ -192,14 +196,14 @@ static int tcc_relocate_ex(TCCState *s1, void *ptr)
         return offset;
 
     /* relocate each section */
-    for(i = 1; i < s1->nb_sections; i++) {
-        s = s1->sections[i];
+    for(i = 1; i < tcc_state->nb_sections; i++) {
+        s = tcc_state->sections[i];
         if (s->reloc)
-            relocate_section(s1, s);
+            relocate_section(tcc_state, s);
     }
 
-    for(i = 1; i < s1->nb_sections; i++) {
-        s = s1->sections[i];
+    for(i = 1; i < tcc_state->nb_sections; i++) {
+        s = tcc_state->sections[i];
         if (0 == (s->sh_flags & SHF_ALLOC))
             continue;
         length = s->data_offset;
@@ -215,12 +219,12 @@ static int tcc_relocate_ex(TCCState *s1, void *ptr)
     }
 
 #ifdef TCC_HAS_RUNTIME_PLTGOT
-    set_pages_executable(s1->runtime_plt_and_got,
-                         s1->runtime_plt_and_got_offset);
+    set_pages_executable(tcc_state->runtime_plt_and_got,
+                         tcc_state->runtime_plt_and_got_offset);
 #endif
 
 #ifdef _WIN64
-    win64_add_function_table(s1);
+    win64_add_function_table(tcc_state);
 #endif
     return 0;
 }
@@ -264,15 +268,16 @@ static addr_t rt_printline(addr_t wanted_pc, const char *msg)
     const char *incl_files[INCLUDE_STACK_SIZE];
     int incl_index, len, last_line_num, i;
     const char *str, *p;
+    TCCState *tcc_state = _rt_tcc_state;
 
     Stab_Sym *stab_sym = NULL, *stab_sym_end, *sym;
     int stab_len = 0;
     char *stab_str = NULL;
 
-    if (stab_section) {
-        stab_len = stab_section->data_offset;
-        stab_sym = (Stab_Sym *)stab_section->data;
-        stab_str = (char *) stabstr_section->data;
+    if (tcc_state && tcc_state->tccgen_stab_section) {
+        stab_len = tcc_state->tccgen_stab_section->data_offset;
+        stab_sym = (Stab_Sym *)tcc_state->tccgen_stab_section->data;
+        stab_str = (char *) tcc_state->tccgen_stabstr_section->data;
     }
 
     func_name[0] = '\0';
@@ -351,13 +356,13 @@ static addr_t rt_printline(addr_t wanted_pc, const char *msg)
 no_stabs:
     /* second pass: we try symtab symbols (no line number info) */
     incl_index = 0;
-    if (symtab_section)
+    if (tcc_state && tcc_state->tccgen_symtab_section)
     {
         ElfW(Sym) *sym, *sym_end;
         int type;
 
-        sym_end = (ElfW(Sym) *)(symtab_section->data + symtab_section->data_offset);
-        for(sym = (ElfW(Sym) *)symtab_section->data + 1;
+        sym_end = (ElfW(Sym) *)(tcc_state->tccgen_symtab_section->data + tcc_state->tccgen_symtab_section->data_offset);
+        for(sym = (ElfW(Sym) *)tcc_state->tccgen_symtab_section->data + 1;
             sym < sym_end;
             sym++) {
             type = ELFW(ST_TYPE)(sym->st_info);
@@ -365,7 +370,7 @@ no_stabs:
                 if (wanted_pc >= sym->st_value &&
                     wanted_pc < sym->st_value + sym->st_size) {
                     pstrcpy(last_func_name, sizeof(last_func_name),
-                            (char *) strtab_section->data + sym->st_name);
+                            (char *) tcc_state->tccgen_strtab_section->data + sym->st_name);
                     func_addr = sym->st_value;
                     goto found;
                 }
@@ -658,7 +663,7 @@ static void win64_add_function_table(TCCState *s1)
     RtlAddFunctionTable(
         (RUNTIME_FUNCTION*)s1->uw_pdata->sh_addr,
         s1->uw_pdata->data_offset / sizeof (RUNTIME_FUNCTION),
-        text_section->sh_addr
+        tcc_state->tccgen_text_section->sh_addr
         );
 }
 #endif
@@ -741,7 +746,7 @@ ST_FUNC void *resolve_sym(TCCState *s1, const char *symbol)
 
 #elif !defined(_WIN32)
 
-ST_FUNC void *resolve_sym(TCCState *s1, const char *sym)
+ST_FUNC void *resolve_sym(TCCState *tcc_state, const char *sym)
 {
     return dlsym(RTLD_DEFAULT, sym);
 }

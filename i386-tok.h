@@ -7,7 +7,7 @@
  DEF_ASM(dl)
  DEF_ASM(bl)
  DEF_ASM(ah)
- DEF_ASM(ch)
+ DEF_ASM(tccpp_ch)
  DEF_ASM(dh)
  DEF_ASM(bh)
  DEF_ASM(ax)

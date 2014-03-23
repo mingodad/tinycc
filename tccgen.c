@@ -28,12 +28,12 @@
    rsym: return symbol
    anon_sym: anonymous symbol index
 */
-ST_DATA int rsym, anon_sym, ind, loc;
+//ST_DATA int tccgen_rsym, tccgen_anon_sym, tccgen_ind, tccgen_loc;
 
-ST_DATA Section *text_section, *data_section, *bss_section; /* predefined sections */
-ST_DATA Section *cur_text_section; /* current section where function code is generated */
+//ST_DATA Section *tccgen_text_section, *tccgen_data_section, *tccgen_bss_section; /* predefined sections */
+//ST_DATA Section *tccgen_cur_text_section; /* current section where function code is generated */
 #ifdef CONFIG_TCC_ASM
-ST_DATA Section *last_text_section; /* to handle .previous asm directive */
+//ST_DATA Section *tcc_state->tccgen_last_text_section; /* to handle .previous asm directive */
 #endif
 #ifdef CONFIG_TCC_BCHECK
 /* bound check related sections */
@@ -41,55 +41,55 @@ ST_DATA Section *bounds_section; /* contains global data bound description */
 ST_DATA Section *lbounds_section; /* contains local data bound description */
 #endif
 /* symbol sections */
-ST_DATA Section *symtab_section, *strtab_section;
+//ST_DATA Section *tccgen_symtab_section, *tccgen_strtab_section;
 /* debug sections */
-ST_DATA Section *stab_section, *stabstr_section;
-ST_DATA Sym *sym_free_first;
-ST_DATA void **sym_pools;
-ST_DATA int nb_sym_pools;
+//ST_DATA Section *tccgen_stab_section, *tccgen_stabstr_section;
+//ST_DATA Sym *tccgen_sym_free_first;
+//ST_DATA void **tccgen_sym_pools;
+//ST_DATA int tcc_state->tccgen_nb_sym_pools;
 
-ST_DATA Sym *global_stack;
-ST_DATA Sym *local_stack;
-ST_DATA Sym *scope_stack_bottom;
-ST_DATA Sym *define_stack;
-ST_DATA Sym *global_label_stack;
-ST_DATA Sym *local_label_stack;
+//ST_DATA Sym *tccgen_global_stack;
+//ST_DATA Sym *tccgen_local_stack;
+//ST_DATA Sym *scope_stack_bottom;
+//ST_DATA Sym *tccgen_define_stack;
+//ST_DATA Sym *tccgen_global_label_stack;
+//ST_DATA Sym *tccgen_local_label_stack;
 
-ST_DATA int vla_sp_loc_tmp; /* vla_sp_loc is set to this when the value won't be needed later */
-ST_DATA int vla_sp_root_loc; /* vla_sp_loc for SP before any VLAs were pushed */
-ST_DATA int *vla_sp_loc; /* Pointer to variable holding location to store stack pointer on the stack when modifying stack pointer */
-ST_DATA int vla_flags; /* VLA_* flags */
+//ST_DATA int tccgen_vla_sp_loc_tmp; /* vla_sp_loc is set to this when the value won't be needed later */
+//ST_DATA int tccgen_vla_sp_root_loc; /* vla_sp_loc for SP before any VLAs were pushed */
+//ST_DATA int *tccgen_vla_sp_loc; /* Pointer to variable holding location to store stack pointer on the stack when modifying stack pointer */
+//ST_DATA int tccgen_vla_flags; /* VLA_* flags */
 
-ST_DATA SValue __vstack[1+VSTACK_SIZE], *vtop;
+//ST_DATA SValue tccgen___vstack[1+VSTACK_SIZE], *tccgen_vtop;
 
-ST_DATA int const_wanted; /* true if constant wanted */
-ST_DATA int nocode_wanted; /* true if no code generation wanted for an expression */
-ST_DATA int global_expr;  /* true if compound literals must be allocated globally (used during initializers parsing */
-ST_DATA CType func_vt; /* current function return type (used by return instruction) */
-ST_DATA int func_var; /* true if current function is variadic (used by return instruction) */
-ST_DATA int func_vc;
-ST_DATA int last_line_num, last_ind, func_ind; /* debug last line number and pc */
-ST_DATA char *funcname;
+//ST_DATA int tccgen_const_wanted; /* true if constant wanted */
+//ST_DATA int tccgen_nocode_wanted; /* true if no code generation wanted for an expression */
+//ST_DATA tccgen_global_expr;  /* true if compound literals must be allocated globally (used during initializers parsing */
+//ST_DATA CType tccgen_func_vt; /* current function return type (used by return instruction) */
+//ST_DATA int tccgen_func_var; /* true if current function is variadic (used by return instruction) */
+//ST_DATA int tccgen_func_vc;
+//ST_DATA int tccgen_last_line_num, tccgen_last_ind, tccgen_func_ind; /* debug last line number and pc */
+//ST_DATA char *tccgen_funcname;
 
-ST_DATA CType char_pointer_type, func_old_type, int_type, size_type;
+//ST_DATA CType tcc_state->tccgen_char_pointer_type, tcc_state->tccgen_func_old_type, tcc_state->tccgen_int_type, tcc_state->tccgen_size_type;
 
 /* ------------------------------------------------------------------------- */
-static void gen_cast(CType *type);
+static void gen_cast(TCCState* tcc_state, CType *type);
 static inline CType *pointed_type(CType *type);
 static int is_compatible_types(CType *type1, CType *type2);
-static int parse_btype(CType *type, AttributeDef *ad);
-static void type_decl(CType *type, AttributeDef *ad, int *v, int td);
-static void parse_expr_type(CType *type);
-static void decl_initializer(CType *type, Section *sec, unsigned long c, int first, int size_only);
-static void block(int *bsym, int *csym, int *case_sym, int *def_sym, int case_reg, int is_expr);
-static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r, int has_init, int v, char *asm_label, int scope);
-static int decl0(int l, int is_for_loop_init);
-static void expr_eq(void);
-static void unary_type(CType *type);
-static void vla_runtime_type_size(CType *type, int *a);
-static void vla_sp_save(void);
+static int parse_btype(TCCState* tcc_state, CType *type, AttributeDef *ad);
+static void type_decl(TCCState* tcc_state, CType *type, AttributeDef *ad, int *v, int td);
+static void parse_expr_type(TCCState* tcc_state, CType *type);
+static void decl_initializer(TCCState* tcc_state, CType *type, Section *sec, unsigned long c, int first, int size_only);
+static void block(TCCState* tcc_state, int *bsym, int *csym, int *case_sym, int *def_sym, int case_reg, int is_expr);
+static void decl_initializer_alloc(TCCState* tcc_state, CType *type, AttributeDef *ad, int r, int has_init, int v, char *asm_label, int scope);
+static int decl0(TCCState* tcc_state, int l, int is_for_loop_init);
+static void expr_eq(TCCState* tcc_state);
+static void unary_type(TCCState* tcc_state, CType *type);
+static void vla_runtime_type_size(TCCState* tcc_state, CType *type, int *a);
+static void vla_sp_save(TCCState* tcc_state);
 static int is_compatible_parameter_types(CType *type1, CType *type2);
-static void expr_type(CType *type);
+static void expr_type(TCCState* tcc_state, CType *type);
 
 ST_INLN int is_float(int t)
 {
@@ -108,61 +108,60 @@ ST_FUNC int ieee_finite(double d)
     return ((unsigned)((p[1] | 0x800fffff) + 1)) >> 31;
 }
 
-ST_FUNC void test_lvalue(void)
+ST_FUNC void test_lvalue(TCCState* tcc_state)
 {
-    if (!(vtop->r & VT_LVAL))
-        expect("lvalue");
+    if (!(tcc_state->tccgen_vtop->r & VT_LVAL))
+        expect(tcc_state, "lvalue");
 }
 
 /* ------------------------------------------------------------------------- */
 /* symbol allocator */
-static Sym *__sym_malloc(void)
+static Sym *__sym_malloc(TCCState* tcc_state)
 {
     Sym *sym_pool, *sym, *last_sym;
     int i;
 
-    sym_pool = tcc_malloc(SYM_POOL_NB * sizeof(Sym));
-    dynarray_add(&sym_pools, &nb_sym_pools, sym_pool);
+    sym_pool = tcc_malloc(tcc_state, SYM_POOL_NB * sizeof(Sym));
+    dynarray_add(tcc_state, &tcc_state->tccgen_sym_pools, &tcc_state->tccgen_nb_sym_pools, sym_pool);
 
-    last_sym = sym_free_first;
+    last_sym = tcc_state->tccgen_sym_free_first;
     sym = sym_pool;
     for(i = 0; i < SYM_POOL_NB; i++) {
         sym->next = last_sym;
         last_sym = sym;
         sym++;
     }
-    sym_free_first = last_sym;
+    tcc_state->tccgen_sym_free_first = last_sym;
     return last_sym;
 }
 
-static inline Sym *sym_malloc(void)
+static inline Sym *sym_malloc(TCCState* tcc_state)
 {
     Sym *sym;
-    sym = sym_free_first;
+    sym = tcc_state->tccgen_sym_free_first;
     if (!sym)
-        sym = __sym_malloc();
-    sym_free_first = sym->next;
+        sym = __sym_malloc(tcc_state);
+    tcc_state->tccgen_sym_free_first = sym->next;
     return sym;
 }
 
-ST_INLN void sym_free(Sym *sym)
+ST_INLN void sym_free(TCCState* tcc_state, Sym *sym)
 {
-    sym->next = sym_free_first;
+    sym->next = tcc_state->tccgen_sym_free_first;
     tcc_free(sym->asm_label);
-    sym_free_first = sym;
+    tcc_state->tccgen_sym_free_first = sym;
 }
 
 /* push, without hashing */
-ST_FUNC Sym *sym_push2(Sym **ps, int v, int t, long c)
+ST_FUNC Sym *sym_push2(TCCState* tcc_state, Sym **ps, int v, int t, long c)
 {
     Sym *s;
-    if (ps == &local_stack) {
-        for (s = *ps; s && s != scope_stack_bottom; s = s->prev)
+    if (ps == &tcc_state->tccgen_local_stack) {
+        for (s = *ps; s && s != tcc_state->scope_stack_bottom; s = s->prev)
             if (!(v & SYM_FIELD) && (v & ~SYM_STRUCT) < SYM_FIRST_ANOM && s->v == v)
-                tcc_error("incompatible types for redefinition of '%s'",
-                          get_tok_str(v, NULL));
+                tcc_error(tcc_state, "incompatible types for redefinition of '%s'");
     }
-    s = sym_malloc();
+    s = sym_malloc(tcc_state);
     s->asm_label = NULL;
     s->v = v;
     s->type.t = t;
@@ -191,41 +190,41 @@ ST_FUNC Sym *sym_find2(Sym *s, int v)
 }
 
 /* structure lookup */
-ST_INLN Sym *struct_find(int v)
+ST_INLN Sym *struct_find(TCCState* tcc_state, int v)
 {
     v -= TOK_IDENT;
-    if ((unsigned)v >= (unsigned)(tok_ident - TOK_IDENT))
+    if ((unsigned)v >= (unsigned)(tcc_state->tccpp_tok_ident - TOK_IDENT))
         return NULL;
-    return table_ident[v]->sym_struct;
+    return tcc_state->tccpp_table_ident[v]->sym_struct;
 }
 
 /* find an identifier */
-ST_INLN Sym *sym_find(int v)
+ST_INLN Sym *sym_find(TCCState* tcc_state, int v)
 {
     v -= TOK_IDENT;
-    if ((unsigned)v >= (unsigned)(tok_ident - TOK_IDENT))
+    if ((unsigned)v >= (unsigned)(tcc_state->tccpp_tok_ident - TOK_IDENT))
         return NULL;
-    return table_ident[v]->sym_identifier;
+    return tcc_state->tccpp_table_ident[v]->sym_identifier;
 }
 
 /* push a given symbol on the symbol stack */
-ST_FUNC Sym *sym_push(int v, CType *type, int r, int c)
+ST_FUNC Sym *sym_push(TCCState* tcc_state, int v, CType *type, int r, int c)
 {
     Sym *s, **ps;
     TokenSym *ts;
 
-    if (local_stack)
-        ps = &local_stack;
+    if (tcc_state->tccgen_local_stack)
+        ps = &tcc_state->tccgen_local_stack;
     else
-        ps = &global_stack;
-    s = sym_push2(ps, v, type->t, c);
+        ps = &tcc_state->tccgen_global_stack;
+    s = sym_push2(tcc_state, ps, v, type->t, c);
     s->type.ref = type->ref;
     s->r = r;
     /* don't record fields or anonymous symbols */
     /* XXX: simplify */
     if (!(v & SYM_FIELD) && (v & ~SYM_STRUCT) < SYM_FIRST_ANOM) {
         /* record symbol in token array */
-        ts = table_ident[(v & ~SYM_STRUCT) - TOK_IDENT];
+        ts = tcc_state->tccpp_table_ident[(v & ~SYM_STRUCT) - TOK_IDENT];
         if (v & SYM_STRUCT)
             ps = &ts->sym_struct;
         else
@@ -237,13 +236,13 @@ ST_FUNC Sym *sym_push(int v, CType *type, int r, int c)
 }
 
 /* push a global identifier */
-ST_FUNC Sym *global_identifier_push(int v, int t, int c)
+ST_FUNC Sym *global_identifier_push(TCCState* tcc_state, int v, int t, int c)
 {
     Sym *s, **ps;
-    s = sym_push2(&global_stack, v, t, c);
+    s = sym_push2(tcc_state, &tcc_state->tccgen_global_stack, v, t, c);
     /* don't record anonymous symbol */
     if (v < SYM_FIRST_ANOM) {
-        ps = &table_ident[v - TOK_IDENT]->sym_identifier;
+        ps = &tcc_state->tccpp_table_ident[v - TOK_IDENT]->sym_identifier;
         /* modify the top most local identifier, so that
            sym_identifier will point to 's' when popped */
         while (*ps != NULL)
@@ -255,7 +254,7 @@ ST_FUNC Sym *global_identifier_push(int v, int t, int c)
 }
 
 /* pop symbols until top reaches 'b' */
-ST_FUNC void sym_pop(Sym **ptop, Sym *b)
+ST_FUNC void sym_pop(TCCState* tcc_state, Sym **ptop, Sym *b)
 {
     Sym *s, *ss, **ps;
     TokenSym *ts;
@@ -268,27 +267,27 @@ ST_FUNC void sym_pop(Sym **ptop, Sym *b)
         /* remove symbol in token array */
         /* XXX: simplify */
         if (!(v & SYM_FIELD) && (v & ~SYM_STRUCT) < SYM_FIRST_ANOM) {
-            ts = table_ident[(v & ~SYM_STRUCT) - TOK_IDENT];
+            ts = tcc_state->tccpp_table_ident[(v & ~SYM_STRUCT) - TOK_IDENT];
             if (v & SYM_STRUCT)
                 ps = &ts->sym_struct;
             else
                 ps = &ts->sym_identifier;
             *ps = s->prev_tok;
         }
-        sym_free(s);
+        sym_free(tcc_state, s);
         s = ss;
     }
     *ptop = b;
 }
 
-static void weaken_symbol(Sym *sym)
+static void weaken_symbol(TCCState* tcc_state, Sym *sym)
 {
     sym->type.t |= VT_WEAK;
     if (sym->c > 0) {
         int esym_type;
         ElfW(Sym) *esym;
         
-        esym = &((ElfW(Sym) *)symtab_section->data)[sym->c];
+        esym = &((ElfW(Sym) *)tcc_state->tccgen_symtab_section->data)[sym->c];
         esym_type = ELFW(ST_TYPE)(esym->st_info);
         esym->st_info = ELFW(ST_INFO)(STB_WEAK, esym_type);
     }
@@ -304,109 +303,109 @@ ST_FUNC void swap(int *p, int *q)
     *q = t;
 }
 
-static void vsetc(CType *type, int r, CValue *vc)
+static void vsetc(TCCState* tcc_state, CType *type, int r, CValue *vc)
 {
     int v;
 
-    if (vtop >= vstack + (VSTACK_SIZE - 1))
-        tcc_error("memory full (vstack)");
+    if (tcc_state->tccgen_vtop >= vstack + (VSTACK_SIZE - 1))
+        tcc_error(tcc_state, "memory full (vstack)");
     /* cannot let cpu flags if other instruction are generated. Also
        avoid leaving VT_JMP anywhere except on the top of the stack
        because it would complicate the code generator. */
-    if (vtop >= vstack) {
-        v = vtop->r & VT_VALMASK;
+    if (tcc_state->tccgen_vtop >= vstack) {
+        v = tcc_state->tccgen_vtop->r & VT_VALMASK;
         if (v == VT_CMP || (v & ~1) == VT_JMP)
-            gv(RC_INT);
+            gv(tcc_state, RC_INT);
     }
-    vtop++;
-    vtop->type = *type;
-    vtop->r = r;
-    vtop->r2 = VT_CONST;
-    vtop->c = *vc;
+    tcc_state->tccgen_vtop++;
+    tcc_state->tccgen_vtop->type = *type;
+    tcc_state->tccgen_vtop->r = r;
+    tcc_state->tccgen_vtop->r2 = VT_CONST;
+    tcc_state->tccgen_vtop->c = *vc;
 }
 
 /* push constant of type "type" with useless value */
-void vpush(CType *type)
+void vpush(TCCState* tcc_state, CType *type)
 {
     CValue cval;
-    vsetc(type, VT_CONST, &cval);
+    vsetc(tcc_state, type, VT_CONST, &cval);
 }
 
 /* push integer constant */
-ST_FUNC void vpushi(int v)
+ST_FUNC void vpushi(TCCState* tcc_state, int v)
 {
     CValue cval;
     cval.i = v;
-    vsetc(&int_type, VT_CONST, &cval);
+    vsetc(tcc_state, &tcc_state->tccgen_int_type, VT_CONST, &cval);
 }
 
 /* push a pointer sized constant */
-static void vpushs(long long v)
+static void vpushs(TCCState* tcc_state, long long v)
 {
   CValue cval;
   if (PTR_SIZE == 4)
     cval.i = (int)v;
   else
     cval.ull = v;
-  vsetc(&size_type, VT_CONST, &cval);
+  vsetc(tcc_state, &tcc_state->tccgen_size_type, VT_CONST, &cval);
 }
 
 /* push arbitrary 64bit constant */
-void vpush64(int ty, unsigned long long v)
+void vpush64(TCCState* tcc_state, int ty, unsigned long long v)
 {
     CValue cval;
     CType ctype;
     ctype.t = ty;
     ctype.ref = NULL;
     cval.ull = v;
-    vsetc(&ctype, VT_CONST, &cval);
+    vsetc(tcc_state, &ctype, VT_CONST, &cval);
 }
 
 /* push long long constant */
-static inline void vpushll(long long v)
+static inline void vpushll(TCCState* tcc_state, long long v)
 {
-    vpush64(VT_LLONG, v);
+    vpush64(tcc_state, VT_LLONG, v);
 }
 
 /* push a symbol value of TYPE */
-static inline void vpushsym(CType *type, Sym *sym)
+static inline void vpushsym(TCCState* tcc_state, CType *type, Sym *sym)
 {
     CValue cval;
 
     cval.ull = 0;
-    vsetc(type, VT_CONST | VT_SYM, &cval);
-    vtop->sym = sym;
+    vsetc(tcc_state, type, VT_CONST | VT_SYM, &cval);
+    tcc_state->tccgen_vtop->sym = sym;
 }
 
 /* Return a static symbol pointing to a section */
-ST_FUNC Sym *get_sym_ref(CType *type, Section *sec, unsigned long offset, unsigned long size)
+ST_FUNC Sym *get_sym_ref(TCCState* tcc_state, CType *type, Section *sec, unsigned long offset, unsigned long size)
 {
     int v;
     Sym *sym;
 
-    v = anon_sym++;
-    sym = global_identifier_push(v, type->t | VT_STATIC, 0);
+    v = tcc_state->tccgen_anon_sym++;
+    sym = global_identifier_push(tcc_state, v, type->t | VT_STATIC, 0);
     sym->type.ref = type->ref;
     sym->r = VT_CONST | VT_SYM;
-    put_extern_sym(sym, sec, offset, size);
+    put_extern_sym(tcc_state, sym, sec, offset, size);
     return sym;
 }
 
 /* push a reference to a section offset by adding a dummy symbol */
-static void vpush_ref(CType *type, Section *sec, unsigned long offset, unsigned long size)
+static void vpush_ref(TCCState* tcc_state, CType *type, Section *sec, unsigned long offset, unsigned long size)
 {
-    vpushsym(type, get_sym_ref(type, sec, offset, size));  
+    vpushsym(tcc_state, type, get_sym_ref(tcc_state, type, sec, offset, size));  
 }
 
 /* define a new external reference to a symbol 'v' of type 'u' */
-ST_FUNC Sym *external_global_sym(int v, CType *type, int r)
+ST_FUNC Sym *external_global_sym(TCCState* tcc_state, int v, CType *type, int r)
 {
     Sym *s;
 
-    s = sym_find(v);
+    s = sym_find(tcc_state, v);
     if (!s) {
         /* push forward reference */
-        s = global_identifier_push(v, type->t | VT_EXTERN, 0);
+        s = global_identifier_push(tcc_state, v, type->t | VT_EXTERN, 0);
         s->type.ref = type->ref;
         s->r = r | VT_CONST | VT_SYM;
     }
@@ -416,63 +415,62 @@ ST_FUNC Sym *external_global_sym(int v, CType *type, int r)
 /* define a new external reference to a symbol 'v' with alternate asm
    name 'asm_label' of type 'u'. 'asm_label' is equal to NULL if there
    is no alternate name (most cases) */
-static Sym *external_sym(int v, CType *type, int r, char *asm_label)
+static Sym *external_sym(TCCState* tcc_state, int v, CType *type, int r, char *asm_label)
 {
     Sym *s;
 
-    s = sym_find(v);
+    s = sym_find(tcc_state, v);
     if (!s) {
         /* push forward reference */
-        s = sym_push(v, type, r | VT_CONST | VT_SYM, 0);
+        s = sym_push(tcc_state, v, type, r | VT_CONST | VT_SYM, 0);
         s->asm_label = asm_label;
         s->type.t |= VT_EXTERN;
-    } else if (s->type.ref == func_old_type.ref) {
+    } else if (s->type.ref == tcc_state->tccgen_func_old_type.ref) {
         s->type.ref = type->ref;
         s->r = r | VT_CONST | VT_SYM;
         s->type.t |= VT_EXTERN;
     } else if (!is_compatible_types(&s->type, type)) {
-        tcc_error("incompatible types for redefinition of '%s'", 
-              get_tok_str(v, NULL));
+        tcc_error(tcc_state, "incompatible types for redefinition of '%s'");
     }
     return s;
 }
 
 /* push a reference to global symbol v */
-ST_FUNC void vpush_global_sym(CType *type, int v)
+ST_FUNC void vpush_global_sym(TCCState* tcc_state, CType *type, int v)
 {
-    vpushsym(type, external_global_sym(v, type, 0));
+    vpushsym(tcc_state, type, external_global_sym(tcc_state, v, type, 0));
 }
 
-ST_FUNC void vset(CType *type, int r, int v)
+ST_FUNC void vset(TCCState* tcc_state, CType *type, int r, int v)
 {
     CValue cval;
 
     cval.i = v;
-    vsetc(type, r, &cval);
+    vsetc(tcc_state, type, r, &cval);
 }
 
-static void vseti(int r, int v)
+static void vseti(TCCState* tcc_state, int r, int v)
 {
     CType type;
     type.t = VT_INT;
     type.ref = 0;
-    vset(&type, r, v);
+    vset(tcc_state, &type, r, v);
 }
 
-ST_FUNC void vswap(void)
+ST_FUNC void vswap(TCCState* tcc_state)
 {
     SValue tmp;
     /* cannot let cpu flags if other instruction are generated. Also
        avoid leaving VT_JMP anywhere except on the top of the stack
        because it would complicate the code generator. */
-    if (vtop >= vstack) {
-        int v = vtop->r & VT_VALMASK;
+    if (tcc_state->tccgen_vtop >= vstack) {
+        int v = tcc_state->tccgen_vtop->r & VT_VALMASK;
         if (v == VT_CMP || (v & ~1) == VT_JMP)
-            gv(RC_INT);
+            gv(tcc_state, RC_INT);
     }
-    tmp = vtop[0];
-    vtop[0] = vtop[-1];
-    vtop[-1] = tmp;
+    tmp = tcc_state->tccgen_vtop[0];
+    tcc_state->tccgen_vtop[0] = tcc_state->tccgen_vtop[-1];
+    tcc_state->tccgen_vtop[-1] = tmp;
 
 /* XXX: +2% overall speed possible with optimized memswap
  *
@@ -480,21 +478,21 @@ ST_FUNC void vswap(void)
  */
 }
 
-ST_FUNC void vpushv(SValue *v)
+ST_FUNC void vpushv(TCCState* tcc_state, SValue *v)
 {
-    if (vtop >= vstack + (VSTACK_SIZE - 1))
-        tcc_error("memory full (vstack)");
-    vtop++;
-    *vtop = *v;
+    if (tcc_state->tccgen_vtop >= vstack + (VSTACK_SIZE - 1))
+        tcc_error(tcc_state, "memory full (vstack)");
+    tcc_state->tccgen_vtop++;
+    *tcc_state->tccgen_vtop = *v;
 }
 
-static void vdup(void)
+static void vdup(TCCState* tcc_state)
 {
-    vpushv(vtop);
+    vpushv(tcc_state, tcc_state->tccgen_vtop);
 }
 
 /* save r to the memory stack, and mark it as being free */
-ST_FUNC void save_reg(int r)
+ST_FUNC void save_reg(TCCState* tcc_state, int r)
 {
     int l, saved, size, align;
     SValue *p, sv;
@@ -503,7 +501,7 @@ ST_FUNC void save_reg(int r)
     /* modify all stack values */
     saved = 0;
     l = 0;
-    for(p=vstack;p<=vtop;p++) {
+    for(p=vstack;p<=tcc_state->tccgen_vtop;p++) {
         if ((p->r & VT_VALMASK) == r ||
             ((p->type.t & VT_BTYPE) == VT_LLONG && (p->r2 & VT_VALMASK) == r)) {
             /* must save value on stack if not already done */
@@ -515,30 +513,30 @@ ST_FUNC void save_reg(int r)
                 if ((p->r & VT_LVAL) ||
                     (!is_float(type->t) && (type->t & VT_BTYPE) != VT_LLONG))
 #ifdef TCC_TARGET_X86_64
-                    type = &char_pointer_type;
+                    type = &tcc_state->tccgen_char_pointer_type;
 #else
-                    type = &int_type;
+                    type = &tcc_state->tccgen_int_type;
 #endif
                 size = type_size(type, &align);
-                loc = (loc - size) & -align;
+                tcc_state->tccgen_loc = (tcc_state->tccgen_loc - size) & -align;
                 sv.type.t = type->t;
                 sv.r = VT_LOCAL | VT_LVAL;
-                sv.c.ul = loc;
-                store(r, &sv);
+                sv.c.ul = tcc_state->tccgen_loc;
+                store(tcc_state, r, &sv);
 #if defined(TCC_TARGET_I386) || defined(TCC_TARGET_X86_64)
                 /* x86 specific: need to pop fp register ST0 if saved */
                 if (r == TREG_ST0) {
-                    o(0xd8dd); /* fstp %st(0) */
+                    o(tcc_state, 0xd8dd); /* fstp %st(0) */
                 }
 #endif
 #ifndef TCC_TARGET_X86_64
                 /* special long long case */
                 if ((type->t & VT_BTYPE) == VT_LLONG) {
                     sv.c.ul += 4;
-                    store(p->r2, &sv);
+                    store(tcc_state, p->r2, &sv);
                 }
 #endif
-                l = loc;
+                l = tcc_state->tccgen_loc;
                 saved = 1;
             }
             /* mark that stack entry as being saved on the stack */
@@ -559,7 +557,7 @@ ST_FUNC void save_reg(int r)
 #ifdef TCC_TARGET_ARM
 /* find a register of class 'rc2' with at most one reference on stack.
  * If none, call get_reg(rc) */
-ST_FUNC int get_reg_ex(int rc, int rc2)
+ST_FUNC int get_reg_ex(TCCState *tcc_state, int rc, int rc2)
 {
     int r;
     SValue *p;
@@ -568,7 +566,7 @@ ST_FUNC int get_reg_ex(int rc, int rc2)
         if (reg_classes[r] & rc2) {
             int n;
             n=0;
-            for(p = vstack; p <= vtop; p++) {
+            for(p = vstack; p <= tcc_state->tccgen_vtop; p++) {
                 if ((p->r & VT_VALMASK) == r ||
                     (p->r2 & VT_VALMASK) == r)
                     n++;
@@ -577,12 +575,12 @@ ST_FUNC int get_reg_ex(int rc, int rc2)
                 return r;
         }
     }
-    return get_reg(rc);
+    return get_reg(tcc_state, rc);
 }
 #endif
 
 /* find a free register of class 'rc'. If none, save one register */
-ST_FUNC int get_reg(int rc)
+ST_FUNC int get_reg(TCCState* tcc_state, int rc)
 {
     int r;
     SValue *p;
@@ -590,7 +588,7 @@ ST_FUNC int get_reg(int rc)
     /* find a free register */
     for(r=0;r<NB_REGS;r++) {
         if (reg_classes[r] & rc) {
-            for(p=vstack;p<=vtop;p++) {
+            for(p=vstack;p<=tcc_state->tccgen_vtop;p++) {
                 if ((p->r & VT_VALMASK) == r ||
                     (p->r2 & VT_VALMASK) == r)
                     goto notfound;
@@ -603,7 +601,7 @@ ST_FUNC int get_reg(int rc)
     /* no register left : free the first one on the stack (VERY
        IMPORTANT to start from the bottom to ensure that we don't
        spill registers used in gen_opi()) */
-    for(p=vstack;p<=vtop;p++) {
+    for(p=vstack;p<=tcc_state->tccgen_vtop;p++) {
         /* look at second register (if long long) */
         r = p->r2 & VT_VALMASK;
         if (r < VT_CONST && (reg_classes[r] & rc))
@@ -611,7 +609,7 @@ ST_FUNC int get_reg(int rc)
         r = p->r & VT_VALMASK;
         if (r < VT_CONST && (reg_classes[r] & rc)) {
         save_found:
-            save_reg(r);
+            save_reg(tcc_state, r);
             return r;
         }
     }
@@ -620,44 +618,44 @@ ST_FUNC int get_reg(int rc)
 }
 
 /* save registers up to (vtop - n) stack entry */
-ST_FUNC void save_regs(int n)
+ST_FUNC void save_regs(TCCState* tcc_state, int n)
 {
     int r;
     SValue *p, *p1;
-    p1 = vtop - n;
+    p1 = tcc_state->tccgen_vtop - n;
     for(p = vstack;p <= p1; p++) {
         r = p->r & VT_VALMASK;
         if (r < VT_CONST) {
-            save_reg(r);
+            save_reg(tcc_state, r);
         }
     }
 }
 
 /* move register 's' (of type 't') to 'r', and flush previous value of r to memory
    if needed */
-static void move_reg(int r, int s, int t)
+static void move_reg(TCCState* tcc_state, int r, int s, int t)
 {
     SValue sv;
 
     if (r != s) {
-        save_reg(r);
+        save_reg(tcc_state, r);
         sv.type.t = t;
         sv.type.ref = NULL;
         sv.r = s;
         sv.c.ul = 0;
-        load(r, &sv);
+        load(tcc_state, r, &sv);
     }
 }
 
 /* get address of vtop (vtop MUST BE an lvalue) */
-static void gaddrof(void)
+static void gaddrof(TCCState* tcc_state)
 {
-    if (vtop->r & VT_REF)
-        gv(RC_INT);
-    vtop->r &= ~VT_LVAL;
+    if (tcc_state->tccgen_vtop->r & VT_REF)
+        gv(tcc_state, RC_INT);
+    tcc_state->tccgen_vtop->r &= ~VT_LVAL;
     /* tricky: if saved lvalue, then we can go back to lvalue */
-    if ((vtop->r & VT_VALMASK) == VT_LLOCAL)
-        vtop->r = (vtop->r & ~(VT_VALMASK | VT_LVAL_TYPE)) | VT_LOCAL | VT_LVAL;
+    if ((tcc_state->tccgen_vtop->r & VT_VALMASK) == VT_LLOCAL)
+        tcc_state->tccgen_vtop->r = (tcc_state->tccgen_vtop->r & ~(VT_VALMASK | VT_LVAL_TYPE)) | VT_LOCAL | VT_LVAL;
 
 
 }
@@ -669,20 +667,20 @@ static void gbound(void)
     int lval_type;
     CType type1;
 
-    vtop->r &= ~VT_MUSTBOUND;
+    tcc_state->tccgen_vtop->r &= ~VT_MUSTBOUND;
     /* if lvalue, then use checking code before dereferencing */
-    if (vtop->r & VT_LVAL) {
+    if (tcc_state->tccgen_vtop->r & VT_LVAL) {
         /* if not VT_BOUNDED value, then make one */
-        if (!(vtop->r & VT_BOUNDED)) {
-            lval_type = vtop->r & (VT_LVAL_TYPE | VT_LVAL);
+        if (!(tcc_state->tccgen_vtop->r & VT_BOUNDED)) {
+            lval_type = tcc_state->tccgen_vtop->r & (VT_LVAL_TYPE | VT_LVAL);
             /* must save type because we must set it to int to get pointer */
-            type1 = vtop->type;
-            vtop->type.t = VT_INT;
-            gaddrof();
-            vpushi(0);
+            type1 = tcc_state->tccgen_vtop->type;
+            tcc_state->tccgen_vtop->type.t = VT_INT;
+            gaddrof(tcc_state);
+            vpushi(tcc_state, 0);
             gen_bounded_ptr_add();
-            vtop->r |= lval_type;
-            vtop->type = type1;
+            tcc_state->tccgen_vtop->r |= lval_type;
+            tcc_state->tccgen_vtop->type = type1;
         }
         /* then check for dereferencing */
         gen_bounded_ptr_deref();
@@ -693,39 +691,39 @@ static void gbound(void)
 /* store vtop a register belonging to class 'rc'. lvalues are
    converted to values. Cannot be used if cannot be converted to
    register value (such as structures). */
-ST_FUNC int gv(int rc)
+ST_FUNC int gv(TCCState* tcc_state, int rc)
 {
     int r, bit_pos, bit_size, size, align, i;
     int rc2;
 
     /* NOTE: get_reg can modify vstack[] */
-    if (vtop->type.t & VT_BITFIELD) {
+    if (tcc_state->tccgen_vtop->type.t & VT_BITFIELD) {
         CType type;
         int bits = 32;
-        bit_pos = (vtop->type.t >> VT_STRUCT_SHIFT) & 0x3f;
-        bit_size = (vtop->type.t >> (VT_STRUCT_SHIFT + 6)) & 0x3f;
+        bit_pos = (tcc_state->tccgen_vtop->type.t >> VT_STRUCT_SHIFT) & 0x3f;
+        bit_size = (tcc_state->tccgen_vtop->type.t >> (VT_STRUCT_SHIFT + 6)) & 0x3f;
         /* remove bit field info to avoid loops */
-        vtop->type.t &= ~(VT_BITFIELD | (-1 << VT_STRUCT_SHIFT));
+        tcc_state->tccgen_vtop->type.t &= ~(VT_BITFIELD | (-1 << VT_STRUCT_SHIFT));
         /* cast to int to propagate signedness in following ops */
-        if ((vtop->type.t & VT_BTYPE) == VT_LLONG) {
+        if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_LLONG) {
             type.t = VT_LLONG;
             bits = 64;
         } else
             type.t = VT_INT;
-        if((vtop->type.t & VT_UNSIGNED) ||
-           (vtop->type.t & VT_BTYPE) == VT_BOOL)
+        if((tcc_state->tccgen_vtop->type.t & VT_UNSIGNED) ||
+           (tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_BOOL)
             type.t |= VT_UNSIGNED;
-        gen_cast(&type);
+        gen_cast(tcc_state, &type);
         /* generate shifts */
-        vpushi(bits - (bit_pos + bit_size));
-        gen_op(TOK_SHL);
-        vpushi(bits - bit_size);
+        vpushi(tcc_state, bits - (bit_pos + bit_size));
+        gen_op(tcc_state, TOK_SHL);
+        vpushi(tcc_state, bits - bit_size);
         /* NOTE: transformed to SHR if unsigned */
-        gen_op(TOK_SAR);
-        r = gv(rc);
+        gen_op(tcc_state, TOK_SAR);
+        r = gv(tcc_state, rc);
     } else {
-        if (is_float(vtop->type.t) && 
-            (vtop->r & (VT_VALMASK | VT_LVAL)) == VT_CONST) {
+        if (is_float(tcc_state->tccgen_vtop->type.t) && 
+            (tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL)) == VT_CONST) {
             Sym *sym;
             int *ptr;
             unsigned long offset;
@@ -736,41 +734,41 @@ ST_FUNC int gv(int rc)
             /* XXX: unify with initializers handling ? */
             /* CPUs usually cannot use float constants, so we store them
                generically in data segment */
-            size = type_size(&vtop->type, &align);
-            offset = (data_section->data_offset + align - 1) & -align;
-            data_section->data_offset = offset;
+            size = type_size(&tcc_state->tccgen_vtop->type, &align);
+            offset = (tcc_state->tccgen_data_section->data_offset + align - 1) & -align;
+            tcc_state->tccgen_data_section->data_offset = offset;
             /* XXX: not portable yet */
 #if defined(__i386__) || defined(__x86_64__)
             /* Zero pad x87 tenbyte long doubles */
             if (size == LDOUBLE_SIZE) {
-                vtop->c.tab[2] &= 0xffff;
+                tcc_state->tccgen_vtop->c.tab[2] &= 0xffff;
 #if LDOUBLE_SIZE == 16
-                vtop->c.tab[3] = 0;
+                tcc_state->tccgen_vtop->c.tab[3] = 0;
 #endif
             }
 #endif
-            ptr = section_ptr_add(data_section, size);
+            ptr = section_ptr_add(tcc_state, tcc_state->tccgen_data_section, size);
             size = size >> 2;
 #if defined(TCC_TARGET_ARM) && !defined(TCC_ARM_VFP)
             check.d = 1;
             if(check.tab[0])
                 for(i=0;i<size;i++)
-                    ptr[i] = vtop->c.tab[size-1-i];
+                    ptr[i] = tcc_state->tccgen_vtop->c.tab[size-1-i];
             else
 #endif
             for(i=0;i<size;i++)
-                ptr[i] = vtop->c.tab[i];
-            sym = get_sym_ref(&vtop->type, data_section, offset, size << 2);
-            vtop->r |= VT_LVAL | VT_SYM;
-            vtop->sym = sym;
-            vtop->c.ull = 0;
+                ptr[i] = tcc_state->tccgen_vtop->c.tab[i];
+            sym = get_sym_ref(tcc_state, &tcc_state->tccgen_vtop->type, tcc_state->tccgen_data_section, offset, size << 2);
+            tcc_state->tccgen_vtop->r |= VT_LVAL | VT_SYM;
+            tcc_state->tccgen_vtop->sym = sym;
+            tcc_state->tccgen_vtop->c.ull = 0;
         }
 #ifdef CONFIG_TCC_BCHECK
-        if (vtop->r & VT_MUSTBOUND) 
+        if (tcc_state->tccgen_vtop->r & VT_MUSTBOUND) 
             gbound();
 #endif
 
-        r = vtop->r & VT_VALMASK;
+        r = tcc_state->tccgen_vtop->r & VT_VALMASK;
         rc2 = (rc & RC_FLOAT) ? RC_FLOAT : RC_INT;
         if (rc == RC_IRET)
             rc2 = RC_LRET;
@@ -784,139 +782,139 @@ ST_FUNC int gv(int rc)
            - lvalue (need to dereference pointer)
            - already a register, but not in the right class */
         if (r >= VT_CONST
-         || (vtop->r & VT_LVAL)
+         || (tcc_state->tccgen_vtop->r & VT_LVAL)
          || !(reg_classes[r] & rc)
 #ifdef TCC_TARGET_X86_64
-         || ((vtop->type.t & VT_BTYPE) == VT_QLONG && !(reg_classes[vtop->r2] & rc2))
-         || ((vtop->type.t & VT_BTYPE) == VT_QFLOAT && !(reg_classes[vtop->r2] & rc2))
+         || ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_QLONG && !(reg_classes[tcc_state->tccgen_vtop->r2] & rc2))
+         || ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_QFLOAT && !(reg_classes[tcc_state->tccgen_vtop->r2] & rc2))
 #else
-         || ((vtop->type.t & VT_BTYPE) == VT_LLONG && !(reg_classes[vtop->r2] & rc2))
+         || ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_LLONG && !(reg_classes[tcc_state->tccgen_vtop->r2] & rc2))
 #endif
             )
         {
-            r = get_reg(rc);
+            r = get_reg(tcc_state, rc);
 #ifdef TCC_TARGET_X86_64
-            if (((vtop->type.t & VT_BTYPE) == VT_QLONG) || ((vtop->type.t & VT_BTYPE) == VT_QFLOAT)) {
-                int addr_type = VT_LLONG, load_size = 8, load_type = ((vtop->type.t & VT_BTYPE) == VT_QLONG) ? VT_LLONG : VT_DOUBLE;
+            if (((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_QLONG) || ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_QFLOAT)) {
+                int addr_type = VT_LLONG, load_size = 8, load_type = ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_QLONG) ? VT_LLONG : VT_DOUBLE;
 #else
-            if ((vtop->type.t & VT_BTYPE) == VT_LLONG) {
+            if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_LLONG) {
                 int addr_type = VT_INT, load_size = 4, load_type = VT_INT;
                 unsigned long long ll;
 #endif
                 int r2, original_type;
-                original_type = vtop->type.t;
+                original_type = tcc_state->tccgen_vtop->type.t;
                 /* two register type load : expand to two words
                    temporarily */
 #ifndef TCC_TARGET_X86_64
-                if ((vtop->r & (VT_VALMASK | VT_LVAL)) == VT_CONST) {
+                if ((tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL)) == VT_CONST) {
                     /* load constant */
-                    ll = vtop->c.ull;
-                    vtop->c.ui = ll; /* first word */
-                    load(r, vtop);
-                    vtop->r = r; /* save register value */
-                    vpushi(ll >> 32); /* second word */
+                    ll = tcc_state->tccgen_vtop->c.ull;
+                    tcc_state->tccgen_vtop->c.ui = ll; /* first word */
+                    load(tcc_state, r, tcc_state->tccgen_vtop);
+                    tcc_state->tccgen_vtop->r = r; /* save register value */
+                    vpushi(tcc_state, ll >> 32); /* second word */
                 } else
 #endif
                 if (r >= VT_CONST || /* XXX: test to VT_CONST incorrect ? */
-                           (vtop->r & VT_LVAL)) {
+                           (tcc_state->tccgen_vtop->r & VT_LVAL)) {
                     /* We do not want to modifier the long long
                        pointer here, so the safest (and less
                        efficient) is to save all the other registers
                        in the stack. XXX: totally inefficient. */
-                    save_regs(1);
+                    save_regs(tcc_state, 1);
                     /* load from memory */
-                    vtop->type.t = load_type;
-                    load(r, vtop);
-                    vdup();
-                    vtop[-1].r = r; /* save register value */
+                    tcc_state->tccgen_vtop->type.t = load_type;
+                    load(tcc_state, r, tcc_state->tccgen_vtop);
+                    vdup(tcc_state);
+                    tcc_state->tccgen_vtop[-1].r = r; /* save register value */
                     /* increment pointer to get second word */
-                    vtop->type.t = addr_type;
-                    gaddrof();
-                    vpushi(load_size);
-                    gen_op('+');
-                    vtop->r |= VT_LVAL;
-                    vtop->type.t = load_type;
+                    tcc_state->tccgen_vtop->type.t = addr_type;
+                    gaddrof(tcc_state);
+                    vpushi(tcc_state, load_size);
+                    gen_op(tcc_state, '+');
+                    tcc_state->tccgen_vtop->r |= VT_LVAL;
+                    tcc_state->tccgen_vtop->type.t = load_type;
                 } else {
                     /* move registers */
-                    load(r, vtop);
-                    vdup();
-                    vtop[-1].r = r; /* save register value */
-                    vtop->r = vtop[-1].r2;
+                    load(tcc_state, r, tcc_state->tccgen_vtop);
+                    vdup(tcc_state);
+                    tcc_state->tccgen_vtop[-1].r = r; /* save register value */
+                    tcc_state->tccgen_vtop->r = tcc_state->tccgen_vtop[-1].r2;
                 }
                 /* Allocate second register. Here we rely on the fact that
                    get_reg() tries first to free r2 of an SValue. */
-                r2 = get_reg(rc2);
-                load(r2, vtop);
-                vpop();
+                r2 = get_reg(tcc_state, rc2);
+                load(tcc_state, r2, tcc_state->tccgen_vtop);
+                vpop(tcc_state);
                 /* write second register */
-                vtop->r2 = r2;
-                vtop->type.t = original_type;
-            } else if ((vtop->r & VT_LVAL) && !is_float(vtop->type.t)) {
+                tcc_state->tccgen_vtop->r2 = r2;
+                tcc_state->tccgen_vtop->type.t = original_type;
+            } else if ((tcc_state->tccgen_vtop->r & VT_LVAL) && !is_float(tcc_state->tccgen_vtop->type.t)) {
                 int t1, t;
                 /* lvalue of scalar type : need to use lvalue type
                    because of possible cast */
-                t = vtop->type.t;
+                t = tcc_state->tccgen_vtop->type.t;
                 t1 = t;
                 /* compute memory access type */
-                if (vtop->r & VT_REF)
+                if (tcc_state->tccgen_vtop->r & VT_REF)
 #ifdef TCC_TARGET_X86_64
                     t = VT_PTR;
 #else
                     t = VT_INT;
 #endif
-                else if (vtop->r & VT_LVAL_BYTE)
+                else if (tcc_state->tccgen_vtop->r & VT_LVAL_BYTE)
                     t = VT_BYTE;
-                else if (vtop->r & VT_LVAL_SHORT)
+                else if (tcc_state->tccgen_vtop->r & VT_LVAL_SHORT)
                     t = VT_SHORT;
-                if (vtop->r & VT_LVAL_UNSIGNED)
+                if (tcc_state->tccgen_vtop->r & VT_LVAL_UNSIGNED)
                     t |= VT_UNSIGNED;
-                vtop->type.t = t;
-                load(r, vtop);
+                tcc_state->tccgen_vtop->type.t = t;
+                load(tcc_state, r, tcc_state->tccgen_vtop);
                 /* restore wanted type */
-                vtop->type.t = t1;
+                tcc_state->tccgen_vtop->type.t = t1;
             } else {
                 /* one register type load */
-                load(r, vtop);
+                load(tcc_state, r, tcc_state->tccgen_vtop);
             }
         }
-        vtop->r = r;
+        tcc_state->tccgen_vtop->r = r;
 #ifdef TCC_TARGET_C67
         /* uses register pairs for doubles */
-        if ((vtop->type.t & VT_BTYPE) == VT_DOUBLE) 
-            vtop->r2 = r+1;
+        if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_DOUBLE) 
+            tcc_state->tccgen_vtop->r2 = r+1;
 #endif
     }
     return r;
 }
 
 /* generate vtop[-1] and vtop[0] in resp. classes rc1 and rc2 */
-ST_FUNC void gv2(int rc1, int rc2)
+ST_FUNC void gv2(TCCState* tcc_state, int rc1, int rc2)
 {
     int v;
 
     /* generate more generic register first. But VT_JMP or VT_CMP
        values must be generated first in all cases to avoid possible
        reload errors */
-    v = vtop[0].r & VT_VALMASK;
+    v = tcc_state->tccgen_vtop[0].r & VT_VALMASK;
     if (v != VT_CMP && (v & ~1) != VT_JMP && rc1 <= rc2) {
-        vswap();
-        gv(rc1);
-        vswap();
-        gv(rc2);
+        vswap(tcc_state);
+        gv(tcc_state, rc1);
+        vswap(tcc_state);
+        gv(tcc_state, rc2);
         /* test if reload is needed for first register */
-        if ((vtop[-1].r & VT_VALMASK) >= VT_CONST) {
-            vswap();
-            gv(rc1);
-            vswap();
+        if ((tcc_state->tccgen_vtop[-1].r & VT_VALMASK) >= VT_CONST) {
+            vswap(tcc_state);
+            gv(tcc_state, rc1);
+            vswap(tcc_state);
         }
     } else {
-        gv(rc2);
-        vswap();
-        gv(rc1);
-        vswap();
+        gv(tcc_state, rc2);
+        vswap(tcc_state);
+        gv(tcc_state, rc1);
+        vswap(tcc_state);
         /* test if reload is needed for first register */
-        if ((vtop[0].r & VT_VALMASK) >= VT_CONST) {
-            gv(rc2);
+        if ((tcc_state->tccgen_vtop[0].r & VT_VALMASK) >= VT_CONST) {
+            gv(tcc_state, rc2);
         }
     }
 }
@@ -944,69 +942,69 @@ static int reg_fret(int t)
 }
 
 /* expand long long on stack in two int registers */
-static void lexpand(void)
+static void lexpand(TCCState* tcc_state)
 {
     int u;
 
-    u = vtop->type.t & (VT_DEFSIGN | VT_UNSIGNED);
-    gv(RC_INT);
-    vdup();
-    vtop[0].r = vtop[-1].r2;
-    vtop[0].r2 = VT_CONST;
-    vtop[-1].r2 = VT_CONST;
-    vtop[0].type.t = VT_INT | u;
-    vtop[-1].type.t = VT_INT | u;
+    u = tcc_state->tccgen_vtop->type.t & (VT_DEFSIGN | VT_UNSIGNED);
+    gv(tcc_state, RC_INT);
+    vdup(tcc_state);
+    tcc_state->tccgen_vtop[0].r = tcc_state->tccgen_vtop[-1].r2;
+    tcc_state->tccgen_vtop[0].r2 = VT_CONST;
+    tcc_state->tccgen_vtop[-1].r2 = VT_CONST;
+    tcc_state->tccgen_vtop[0].type.t = VT_INT | u;
+    tcc_state->tccgen_vtop[-1].type.t = VT_INT | u;
 }
 
 #ifdef TCC_TARGET_ARM
 /* expand long long on stack */
-ST_FUNC void lexpand_nr(void)
+ST_FUNC void lexpand_nr(TCCState* tcc_state)
 {
     int u,v;
 
-    u = vtop->type.t & (VT_DEFSIGN | VT_UNSIGNED);
-    vdup();
-    vtop->r2 = VT_CONST;
-    vtop->type.t = VT_INT | u;
-    v=vtop[-1].r & (VT_VALMASK | VT_LVAL);
+    u = tcc_state->tccgen_vtop->type.t & (VT_DEFSIGN | VT_UNSIGNED);
+    vdup(tcc_state);
+    tcc_state->tccgen_vtop->r2 = VT_CONST;
+    tcc_state->tccgen_vtop->type.t = VT_INT | u;
+    v=tcc_state->tccgen_vtop[-1].r & (VT_VALMASK | VT_LVAL);
     if (v == VT_CONST) {
-      vtop[-1].c.ui = vtop->c.ull;
-      vtop->c.ui = vtop->c.ull >> 32;
-      vtop->r = VT_CONST;
+      tcc_state->tccgen_vtop[-1].c.ui = tcc_state->tccgen_vtop->c.ull;
+      tcc_state->tccgen_vtop->c.ui = tcc_state->tccgen_vtop->c.ull >> 32;
+      tcc_state->tccgen_vtop->r = VT_CONST;
     } else if (v == (VT_LVAL|VT_CONST) || v == (VT_LVAL|VT_LOCAL)) {
-      vtop->c.ui += 4;
-      vtop->r = vtop[-1].r;
+      tcc_state->tccgen_vtop->c.ui += 4;
+      tcc_state->tccgen_vtop->r = tcc_state->tccgen_vtop[-1].r;
     } else if (v > VT_CONST) {
-      vtop--;
-      lexpand();
+      tcc_state->tccgen_vtop--;
+      lexpand(tcc_state);
     } else
-      vtop->r = vtop[-1].r2;
-    vtop[-1].r2 = VT_CONST;
-    vtop[-1].type.t = VT_INT | u;
+      tcc_state->tccgen_vtop->r = tcc_state->tccgen_vtop[-1].r2;
+    tcc_state->tccgen_vtop[-1].r2 = VT_CONST;
+    tcc_state->tccgen_vtop[-1].type.t = VT_INT | u;
 }
 #endif
 
 /* build a long long from two ints */
-static void lbuild(int t)
+static void lbuild(TCCState* tcc_state, int t)
 {
-    gv2(RC_INT, RC_INT);
-    vtop[-1].r2 = vtop[0].r;
-    vtop[-1].type.t = t;
-    vpop();
+    gv2(tcc_state, RC_INT, RC_INT);
+    tcc_state->tccgen_vtop[-1].r2 = tcc_state->tccgen_vtop[0].r;
+    tcc_state->tccgen_vtop[-1].type.t = t;
+    vpop(tcc_state);
 }
 
 /* rotate n first stack elements to the bottom 
    I1 ... In -> I2 ... In I1 [top is right]
 */
-ST_FUNC void vrotb(int n)
+ST_FUNC void vrotb(TCCState* tcc_state, int n)
 {
     int i;
     SValue tmp;
 
-    tmp = vtop[-n + 1];
+    tmp = tcc_state->tccgen_vtop[-n + 1];
     for(i=-n+1;i!=0;i++)
-        vtop[i] = vtop[i+1];
-    vtop[0] = tmp;
+        tcc_state->tccgen_vtop[i] = tcc_state->tccgen_vtop[i+1];
+    tcc_state->tccgen_vtop[0] = tmp;
 }
 
 /* rotate the n elements before entry e towards the top
@@ -1026,51 +1024,51 @@ ST_FUNC void vrote(SValue *e, int n)
 /* rotate n first stack elements to the top
    I1 ... In -> In I1 ... I(n-1)  [top is right]
  */
-ST_FUNC void vrott(int n)
+ST_FUNC void vrott(TCCState* tcc_state, int n)
 {
-    vrote(vtop, n);
+    vrote(tcc_state->tccgen_vtop, n);
 }
 
 /* pop stack value */
-ST_FUNC void vpop(void)
+ST_FUNC void vpop(TCCState* tcc_state)
 {
     int v;
-    v = vtop->r & VT_VALMASK;
+    v = tcc_state->tccgen_vtop->r & VT_VALMASK;
 #if defined(TCC_TARGET_I386) || defined(TCC_TARGET_X86_64)
     /* for x86, we need to pop the FP stack */
-    if (v == TREG_ST0 && !nocode_wanted) {
-        o(0xd8dd); /* fstp %st(0) */
+    if (v == TREG_ST0 && !tcc_state->tccgen_nocode_wanted) {
+        o(tcc_state, 0xd8dd); /* fstp %st(0) */
     } else
 #endif
     if (v == VT_JMP || v == VT_JMPI) {
         /* need to put correct jump if && or || without test */
-        gsym(vtop->c.ul);
+        gsym(tcc_state, tcc_state->tccgen_vtop->c.ul);
     }
-    vtop--;
+    tcc_state->tccgen_vtop--;
 }
 
 /* convert stack entry to register and duplicate its value in another
    register */
-static void gv_dup(void)
+static void gv_dup(TCCState* tcc_state)
 {
     int rc, t, r, r1;
     SValue sv;
 
-    t = vtop->type.t;
+    t = tcc_state->tccgen_vtop->type.t;
     if ((t & VT_BTYPE) == VT_LLONG) {
-        lexpand();
-        gv_dup();
-        vswap();
-        vrotb(3);
-        gv_dup();
-        vrotb(4);
+        lexpand(tcc_state);
+        gv_dup(tcc_state);
+        vswap(tcc_state);
+        vrotb(tcc_state, 3);
+        gv_dup(tcc_state);
+        vrotb(tcc_state, 4);
         /* stack: H L L1 H1 */
-        lbuild(t);
-        vrotb(3);
-        vrotb(3);
-        vswap();
-        lbuild(t);
-        vswap();
+        lbuild(tcc_state, t);
+        vrotb(tcc_state, 3);
+        vrotb(tcc_state, 3);
+        vswap(tcc_state);
+        lbuild(tcc_state, t);
+        vswap(tcc_state);
     } else {
         /* duplicate value */
         rc = RC_INT;
@@ -1084,41 +1082,41 @@ static void gv_dup(void)
 #endif
             sv.type.t = t;
         }
-        r = gv(rc);
-        r1 = get_reg(rc);
+        r = gv(tcc_state, rc);
+        r1 = get_reg(tcc_state, rc);
         sv.r = r;
         sv.c.ul = 0;
-        load(r1, &sv); /* move r to r1 */
-        vdup();
+        load(tcc_state, r1, &sv); /* move r to r1 */
+        vdup(tcc_state);
         /* duplicates value */
         if (r != r1)
-            vtop->r = r1;
+            tcc_state->tccgen_vtop->r = r1;
     }
 }
 
 /* Generate value test
  *
  * Generate a test for any value (jump, comparison and integers) */
-int gvtst(int inv, int t)
+int gvtst(TCCState* tcc_state, int inv, int t)
 {
-    int v = vtop->r & VT_VALMASK;
+    int v = tcc_state->tccgen_vtop->r & VT_VALMASK;
     if (v != VT_CMP && v != VT_JMP && v != VT_JMPI) {
-        vpushi(0);
-        gen_op(TOK_NE);
+        vpushi(tcc_state, 0);
+        gen_op(tcc_state, TOK_NE);
     }
-    if ((vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST) {
+    if ((tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST) {
         /* constant jmp optimization */
-        if ((vtop->c.i != 0) != inv)
-            t = gjmp(t);
-        vtop--;
+        if ((tcc_state->tccgen_vtop->c.i != 0) != inv)
+            t = gjmp(tcc_state, t);
+        tcc_state->tccgen_vtop--;
         return t;
     }
-    return gtst(inv, t);
+    return gtst(tcc_state, inv, t);
 }
 
 #ifndef TCC_TARGET_X86_64
 /* generate CPU independent (unsigned) long long operations */
-static void gen_opl(int op)
+static void gen_opl(TCCState* tcc_state, int op)
 {
     int t, a, b, op1, c, i;
     int func;
@@ -1146,12 +1144,12 @@ static void gen_opl(int op)
 #endif
     gen_func:
         /* call generic long long function */
-        vpush_global_sym(&func_old_type, func);
-        vrott(3);
-        gfunc_call(2);
-        vpushi(0);
-        vtop->r = reg_iret;
-        vtop->r2 = reg_lret;
+        vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, func);
+        vrott(tcc_state, 3);
+        gfunc_call(tcc_state, 2);
+        vpushi(tcc_state, 0);
+        tcc_state->tccgen_vtop->r = reg_iret;
+        tcc_state->tccgen_vtop->r2 = reg_lret;
         break;
     case '^':
     case '&':
@@ -1159,118 +1157,118 @@ static void gen_opl(int op)
     case '*':
     case '+':
     case '-':
-        t = vtop->type.t;
-        vswap();
-        lexpand();
-        vrotb(3);
-        lexpand();
+        t = tcc_state->tccgen_vtop->type.t;
+        vswap(tcc_state);
+        lexpand(tcc_state);
+        vrotb(tcc_state, 3);
+        lexpand(tcc_state);
         /* stack: L1 H1 L2 H2 */
-        tmp = vtop[0];
-        vtop[0] = vtop[-3];
-        vtop[-3] = tmp;
-        tmp = vtop[-2];
-        vtop[-2] = vtop[-3];
-        vtop[-3] = tmp;
-        vswap();
+        tmp = tcc_state->tccgen_vtop[0];
+        tcc_state->tccgen_vtop[0] = tcc_state->tccgen_vtop[-3];
+        tcc_state->tccgen_vtop[-3] = tmp;
+        tmp = tcc_state->tccgen_vtop[-2];
+        tcc_state->tccgen_vtop[-2] = tcc_state->tccgen_vtop[-3];
+        tcc_state->tccgen_vtop[-3] = tmp;
+        vswap(tcc_state);
         /* stack: H1 H2 L1 L2 */
         if (op == '*') {
-            vpushv(vtop - 1);
-            vpushv(vtop - 1);
-            gen_op(TOK_UMULL);
-            lexpand();
+            vpushv(tcc_state, tcc_state->tccgen_vtop - 1);
+            vpushv(tcc_state, tcc_state->tccgen_vtop - 1);
+            gen_op(tcc_state, TOK_UMULL);
+            lexpand(tcc_state);
             /* stack: H1 H2 L1 L2 ML MH */
             for(i=0;i<4;i++)
-                vrotb(6);
+                vrotb(tcc_state, 6);
             /* stack: ML MH H1 H2 L1 L2 */
-            tmp = vtop[0];
-            vtop[0] = vtop[-2];
-            vtop[-2] = tmp;
+            tmp = tcc_state->tccgen_vtop[0];
+            tcc_state->tccgen_vtop[0] = tcc_state->tccgen_vtop[-2];
+            tcc_state->tccgen_vtop[-2] = tmp;
             /* stack: ML MH H1 L2 H2 L1 */
-            gen_op('*');
-            vrotb(3);
-            vrotb(3);
-            gen_op('*');
+            gen_op(tcc_state, '*');
+            vrotb(tcc_state, 3);
+            vrotb(tcc_state, 3);
+            gen_op(tcc_state, '*');
             /* stack: ML MH M1 M2 */
-            gen_op('+');
-            gen_op('+');
+            gen_op(tcc_state, '+');
+            gen_op(tcc_state, '+');
         } else if (op == '+' || op == '-') {
             /* XXX: add non carry method too (for MIPS or alpha) */
             if (op == '+')
                 op1 = TOK_ADDC1;
             else
                 op1 = TOK_SUBC1;
-            gen_op(op1);
+            gen_op(tcc_state, op1);
             /* stack: H1 H2 (L1 op L2) */
-            vrotb(3);
-            vrotb(3);
-            gen_op(op1 + 1); /* TOK_xxxC2 */
+            vrotb(tcc_state, 3);
+            vrotb(tcc_state, 3);
+            gen_op(tcc_state, op1 + 1); /* TOK_xxxC2 */
         } else {
-            gen_op(op);
+            gen_op(tcc_state, op);
             /* stack: H1 H2 (L1 op L2) */
-            vrotb(3);
-            vrotb(3);
+            vrotb(tcc_state, 3);
+            vrotb(tcc_state, 3);
             /* stack: (L1 op L2) H1 H2 */
-            gen_op(op);
+            gen_op(tcc_state, op);
             /* stack: (L1 op L2) (H1 op H2) */
         }
         /* stack: L H */
-        lbuild(t);
+        lbuild(tcc_state, t);
         break;
     case TOK_SAR:
     case TOK_SHR:
     case TOK_SHL:
-        if ((vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST) {
-            t = vtop[-1].type.t;
-            vswap();
-            lexpand();
-            vrotb(3);
+        if ((tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST) {
+            t = tcc_state->tccgen_vtop[-1].type.t;
+            vswap(tcc_state);
+            lexpand(tcc_state);
+            vrotb(tcc_state, 3);
             /* stack: L H shift */
-            c = (int)vtop->c.i;
+            c = (int)tcc_state->tccgen_vtop->c.i;
             /* constant: simpler */
             /* NOTE: all comments are for SHL. the other cases are
                done by swaping words */
-            vpop();
+            vpop(tcc_state);
             if (op != TOK_SHL)
-                vswap();
+                vswap(tcc_state);
             if (c >= 32) {
                 /* stack: L H */
-                vpop();
+                vpop(tcc_state);
                 if (c > 32) {
-                    vpushi(c - 32);
-                    gen_op(op);
+                    vpushi(tcc_state, c - 32);
+                    gen_op(tcc_state, op);
                 }
                 if (op != TOK_SAR) {
-                    vpushi(0);
+                    vpushi(tcc_state, 0);
                 } else {
-                    gv_dup();
-                    vpushi(31);
-                    gen_op(TOK_SAR);
+                    gv_dup(tcc_state);
+                    vpushi(tcc_state, 31);
+                    gen_op(tcc_state, TOK_SAR);
                 }
-                vswap();
+                vswap(tcc_state);
             } else {
-                vswap();
-                gv_dup();
+                vswap(tcc_state);
+                gv_dup(tcc_state);
                 /* stack: H L L */
-                vpushi(c);
-                gen_op(op);
-                vswap();
-                vpushi(32 - c);
+                vpushi(tcc_state, c);
+                gen_op(tcc_state, op);
+                vswap(tcc_state);
+                vpushi(tcc_state, 32 - c);
                 if (op == TOK_SHL)
-                    gen_op(TOK_SHR);
+                    gen_op(tcc_state, TOK_SHR);
                 else
-                    gen_op(TOK_SHL);
-                vrotb(3);
+                    gen_op(tcc_state, TOK_SHL);
+                vrotb(tcc_state, 3);
                 /* stack: L L H */
-                vpushi(c);
+                vpushi(tcc_state, c);
                 if (op == TOK_SHL)
-                    gen_op(TOK_SHL);
+                    gen_op(tcc_state, TOK_SHL);
                 else
-                    gen_op(TOK_SHR);
-                gen_op('|');
+                    gen_op(tcc_state, TOK_SHR);
+                gen_op(tcc_state, '|');
             }
             if (op != TOK_SHL)
-                vswap();
-            lbuild(t);
+                vswap(tcc_state);
+            lbuild(tcc_state, t);
         } else {
             /* XXX: should provide a faster fallback on x86 ? */
             switch(op) {
@@ -1288,15 +1286,15 @@ static void gen_opl(int op)
         break;
     default:
         /* compare operations */
-        t = vtop->type.t;
-        vswap();
-        lexpand();
-        vrotb(3);
-        lexpand();
+        t = tcc_state->tccgen_vtop->type.t;
+        vswap(tcc_state);
+        lexpand(tcc_state);
+        vrotb(tcc_state, 3);
+        lexpand(tcc_state);
         /* stack: L1 H1 L2 H2 */
-        tmp = vtop[-1];
-        vtop[-1] = vtop[-2];
-        vtop[-2] = tmp;
+        tmp = tcc_state->tccgen_vtop[-1];
+        tcc_state->tccgen_vtop[-1] = tcc_state->tccgen_vtop[-2];
+        tcc_state->tccgen_vtop[-2] = tmp;
         /* stack: L1 L2 H1 H2 */
         /* compare high */
         op1 = op;
@@ -1312,23 +1310,23 @@ static void gen_opl(int op)
             op1 = TOK_UGE;
         a = 0;
         b = 0;
-        gen_op(op1);
+        gen_op(tcc_state, op1);
         if (op1 != TOK_NE) {
-            a = gvtst(1, 0);
+            a = gvtst(tcc_state, 1, 0);
         }
         if (op != TOK_EQ) {
             /* generate non equal test */
             /* XXX: NOT PORTABLE yet */
             if (a == 0) {
-                b = gvtst(0, 0);
+                b = gvtst(tcc_state, 0, 0);
             } else {
 #if defined(TCC_TARGET_I386)
-                b = psym(0x850f, 0);
+                b = psym(tcc_state, 0x850f, 0);
 #elif defined(TCC_TARGET_ARM)
-                b = ind;
-                o(0x1A000000 | encbranch(ind, 0, 1));
+                b = tcc_state->tccgen_ind;
+                o(tcc_state, 0x1A000000 | encbranch(tcc_state, tcc_state->tccgen_ind, 0, 1));
 #elif defined(TCC_TARGET_C67)
-                tcc_error("not implemented");
+                tcc_error(tcc_state, "not implemented");
 #else
 #error not supported
 #endif
@@ -1344,10 +1342,10 @@ static void gen_opl(int op)
             op1 = TOK_UGT;
         else if (op1 == TOK_GE)
             op1 = TOK_UGE;
-        gen_op(op1);
-        a = gvtst(1, a);
-        gsym(b);
-        vseti(VT_JMPI, a);
+        gen_op(tcc_state, op1);
+        a = gvtst(tcc_state, 1, a);
+        gsym(tcc_state, b);
+        vseti(tcc_state, VT_JMPI, a);
         break;
     }
 }
@@ -1355,15 +1353,15 @@ static void gen_opl(int op)
 
 /* handle integer constant optimizations and various machine
    independent opt */
-static void gen_opic(int op)
+static void gen_opic(TCCState* tcc_state, int op)
 {
     int c1, c2, t1, t2, n;
     SValue *v1, *v2;
     long long l1, l2;
     typedef unsigned long long U;
 
-    v1 = vtop - 1;
-    v2 = vtop;
+    v1 = tcc_state->tccgen_vtop - 1;
+    v2 = tcc_state->tccgen_vtop;
     t1 = v1->type.t & VT_BTYPE;
     t2 = v2->type.t & VT_BTYPE;
 
@@ -1400,8 +1398,8 @@ static void gen_opic(int op)
         case TOK_UMOD:
             /* if division by zero, generate explicit division */
             if (l2 == 0) {
-                if (const_wanted)
-                    tcc_error("division by zero in constant");
+                if (tcc_state->tccgen_const_wanted)
+                    tcc_error(tcc_state, "division by zero in constant");
                 goto general_case;
             }
             switch(op) {
@@ -1432,12 +1430,12 @@ static void gen_opic(int op)
             goto general_case;
         }
         v1->c.ll = l1;
-        vtop--;
+        tcc_state->tccgen_vtop--;
     } else {
         /* if commutative ops, put c2 as constant */
         if (c1 && (op == '+' || op == '&' || op == '^' || 
                    op == '|' || op == '*')) {
-            vswap();
+            vswap(tcc_state);
             c2 = c1; //c = c1, c1 = c2, c2 = c;
             l2 = l1; //l = l1, l1 = l2, l2 = l;
         }
@@ -1451,7 +1449,7 @@ static void gen_opic(int op)
                    (op == '&' && 
                     l2 == -1))) {
             /* nothing to do */
-            vtop--;
+            tcc_state->tccgen_vtop--;
         } else if (c2 && (op == '*' || op == TOK_PDIV || op == TOK_UDIV)) {
             /* try to use shifts instead of muls or divs */
             if (l2 > 0 && (l2 & (l2 - 1)) == 0) {
@@ -1460,7 +1458,7 @@ static void gen_opic(int op)
                     l2 >>= 1;
                     n++;
                 }
-                vtop->c.ll = n;
+                tcc_state->tccgen_vtop->c.ll = n;
                 if (op == '*')
                     op = TOK_SHL;
                 else if (op == TOK_PDIV)
@@ -1470,37 +1468,37 @@ static void gen_opic(int op)
             }
             goto general_case;
         } else if (c2 && (op == '+' || op == '-') &&
-                   (((vtop[-1].r & (VT_VALMASK | VT_LVAL | VT_SYM)) == (VT_CONST | VT_SYM))
-                    || (vtop[-1].r & (VT_VALMASK | VT_LVAL)) == VT_LOCAL)) {
+                   (((tcc_state->tccgen_vtop[-1].r & (VT_VALMASK | VT_LVAL | VT_SYM)) == (VT_CONST | VT_SYM))
+                    || (tcc_state->tccgen_vtop[-1].r & (VT_VALMASK | VT_LVAL)) == VT_LOCAL)) {
             /* symbol + constant case */
             if (op == '-')
                 l2 = -l2;
-            vtop--;
-            vtop->c.ll += l2;
+            tcc_state->tccgen_vtop--;
+            tcc_state->tccgen_vtop->c.ll += l2;
         } else {
         general_case:
-            if (!nocode_wanted) {
+            if (!tcc_state->tccgen_nocode_wanted) {
                 /* call low level op generator */
                 if (t1 == VT_LLONG || t2 == VT_LLONG) 
-                    gen_opl(op);
+                    gen_opl(tcc_state, op);
                 else
-                    gen_opi(op);
+                    gen_opi(tcc_state, op);
             } else {
-                vtop--;
+                tcc_state->tccgen_vtop--;
             }
         }
     }
 }
 
 /* generate a floating point operation with constant propagation */
-static void gen_opif(int op)
+static void gen_opif(TCCState* tcc_state, int op)
 {
     int c1, c2;
     SValue *v1, *v2;
     long double f1, f2;
 
-    v1 = vtop - 1;
-    v2 = vtop;
+    v1 = tcc_state->tccgen_vtop - 1;
+    v2 = tcc_state->tccgen_vtop;
     /* currently, we cannot do computations with forward symbols */
     c1 = (v1->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST;
     c2 = (v2->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST;
@@ -1527,8 +1525,8 @@ static void gen_opif(int op)
         case '*': f1 *= f2; break;
         case '/': 
             if (f2 == 0.0) {
-                if (const_wanted)
-                    tcc_error("division by zero in constant");
+                if (tcc_state->tccgen_const_wanted)
+                    tcc_error(tcc_state, "division by zero in constant");
                 goto general_case;
             }
             f1 /= f2; 
@@ -1545,13 +1543,13 @@ static void gen_opif(int op)
         } else {
             v1->c.ld = f1;
         }
-        vtop--;
+        tcc_state->tccgen_vtop--;
     } else {
     general_case:
-        if (!nocode_wanted) {
-            gen_opf(op);
+        if (!tcc_state->tccgen_nocode_wanted) {
+            gen_opf(tcc_state, op);
         } else {
-            vtop--;
+            tcc_state->tccgen_vtop--;
         }
     }
 }
@@ -1562,10 +1560,10 @@ static int pointed_size(CType *type)
     return type_size(pointed_type(type), &align);
 }
 
-static void vla_runtime_pointed_size(CType *type)
+static void vla_runtime_pointed_size(TCCState* tcc_state, CType *type)
 {
     int align;
-    vla_runtime_type_size(pointed_type(type), &align);
+    vla_runtime_type_size(tcc_state, pointed_type(type), &align);
 }
 
 static inline int is_null_pointer(SValue *p)
@@ -1584,7 +1582,7 @@ static inline int is_integer_btype(int bt)
 }
 
 /* check types for comparison or substraction of pointers */
-static void check_comparison_pointer_types(SValue *p1, SValue *p2, int op)
+static void check_comparison_pointer_types(TCCState* tcc_state, SValue *p1, SValue *p2, int op)
 {
     CType *type1, *type2, tmp_type1, tmp_type2;
     int bt1, bt2;
@@ -1599,7 +1597,7 @@ static void check_comparison_pointer_types(SValue *p1, SValue *p2, int op)
     /* accept comparison between pointer and integer with a warning */
     if ((is_integer_btype(bt1) || is_integer_btype(bt2)) && op != '-') {
         if (op != TOK_LOR && op != TOK_LAND )
-            tcc_warning("comparison between pointer and integer");
+            tcc_warning(tcc_state, "comparison between pointer and integer");
         return;
     }
 
@@ -1613,7 +1611,7 @@ static void check_comparison_pointer_types(SValue *p1, SValue *p2, int op)
         type2 = pointed_type(type2);
     } else if (bt2 != VT_FUNC) { 
     invalid_operands:
-        tcc_error("invalid operands to binary %s", get_tok_str(op, NULL));
+        tcc_error(tcc_state, "invalid operands to binary %s");
     }
     if ((type1->t & VT_BTYPE) == VT_VOID || 
         (type2->t & VT_BTYPE) == VT_VOID)
@@ -1627,18 +1625,18 @@ static void check_comparison_pointer_types(SValue *p1, SValue *p2, int op)
         if (op == '-')
             goto invalid_operands;
         else
-            tcc_warning("comparison of distinct pointer types lacks a cast");
+            tcc_warning(tcc_state, "comparison of distinct pointer types lacks a cast");
     }
 }
 
 /* generic gen_op: handles types problems */
-ST_FUNC void gen_op(int op)
+ST_FUNC void gen_op(TCCState* tcc_state, int op)
 {
     int u, t1, t2, bt1, bt2, t;
     CType type1;
 
-    t1 = vtop[-1].type.t;
-    t2 = vtop[0].type.t;
+    t1 = tcc_state->tccgen_vtop[-1].type.t;
+    t2 = tcc_state->tccgen_vtop[0].type.t;
     bt1 = t1 & VT_BTYPE;
     bt2 = t2 & VT_BTYPE;
         
@@ -1646,7 +1644,7 @@ ST_FUNC void gen_op(int op)
         /* at least one operand is a pointer */
         /* relationnal op: must be both pointers */
         if (op >= TOK_ULT && op <= TOK_LOR) {
-            check_comparison_pointer_types(vtop - 1, vtop, op);
+            check_comparison_pointer_types(tcc_state, tcc_state->tccgen_vtop - 1, tcc_state->tccgen_vtop, op);
             /* pointers are handled are unsigned */
 #ifdef TCC_TARGET_X86_64
             t = VT_LLONG | VT_UNSIGNED;
@@ -1658,68 +1656,68 @@ ST_FUNC void gen_op(int op)
         /* if both pointers, then it must be the '-' op */
         if (bt1 == VT_PTR && bt2 == VT_PTR) {
             if (op != '-')
-                tcc_error("cannot use pointers here");
-            check_comparison_pointer_types(vtop - 1, vtop, op);
+                tcc_error(tcc_state, "cannot use pointers here");
+            check_comparison_pointer_types(tcc_state, tcc_state->tccgen_vtop - 1, tcc_state->tccgen_vtop, op);
             /* XXX: check that types are compatible */
-            if (vtop[-1].type.t & VT_VLA) {
-                vla_runtime_pointed_size(&vtop[-1].type);
+            if (tcc_state->tccgen_vtop[-1].type.t & VT_VLA) {
+                vla_runtime_pointed_size(tcc_state, &tcc_state->tccgen_vtop[-1].type);
             } else {
-                vpushi(pointed_size(&vtop[-1].type));
+                vpushi(tcc_state, pointed_size(&tcc_state->tccgen_vtop[-1].type));
             }
-            vrott(3);
-            gen_opic(op);
+            vrott(tcc_state, 3);
+            gen_opic(tcc_state, op);
             /* set to integer type */
 #ifdef TCC_TARGET_X86_64
-            vtop->type.t = VT_LLONG;
+            tcc_state->tccgen_vtop->type.t = VT_LLONG;
 #else
-            vtop->type.t = VT_INT; 
+            tcc_state->tccgen_vtop->type.t = VT_INT; 
 #endif
-            vswap();
-            gen_op(TOK_PDIV);
+            vswap(tcc_state);
+            gen_op(tcc_state, TOK_PDIV);
         } else {
             /* exactly one pointer : must be '+' or '-'. */
             if (op != '-' && op != '+')
-                tcc_error("cannot use pointers here");
+                tcc_error(tcc_state, "cannot use pointers here");
             /* Put pointer as first operand */
             if (bt2 == VT_PTR) {
-                vswap();
+                vswap(tcc_state);
                 swap(&t1, &t2);
             }
-            type1 = vtop[-1].type;
+            type1 = tcc_state->tccgen_vtop[-1].type;
             type1.t &= ~VT_ARRAY;
-            if (vtop[-1].type.t & VT_VLA)
-                vla_runtime_pointed_size(&vtop[-1].type);
+            if (tcc_state->tccgen_vtop[-1].type.t & VT_VLA)
+                vla_runtime_pointed_size(tcc_state, &tcc_state->tccgen_vtop[-1].type);
             else {
-                u = pointed_size(&vtop[-1].type);
+                u = pointed_size(&tcc_state->tccgen_vtop[-1].type);
                 if (u < 0)
-                    tcc_error("unknown array element size");
+                    tcc_error(tcc_state, "unknown array element size");
 #ifdef TCC_TARGET_X86_64
-                vpushll(u);
+                vpushll(tcc_state, u);
 #else
                 /* XXX: cast to int ? (long long case) */
-                vpushi(u);
+                vpushi(tcc_state, u);
 #endif
             }
-            gen_op('*');
+            gen_op(tcc_state, '*');
 #ifdef CONFIG_TCC_BCHECK
             /* if evaluating constant expression, no code should be
                generated, so no bound check */
-            if (tcc_state->do_bounds_check && !const_wanted) {
+            if (tcc_state->do_bounds_check && !tcc_state->tccgen_const_wanted) {
                 /* if bounded pointers, we generate a special code to
                    test bounds */
                 if (op == '-') {
-                    vpushi(0);
-                    vswap();
-                    gen_op('-');
+                    vpushi(tcc_state, 0);
+                    vswap(tcc_state);
+                    gen_op(tcc_state, '-');
                 }
                 gen_bounded_ptr_add();
             } else
 #endif
             {
-                gen_opic(op);
+                gen_opic(tcc_state, op);
             }
             /* put again type if gen_opic() swaped operands */
-            vtop->type = type1;
+            tcc_state->tccgen_vtop->type = type1;
         }
     } else if (is_float(bt1) || is_float(bt2)) {
         /* compute bigger type and do implicit casts */
@@ -1733,7 +1731,7 @@ ST_FUNC void gen_op(int op)
         /* floats can only be used for a few operations */
         if (op != '+' && op != '-' && op != '*' && op != '/' &&
             (op < TOK_ULT || op > TOK_GT))
-            tcc_error("invalid operands for binary operation");
+            tcc_error(tcc_state, "invalid operands for binary operation");
         goto std_op;
     } else if (op == TOK_SHR || op == TOK_SAR || op == TOK_SHL) {
         t = bt1 == VT_LLONG ? VT_LLONG : VT_INT;
@@ -1749,7 +1747,7 @@ ST_FUNC void gen_op(int op)
             t |= VT_UNSIGNED;
         goto std_op;
     } else if (bt1 == VT_STRUCT || bt2 == VT_STRUCT) {
-        tcc_error("comparison of struct");
+        tcc_error(tcc_state, "comparison of struct");
     } else {
         /* integer operations */
         t = VT_INT;
@@ -1776,81 +1774,81 @@ ST_FUNC void gen_op(int op)
             else if (op == TOK_GE)
                 op = TOK_UGE;
         }
-        vswap();
+        vswap(tcc_state);
         type1.t = t;
-        gen_cast(&type1);
-        vswap();
+        gen_cast(tcc_state, &type1);
+        vswap(tcc_state);
         /* special case for shifts and long long: we keep the shift as
            an integer */
         if (op == TOK_SHR || op == TOK_SAR || op == TOK_SHL)
             type1.t = VT_INT;
-        gen_cast(&type1);
+        gen_cast(tcc_state, &type1);
         if (is_float(t))
-            gen_opif(op);
+            gen_opif(tcc_state, op);
         else
-            gen_opic(op);
+            gen_opic(tcc_state, op);
         if (op >= TOK_ULT && op <= TOK_GT) {
             /* relationnal op: the result is an int */
-            vtop->type.t = VT_INT;
+            tcc_state->tccgen_vtop->type.t = VT_INT;
         } else {
-            vtop->type.t = t;
+            tcc_state->tccgen_vtop->type.t = t;
         }
     }
 }
 
 #ifndef TCC_TARGET_ARM
 /* generic itof for unsigned long long case */
-static void gen_cvt_itof1(int t)
+static void gen_cvt_itof1(TCCState* tcc_state, int t)
 {
-    if ((vtop->type.t & (VT_BTYPE | VT_UNSIGNED)) == 
+    if ((tcc_state->tccgen_vtop->type.t & (VT_BTYPE | VT_UNSIGNED)) == 
         (VT_LLONG | VT_UNSIGNED)) {
 
         if (t == VT_FLOAT)
-            vpush_global_sym(&func_old_type, TOK___floatundisf);
+            vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK___floatundisf);
 #if LDOUBLE_SIZE != 8
         else if (t == VT_LDOUBLE)
-            vpush_global_sym(&func_old_type, TOK___floatundixf);
+            vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK___floatundixf);
 #endif
         else
-            vpush_global_sym(&func_old_type, TOK___floatundidf);
-        vrott(2);
-        gfunc_call(1);
-        vpushi(0);
-        vtop->r = reg_fret(t);
+            vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK___floatundidf);
+        vrott(tcc_state, 2);
+        gfunc_call(tcc_state, 1);
+        vpushi(tcc_state, 0);
+        tcc_state->tccgen_vtop->r = reg_fret(t);
     } else {
-        gen_cvt_itof(t);
+        gen_cvt_itof(tcc_state, t);
     }
 }
 #endif
 
 /* generic ftoi for unsigned long long case */
-static void gen_cvt_ftoi1(int t)
+static void gen_cvt_ftoi1(TCCState* tcc_state, int t)
 {
     int st;
 
     if (t == (VT_LLONG | VT_UNSIGNED)) {
         /* not handled natively */
-        st = vtop->type.t & VT_BTYPE;
+        st = tcc_state->tccgen_vtop->type.t & VT_BTYPE;
         if (st == VT_FLOAT)
-            vpush_global_sym(&func_old_type, TOK___fixunssfdi);
+            vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK___fixunssfdi);
 #if LDOUBLE_SIZE != 8
         else if (st == VT_LDOUBLE)
-            vpush_global_sym(&func_old_type, TOK___fixunsxfdi);
+            vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK___fixunsxfdi);
 #endif
         else
-            vpush_global_sym(&func_old_type, TOK___fixunsdfdi);
-        vrott(2);
-        gfunc_call(1);
-        vpushi(0);
-        vtop->r = REG_IRET;
-        vtop->r2 = REG_LRET;
+            vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK___fixunsdfdi);
+        vrott(tcc_state, 2);
+        gfunc_call(tcc_state, 1);
+        vpushi(tcc_state, 0);
+        tcc_state->tccgen_vtop->r = REG_IRET;
+        tcc_state->tccgen_vtop->r2 = REG_LRET;
     } else {
-        gen_cvt_ftoi(t);
+        gen_cvt_ftoi(tcc_state, t);
     }
 }
 
 /* force char or short cast */
-static void force_charshort_cast(int t)
+static void force_charshort_cast(TCCState* tcc_state, int t)
 {
     int bits, dbt;
     dbt = t & VT_BTYPE;
@@ -1860,94 +1858,94 @@ static void force_charshort_cast(int t)
     else
         bits = 16;
     if (t & VT_UNSIGNED) {
-        vpushi((1 << bits) - 1);
-        gen_op('&');
+        vpushi(tcc_state, (1 << bits) - 1);
+        gen_op(tcc_state, '&');
     } else {
         bits = 32 - bits;
-        vpushi(bits);
-        gen_op(TOK_SHL);
+        vpushi(tcc_state, bits);
+        gen_op(tcc_state, TOK_SHL);
         /* result must be signed or the SAR is converted to an SHL
            This was not the case when "t" was a signed short
            and the last value on the stack was an unsigned int */
-        vtop->type.t &= ~VT_UNSIGNED;
-        vpushi(bits);
-        gen_op(TOK_SAR);
+        tcc_state->tccgen_vtop->type.t &= ~VT_UNSIGNED;
+        vpushi(tcc_state, bits);
+        gen_op(tcc_state, TOK_SAR);
     }
 }
 
 /* cast 'vtop' to 'type'. Casting to bitfields is forbidden. */
-static void gen_cast(CType *type)
+static void gen_cast(TCCState* tcc_state, CType *type)
 {
     int sbt, dbt, sf, df, c, p;
 
     /* special delayed cast for char/short */
     /* XXX: in some cases (multiple cascaded casts), it may still
        be incorrect */
-    if (vtop->r & VT_MUSTCAST) {
-        vtop->r &= ~VT_MUSTCAST;
-        force_charshort_cast(vtop->type.t);
+    if (tcc_state->tccgen_vtop->r & VT_MUSTCAST) {
+        tcc_state->tccgen_vtop->r &= ~VT_MUSTCAST;
+        force_charshort_cast(tcc_state, tcc_state->tccgen_vtop->type.t);
     }
 
     /* bitfields first get cast to ints */
-    if (vtop->type.t & VT_BITFIELD) {
-        gv(RC_INT);
+    if (tcc_state->tccgen_vtop->type.t & VT_BITFIELD) {
+        gv(tcc_state, RC_INT);
     }
 
     dbt = type->t & (VT_BTYPE | VT_UNSIGNED);
-    sbt = vtop->type.t & (VT_BTYPE | VT_UNSIGNED);
+    sbt = tcc_state->tccgen_vtop->type.t & (VT_BTYPE | VT_UNSIGNED);
 
     if (sbt != dbt) {
         sf = is_float(sbt);
         df = is_float(dbt);
-        c = (vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST;
-        p = (vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == (VT_CONST | VT_SYM);
+        c = (tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST;
+        p = (tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == (VT_CONST | VT_SYM);
         if (c) {
             /* constant case: we can do it now */
             /* XXX: in ISOC, cannot do it if error in convert */
             if (sbt == VT_FLOAT)
-                vtop->c.ld = vtop->c.f;
+                tcc_state->tccgen_vtop->c.ld = tcc_state->tccgen_vtop->c.f;
             else if (sbt == VT_DOUBLE)
-                vtop->c.ld = vtop->c.d;
+                tcc_state->tccgen_vtop->c.ld = tcc_state->tccgen_vtop->c.d;
 
             if (df) {
                 if ((sbt & VT_BTYPE) == VT_LLONG) {
                     if (sbt & VT_UNSIGNED)
-                        vtop->c.ld = vtop->c.ull;
+                        tcc_state->tccgen_vtop->c.ld = tcc_state->tccgen_vtop->c.ull;
                     else
-                        vtop->c.ld = vtop->c.ll;
+                        tcc_state->tccgen_vtop->c.ld = tcc_state->tccgen_vtop->c.ll;
                 } else if(!sf) {
                     if (sbt & VT_UNSIGNED)
-                        vtop->c.ld = vtop->c.ui;
+                        tcc_state->tccgen_vtop->c.ld = tcc_state->tccgen_vtop->c.ui;
                     else
-                        vtop->c.ld = vtop->c.i;
+                        tcc_state->tccgen_vtop->c.ld = tcc_state->tccgen_vtop->c.i;
                 }
 
                 if (dbt == VT_FLOAT)
-                    vtop->c.f = (float)vtop->c.ld;
+                    tcc_state->tccgen_vtop->c.f = (float)tcc_state->tccgen_vtop->c.ld;
                 else if (dbt == VT_DOUBLE)
-                    vtop->c.d = (double)vtop->c.ld;
+                    tcc_state->tccgen_vtop->c.d = (double)tcc_state->tccgen_vtop->c.ld;
             } else if (sf && dbt == (VT_LLONG|VT_UNSIGNED)) {
-                vtop->c.ull = (unsigned long long)vtop->c.ld;
+                tcc_state->tccgen_vtop->c.ull = (unsigned long long)tcc_state->tccgen_vtop->c.ld;
             } else if (sf && dbt == VT_BOOL) {
-                vtop->c.i = (vtop->c.ld != 0);
+                tcc_state->tccgen_vtop->c.i = (tcc_state->tccgen_vtop->c.ld != 0);
             } else {
                 if(sf)
-                    vtop->c.ll = (long long)vtop->c.ld;
+                    tcc_state->tccgen_vtop->c.ll = (long long)tcc_state->tccgen_vtop->c.ld;
                 else if (sbt == (VT_LLONG|VT_UNSIGNED))
-                    vtop->c.ll = vtop->c.ull;
+                    tcc_state->tccgen_vtop->c.ll = tcc_state->tccgen_vtop->c.ull;
                 else if (sbt & VT_UNSIGNED)
-                    vtop->c.ll = vtop->c.ui;
+                    tcc_state->tccgen_vtop->c.ll = tcc_state->tccgen_vtop->c.ui;
 #ifdef TCC_TARGET_X86_64
                 else if (sbt == VT_PTR)
                     ;
 #endif
                 else if (sbt != VT_LLONG)
-                    vtop->c.ll = vtop->c.i;
+                    tcc_state->tccgen_vtop->c.ll = tcc_state->tccgen_vtop->c.i;
 
                 if (dbt == (VT_LLONG|VT_UNSIGNED))
-                    vtop->c.ull = vtop->c.ll;
+                    tcc_state->tccgen_vtop->c.ull = tcc_state->tccgen_vtop->c.ll;
                 else if (dbt == VT_BOOL)
-                    vtop->c.i = (vtop->c.ll != 0);
+                    tcc_state->tccgen_vtop->c.i = (tcc_state->tccgen_vtop->c.ll != 0);
 #ifdef TCC_TARGET_X86_64
                 else if (dbt == VT_PTR)
                     ;
@@ -1959,38 +1957,38 @@ static void gen_cast(CType *type)
                     else if ((dbt & VT_BTYPE) == VT_SHORT)
                         s = 16;
                     if(dbt & VT_UNSIGNED)
-                        vtop->c.ui = ((unsigned int)vtop->c.ll << s) >> s;
+                        tcc_state->tccgen_vtop->c.ui = ((unsigned int)tcc_state->tccgen_vtop->c.ll << s) >> s;
                     else
-                        vtop->c.i = ((int)vtop->c.ll << s) >> s;
+                        tcc_state->tccgen_vtop->c.i = ((int)tcc_state->tccgen_vtop->c.ll << s) >> s;
                 }
             }
         } else if (p && dbt == VT_BOOL) {
-            vtop->r = VT_CONST;
-            vtop->c.i = 1;
-        } else if (!nocode_wanted) {
+            tcc_state->tccgen_vtop->r = VT_CONST;
+            tcc_state->tccgen_vtop->c.i = 1;
+        } else if (!tcc_state->tccgen_nocode_wanted) {
             /* non constant case: generate code */
             if (sf && df) {
                 /* convert from fp to fp */
-                gen_cvt_ftof(dbt);
+                gen_cvt_ftof(tcc_state, dbt);
             } else if (df) {
                 /* convert int to fp */
-                gen_cvt_itof1(dbt);
+                gen_cvt_itof1(tcc_state, dbt);
             } else if (sf) {
                 /* convert fp to int */
                 if (dbt == VT_BOOL) {
-                     vpushi(0);
-                     gen_op(TOK_NE);
+                     vpushi(tcc_state, 0);
+                     gen_op(tcc_state, TOK_NE);
                 } else {
                     /* we handle char/short/etc... with generic code */
                     if (dbt != (VT_INT | VT_UNSIGNED) &&
                         dbt != (VT_LLONG | VT_UNSIGNED) &&
                         dbt != VT_LLONG)
                         dbt = VT_INT;
-                    gen_cvt_ftoi1(dbt);
+                    gen_cvt_ftoi1(tcc_state, dbt);
                     if (dbt == VT_INT && (type->t & (VT_BTYPE | VT_UNSIGNED)) != dbt) {
                         /* additional cast for char/short... */
-                        vtop->type.t = dbt;
-                        gen_cast(type);
+                        tcc_state->tccgen_vtop->type.t = dbt;
+                        gen_cast(tcc_state, type);
                     }
                 }
 #ifndef TCC_TARGET_X86_64
@@ -1998,24 +1996,24 @@ static void gen_cast(CType *type)
                 if ((sbt & VT_BTYPE) != VT_LLONG) {
                     /* scalar to long long */
                     /* machine independent conversion */
-                    gv(RC_INT);
+                    gv(tcc_state, RC_INT);
                     /* generate high word */
                     if (sbt == (VT_INT | VT_UNSIGNED)) {
-                        vpushi(0);
-                        gv(RC_INT);
+                        vpushi(tcc_state, 0);
+                        gv(tcc_state, RC_INT);
                     } else {
                         if (sbt == VT_PTR) {
                             /* cast from pointer to int before we apply
                                shift operation, which pointers don't support*/
-                            gen_cast(&int_type);
+                            gen_cast(tcc_state, &tcc_state->tccgen_int_type);
                         }
-                        gv_dup();
-                        vpushi(31);
-                        gen_op(TOK_SAR);
+                        gv_dup(tcc_state);
+                        vpushi(tcc_state, 31);
+                        gen_op(tcc_state, TOK_SAR);
                     }
                     /* patch second register */
-                    vtop[-1].r2 = vtop->r;
-                    vpop();
+                    tcc_state->tccgen_vtop[-1].r2 = tcc_state->tccgen_vtop->r;
+                    vpop(tcc_state);
                 }
 #else
             } else if ((dbt & VT_BTYPE) == VT_LLONG ||
@@ -2025,44 +2023,44 @@ static void gen_cast(CType *type)
                     (sbt & VT_BTYPE) != VT_PTR &&
                     (sbt & VT_BTYPE) != VT_FUNC) {
                     /* need to convert from 32bit to 64bit */
-                    int r = gv(RC_INT);
+                    int r = gv(tcc_state, RC_INT);
                     if (sbt != (VT_INT | VT_UNSIGNED)) {
                         /* x86_64 specific: movslq */
-                        o(0x6348);
-                        o(0xc0 + (REG_VALUE(r) << 3) + REG_VALUE(r));
+                        o(tcc_state, 0x6348);
+                        o(tcc_state, 0xc0 + (REG_VALUE(r) << 3) + REG_VALUE(r));
                     }
                 }
 #endif
             } else if (dbt == VT_BOOL) {
                 /* scalar to bool */
-                vpushi(0);
-                gen_op(TOK_NE);
+                vpushi(tcc_state, 0);
+                gen_op(tcc_state, TOK_NE);
             } else if ((dbt & VT_BTYPE) == VT_BYTE || 
                        (dbt & VT_BTYPE) == VT_SHORT) {
                 if (sbt == VT_PTR) {
-                    vtop->type.t = VT_INT;
-                    tcc_warning("nonportable conversion from pointer to char/short");
+                    tcc_state->tccgen_vtop->type.t = VT_INT;
+                    tcc_warning(tcc_state, "nonportable conversion from pointer to char/short");
                 }
-                force_charshort_cast(dbt);
+                force_charshort_cast(tcc_state, dbt);
             } else if ((dbt & VT_BTYPE) == VT_INT) {
                 /* scalar to int */
                 if (sbt == VT_LLONG) {
                     /* from long long: just take low order word */
-                    lexpand();
-                    vpop();
+                    lexpand(tcc_state);
+                    vpop(tcc_state);
                 } 
                 /* if lvalue and single word type, nothing to do because
                    the lvalue already contains the real type size (see
                    VT_LVAL_xxx constants) */
             }
         }
-    } else if ((dbt & VT_BTYPE) == VT_PTR && !(vtop->r & VT_LVAL)) {
+    } else if ((dbt & VT_BTYPE) == VT_PTR && !(tcc_state->tccgen_vtop->r & VT_LVAL)) {
         /* if we are casting between pointer types,
            we must update the VT_LVAL_xxx size */
-        vtop->r = (vtop->r & ~VT_LVAL_TYPE)
+        tcc_state->tccgen_vtop->r = (tcc_state->tccgen_vtop->r & ~VT_LVAL_TYPE)
                   | (lvalue_type(type->ref->type.t) & VT_LVAL_TYPE);
     }
-    vtop->type = *type;
+    tcc_state->tccgen_vtop->type = *type;
 }
 
 /* return type size as known at compile time. Put alignment at 'a' */
@@ -2130,23 +2128,23 @@ ST_FUNC int type_size(CType *type, int *a)
 
 /* push type size as known at runtime time on top of value stack. Put
    alignment at 'a' */
-ST_FUNC void vla_runtime_type_size(CType *type, int *a)
+ST_FUNC void vla_runtime_type_size(TCCState* tcc_state, CType *type, int *a)
 {
     if (type->t & VT_VLA) {
-        vset(&int_type, VT_LOCAL|VT_LVAL, type->ref->c);
+        vset(tcc_state, &tcc_state->tccgen_int_type, VT_LOCAL|VT_LVAL, type->ref->c);
     } else {
-        vpushi(type_size(type, a));
+        vpushi(tcc_state, type_size(type, a));
     }
 }
 
-static void vla_sp_save(void) {
-    if (!(vla_flags & VLA_SP_LOC_SET)) {
-        *vla_sp_loc = (loc -= PTR_SIZE);
-        vla_flags |= VLA_SP_LOC_SET;
+static void vla_sp_save(TCCState* tcc_state) {
+    if (!(tcc_state->tccgen_vla_flags & VLA_SP_LOC_SET)) {
+        *tcc_state->tccgen_vla_sp_loc = (tcc_state->tccgen_loc -= PTR_SIZE);
+        tcc_state->tccgen_vla_flags |= VLA_SP_LOC_SET;
     }
-    if (!(vla_flags & VLA_SP_SAVED)) {
-        gen_vla_sp_save(*vla_sp_loc);
-        vla_flags |= VLA_SP_SAVED;
+    if (!(tcc_state->tccgen_vla_flags & VLA_SP_SAVED)) {
+        gen_vla_sp_save(tcc_state, *tcc_state->tccgen_vla_sp_loc);
+        tcc_state->tccgen_vla_flags |= VLA_SP_SAVED;
     }
 }
 
@@ -2157,10 +2155,10 @@ static inline CType *pointed_type(CType *type)
 }
 
 /* modify type so that its it is a pointer to type. */
-ST_FUNC void mk_pointer(CType *type)
+ST_FUNC void mk_pointer(TCCState* tcc_state, CType *type)
 {
     Sym *s;
-    s = sym_push(SYM_FIELD, type, 0, -1);
+    s = sym_push(tcc_state, SYM_FIELD, type, 0, -1);
     type->t = VT_PTR | (type->t & ~VT_TYPE);
     type->ref = s;
 }
@@ -2253,7 +2251,7 @@ static int is_compatible_parameter_types(CType *type1, CType *type2)
    printed in the type */
 /* XXX: union */
 /* XXX: add array and function pointers */
-static void type_to_str(char *buf, int buf_size, 
+static void type_to_str(TCCState* tcc_state, char *buf, int buf_size, 
                  CType *type, const char *varstr)
 {
     int bt, v, t;
@@ -2316,15 +2314,15 @@ static void type_to_str(char *buf, int buf_size,
         if (v >= SYM_FIRST_ANOM)
             pstrcat(buf, buf_size, "<anonymous>");
         else
-            pstrcat(buf, buf_size, get_tok_str(v, NULL));
+            pstrcat(buf, buf_size, get_tok_str(tcc_state, v, NULL));
         break;
     case VT_FUNC:
         s = type->ref;
-        type_to_str(buf, buf_size, &s->type, varstr);
+        type_to_str(tcc_state, buf, buf_size, &s->type, varstr);
         pstrcat(buf, buf_size, "(");
         sa = s->next;
         while (sa != NULL) {
-            type_to_str(buf1, sizeof(buf1), &sa->type, NULL);
+            type_to_str(tcc_state, buf1, sizeof(buf1), &sa->type, NULL);
             pstrcat(buf, buf_size, buf1);
             sa = sa->next;
             if (sa)
@@ -2337,7 +2335,7 @@ static void type_to_str(char *buf, int buf_size,
         pstrcpy(buf1, sizeof(buf1), "*");
         if (varstr)
             pstrcat(buf1, sizeof(buf1), varstr);
-        type_to_str(buf, buf_size, &s->type, buf1);
+        type_to_str(tcc_state, buf, buf_size, &s->type, buf1);
         goto no_var;
     }
     if (varstr) {
@@ -2349,28 +2347,28 @@ static void type_to_str(char *buf, int buf_size,
 
 /* verify type compatibility to store vtop in 'dt' type, and generate
    casts if needed. */
-static void gen_assign_cast(CType *dt)
+static void gen_assign_cast(TCCState* tcc_state, CType *dt)
 {
     CType *st, *type1, *type2, tmp_type1, tmp_type2;
     char buf1[256], buf2[256];
     int dbt, sbt;
 
-    st = &vtop->type; /* source type */
+    st = &tcc_state->tccgen_vtop->type; /* source type */
     dbt = dt->t & VT_BTYPE;
     sbt = st->t & VT_BTYPE;
     if (sbt == VT_VOID || dbt == VT_VOID)
-        tcc_error("cannot cast from/to void");
+        tcc_error(tcc_state, "cannot cast from/to void");
     if (dt->t & VT_CONSTANT)
-        tcc_warning("assignment of read-only location");
+        tcc_warning(tcc_state, "assignment of read-only location");
     switch(dbt) {
     case VT_PTR:
         /* special cases for pointers */
         /* '0' can also be a pointer */
-        if (is_null_pointer(vtop))
+        if (is_null_pointer(tcc_state->tccgen_vtop))
             goto type_ok;
         /* accept implicit pointer to integer cast with warning */
         if (is_integer_btype(sbt)) {
-            tcc_warning("assignment makes pointer from integer without a cast");
+            tcc_warning(tcc_state, "assignment makes pointer from integer without a cast");
             goto type_ok;
         }
         type1 = pointed_type(dt);
@@ -2378,7 +2376,7 @@ static void gen_assign_cast(CType *dt)
         if (sbt == VT_FUNC) {
             if ((type1->t & VT_BTYPE) != VT_VOID &&
                 !is_compatible_types(pointed_type(dt), st))
-                tcc_warning("assignment from incompatible pointer type");
+                tcc_warning(tcc_state, "assignment from incompatible pointer type");
             goto type_ok;
         }
         if (sbt != VT_PTR)
@@ -2396,19 +2394,19 @@ static void gen_assign_cast(CType *dt)
             tmp_type2.t &= ~(VT_DEFSIGN | VT_UNSIGNED | VT_CONSTANT |
                              VT_VOLATILE);
             if (!is_compatible_types(&tmp_type1, &tmp_type2))
-                tcc_warning("assignment from incompatible pointer type");
+                tcc_warning(tcc_state, "assignment from incompatible pointer type");
         }
         /* check const and volatile */
         if ((!(type1->t & VT_CONSTANT) && (type2->t & VT_CONSTANT)) ||
             (!(type1->t & VT_VOLATILE) && (type2->t & VT_VOLATILE)))
-            tcc_warning("assignment discards qualifiers from pointer target type");
+            tcc_warning(tcc_state, "assignment discards qualifiers from pointer target type");
         break;
     case VT_BYTE:
     case VT_SHORT:
     case VT_INT:
     case VT_LLONG:
         if (sbt == VT_PTR || sbt == VT_FUNC) {
-            tcc_warning("assignment makes integer from pointer without a cast");
+            tcc_warning(tcc_state, "assignment makes integer from pointer without a cast");
         }
         /* XXX: more tests */
         break;
@@ -2419,72 +2417,72 @@ static void gen_assign_cast(CType *dt)
         tmp_type2.t &= ~(VT_CONSTANT | VT_VOLATILE);
         if (!is_compatible_types(&tmp_type1, &tmp_type2)) {
         error:
-            type_to_str(buf1, sizeof(buf1), st, NULL);
-            type_to_str(buf2, sizeof(buf2), dt, NULL);
-            tcc_error("cannot cast '%s' to '%s'", buf1, buf2);
+            type_to_str(tcc_state, buf1, sizeof(buf1), st, NULL);
+            type_to_str(tcc_state, buf2, sizeof(buf2), dt, NULL);
+            tcc_error(tcc_state, "cannot cast '%s' to '%s'");
         }
         break;
     }
  type_ok:
-    gen_cast(dt);
+    gen_cast(tcc_state, dt);
 }
 
 /* store vtop in lvalue pushed on stack */
-ST_FUNC void vstore(void)
+ST_FUNC void vstore(TCCState* tcc_state)
 {
     int sbt, dbt, ft, r, t, size, align, bit_size, bit_pos, rc, delayed_cast;
 
-    ft = vtop[-1].type.t;
-    sbt = vtop->type.t & VT_BTYPE;
+    ft = tcc_state->tccgen_vtop[-1].type.t;
+    sbt = tcc_state->tccgen_vtop->type.t & VT_BTYPE;
     dbt = ft & VT_BTYPE;
     if ((((sbt == VT_INT || sbt == VT_SHORT) && dbt == VT_BYTE) ||
          (sbt == VT_INT && dbt == VT_SHORT))
-	&& !(vtop->type.t & VT_BITFIELD)) {
+	&& !(tcc_state->tccgen_vtop->type.t & VT_BITFIELD)) {
         /* optimize char/short casts */
         delayed_cast = VT_MUSTCAST;
-        vtop->type.t = ft & (VT_TYPE & ~(VT_BITFIELD | (-1 << VT_STRUCT_SHIFT)));
+        tcc_state->tccgen_vtop->type.t = ft & (VT_TYPE & ~(VT_BITFIELD | (-1 << VT_STRUCT_SHIFT)));
         /* XXX: factorize */
         if (ft & VT_CONSTANT)
-            tcc_warning("assignment of read-only location");
+            tcc_warning(tcc_state, "assignment of read-only location");
     } else {
         delayed_cast = 0;
         if (!(ft & VT_BITFIELD))
-            gen_assign_cast(&vtop[-1].type);
+            gen_assign_cast(tcc_state, &tcc_state->tccgen_vtop[-1].type);
     }
 
     if (sbt == VT_STRUCT) {
         /* if structure, only generate pointer */
         /* structure assignment : generate memcpy */
         /* XXX: optimize if small size */
-        if (!nocode_wanted) {
-            size = type_size(&vtop->type, &align);
+        if (!tcc_state->tccgen_nocode_wanted) {
+            size = type_size(&tcc_state->tccgen_vtop->type, &align);
 
             /* destination */
-            vswap();
-            vtop->type.t = VT_PTR;
-            gaddrof();
+            vswap(tcc_state);
+            tcc_state->tccgen_vtop->type.t = VT_PTR;
+            gaddrof(tcc_state);
 
             /* address of memcpy() */
 #ifdef TCC_ARM_EABI
             if(!(align & 7))
-                vpush_global_sym(&func_old_type, TOK_memcpy8);
+                vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK_memcpy8);
             else if(!(align & 3))
-                vpush_global_sym(&func_old_type, TOK_memcpy4);
+                vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK_memcpy4);
             else
 #endif
-            vpush_global_sym(&func_old_type, TOK_memcpy);
+            vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK_memcpy);
 
-            vswap();
+            vswap(tcc_state);
             /* source */
-            vpushv(vtop - 2);
-            vtop->type.t = VT_PTR;
-            gaddrof();
+            vpushv(tcc_state, tcc_state->tccgen_vtop - 2);
+            tcc_state->tccgen_vtop->type.t = VT_PTR;
+            gaddrof(tcc_state);
             /* type size */
-            vpushi(size);
-            gfunc_call(3);
+            vpushi(tcc_state, size);
+            gfunc_call(tcc_state, 3);
         } else {
-            vswap();
-            vpop();
+            vswap(tcc_state);
+            vpop(tcc_state);
         }
         /* leave source on stack */
     } else if (ft & VT_BITFIELD) {
@@ -2492,58 +2490,58 @@ ST_FUNC void vstore(void)
         bit_pos = (ft >> VT_STRUCT_SHIFT) & 0x3f;
         bit_size = (ft >> (VT_STRUCT_SHIFT + 6)) & 0x3f;
         /* remove bit field info to avoid loops */
-        vtop[-1].type.t = ft & ~(VT_BITFIELD | (-1 << VT_STRUCT_SHIFT));
+        tcc_state->tccgen_vtop[-1].type.t = ft & ~(VT_BITFIELD | (-1 << VT_STRUCT_SHIFT));
 
         /* duplicate source into other register */
-        gv_dup();
-        vswap();
-        vrott(3);
+        gv_dup(tcc_state);
+        vswap(tcc_state);
+        vrott(tcc_state, 3);
 
         if((ft & VT_BTYPE) == VT_BOOL) {
-            gen_cast(&vtop[-1].type);
-            vtop[-1].type.t = (vtop[-1].type.t & ~VT_BTYPE) | (VT_BYTE | VT_UNSIGNED);
+            gen_cast(tcc_state, &tcc_state->tccgen_vtop[-1].type);
+            tcc_state->tccgen_vtop[-1].type.t = (tcc_state->tccgen_vtop[-1].type.t & ~VT_BTYPE) | (VT_BYTE | VT_UNSIGNED);
         }
 
         /* duplicate destination */
-        vdup();
-        vtop[-1] = vtop[-2];
+        vdup(tcc_state);
+        tcc_state->tccgen_vtop[-1] = tcc_state->tccgen_vtop[-2];
 
         /* mask and shift source */
         if((ft & VT_BTYPE) != VT_BOOL) {
             if((ft & VT_BTYPE) == VT_LLONG) {
-                vpushll((1ULL << bit_size) - 1ULL);
+                vpushll(tcc_state, (1ULL << bit_size) - 1ULL);
             } else {
-                vpushi((1 << bit_size) - 1);
+                vpushi(tcc_state, (1 << bit_size) - 1);
             }
-            gen_op('&');
+            gen_op(tcc_state, '&');
         }
-        vpushi(bit_pos);
-        gen_op(TOK_SHL);
+        vpushi(tcc_state, bit_pos);
+        gen_op(tcc_state, TOK_SHL);
         /* load destination, mask and or with source */
-        vswap();
+        vswap(tcc_state);
         if((ft & VT_BTYPE) == VT_LLONG) {
-            vpushll(~(((1ULL << bit_size) - 1ULL) << bit_pos));
+            vpushll(tcc_state, ~(((1ULL << bit_size) - 1ULL) << bit_pos));
         } else {
-            vpushi(~(((1 << bit_size) - 1) << bit_pos));
+            vpushi(tcc_state, ~(((1 << bit_size) - 1) << bit_pos));
         }
-        gen_op('&');
-        gen_op('|');
+        gen_op(tcc_state, '&');
+        gen_op(tcc_state, '|');
         /* store result */
-        vstore();
+        vstore(tcc_state);
 
         /* pop off shifted source from "duplicate source..." above */
-        vpop();
+        vpop(tcc_state);
 
     } else {
 #ifdef CONFIG_TCC_BCHECK
         /* bound check case */
-        if (vtop[-1].r & VT_MUSTBOUND) {
-            vswap();
+        if (tcc_state->tccgen_vtop[-1].r & VT_MUSTBOUND) {
+            vswap(tcc_state);
             gbound();
-            vswap();
+            vswap(tcc_state);
         }
 #endif
-        if (!nocode_wanted) {
+        if (!tcc_state->tccgen_nocode_wanted) {
             rc = RC_INT;
             if (is_float(ft)) {
                 rc = RC_FLOAT;
@@ -2555,68 +2553,68 @@ ST_FUNC void vstore(void)
                 }
 #endif
             }
-            r = gv(rc);  /* generate value */
+            r = gv(tcc_state, rc);  /* generate value */
             /* if lvalue was saved on stack, must read it */
-            if ((vtop[-1].r & VT_VALMASK) == VT_LLOCAL) {
+            if ((tcc_state->tccgen_vtop[-1].r & VT_VALMASK) == VT_LLOCAL) {
                 SValue sv;
-                t = get_reg(RC_INT);
+                t = get_reg(tcc_state, RC_INT);
 #ifdef TCC_TARGET_X86_64
                 sv.type.t = VT_PTR;
 #else
                 sv.type.t = VT_INT;
 #endif
                 sv.r = VT_LOCAL | VT_LVAL;
-                sv.c.ul = vtop[-1].c.ul;
-                load(t, &sv);
-                vtop[-1].r = t | VT_LVAL;
+                sv.c.ul = tcc_state->tccgen_vtop[-1].c.ul;
+                load(tcc_state, t, &sv);
+                tcc_state->tccgen_vtop[-1].r = t | VT_LVAL;
             }
             /* two word case handling : store second register at word + 4 (or +8 for x86-64)  */
 #ifdef TCC_TARGET_X86_64
             if (((ft & VT_BTYPE) == VT_QLONG) || ((ft & VT_BTYPE) == VT_QFLOAT)) {
-                int addr_type = VT_LLONG, load_size = 8, load_type = ((vtop->type.t & VT_BTYPE) == VT_QLONG) ? VT_LLONG : VT_DOUBLE;
+                int addr_type = VT_LLONG, load_size = 8, load_type = ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_QLONG) ? VT_LLONG : VT_DOUBLE;
 #else
             if ((ft & VT_BTYPE) == VT_LLONG) {
                 int addr_type = VT_INT, load_size = 4, load_type = VT_INT;
 #endif
-                vtop[-1].type.t = load_type;
-                store(r, vtop - 1);
-                vswap();
+                tcc_state->tccgen_vtop[-1].type.t = load_type;
+                store(tcc_state, r, tcc_state->tccgen_vtop - 1);
+                vswap(tcc_state);
                 /* convert to int to increment easily */
-                vtop->type.t = addr_type;
-                gaddrof();
-                vpushi(load_size);
-                gen_op('+');
-                vtop->r |= VT_LVAL;
-                vswap();
-                vtop[-1].type.t = load_type;
+                tcc_state->tccgen_vtop->type.t = addr_type;
+                gaddrof(tcc_state);
+                vpushi(tcc_state, load_size);
+                gen_op(tcc_state, '+');
+                tcc_state->tccgen_vtop->r |= VT_LVAL;
+                vswap(tcc_state);
+                tcc_state->tccgen_vtop[-1].type.t = load_type;
                 /* XXX: it works because r2 is spilled last ! */
-                store(vtop->r2, vtop - 1);
+                store(tcc_state, tcc_state->tccgen_vtop->r2, tcc_state->tccgen_vtop - 1);
             } else {
-                store(r, vtop - 1);
+                store(tcc_state, r, tcc_state->tccgen_vtop - 1);
             }
         }
-        vswap();
-        vtop--; /* NOT vpop() because on x86 it would flush the fp stack */
-        vtop->r |= delayed_cast;
+        vswap(tcc_state);
+        tcc_state->tccgen_vtop--; /* NOT vpop() because on x86 it would flush the fp stack */
+        tcc_state->tccgen_vtop->r |= delayed_cast;
     }
 }
 
 /* post defines POST/PRE add. c is the token ++ or -- */
-ST_FUNC void inc(int post, int c)
+ST_FUNC void inc(TCCState* tcc_state, int post, int c)
 {
-    test_lvalue();
-    vdup(); /* save lvalue */
+    test_lvalue(tcc_state);
+    vdup(tcc_state); /* save lvalue */
     if (post) {
-        gv_dup(); /* duplicate value */
-        vrotb(3);
-        vrotb(3);
+        gv_dup(tcc_state); /* duplicate value */
+        vrotb(tcc_state, 3);
+        vrotb(tcc_state, 3);
     }
     /* add constant */
-    vpushi(c - TOK_MID); 
-    gen_op('+');
-    vstore(); /* store value */
+    vpushi(tcc_state, c - TOK_MID); 
+    gen_op(tcc_state, '+');
+    vstore(tcc_state); /* store value */
     if (post)
-        vpop(); /* if post op, return saved value */
+        vpop(tcc_state); /* if post op, return saved value */
 }
 
 /* Parse GNUC __attribute__ extension. Currently, the following
@@ -2627,47 +2625,47 @@ ST_FUNC void inc(int post, int c)
    - unused : currently ignored, but may be used someday.
    - regparm(n) : pass function parameters in registers (i386 only)
  */
-static void parse_attribute(AttributeDef *ad)
+static void parse_attribute(TCCState* tcc_state, AttributeDef *ad)
 {
     int t, n;
     
-    while (tok == TOK_ATTRIBUTE1 || tok == TOK_ATTRIBUTE2) {
-    next();
-    skip('(');
-    skip('(');
-    while (tok != ')') {
-        if (tok < TOK_IDENT)
-            expect("attribute name");
-        t = tok;
-        next();
+    while (tcc_state->tccpp_tok == TOK_ATTRIBUTE1 || tcc_state->tccpp_tok == TOK_ATTRIBUTE2) {
+    next(tcc_state);
+    skip(tcc_state, '(');
+    skip(tcc_state, '(');
+    while (tcc_state->tccpp_tok != ')') {
+        if (tcc_state->tccpp_tok < TOK_IDENT)
+            expect(tcc_state, "attribute name");
+        t = tcc_state->tccpp_tok;
+        next(tcc_state);
         switch(t) {
         case TOK_SECTION1:
         case TOK_SECTION2:
-            skip('(');
-            if (tok != TOK_STR)
-                expect("section name");
-            ad->section = find_section(tcc_state, (char *)tokc.cstr->data);
-            next();
-            skip(')');
+            skip(tcc_state, '(');
+            if (tcc_state->tccpp_tok != TOK_STR)
+                expect(tcc_state, "section name");
+            ad->section = find_section(tcc_state, (char *)tcc_state->tccpp_tokc.cstr->data);
+            next(tcc_state);
+            skip(tcc_state, ')');
             break;
         case TOK_ALIAS1:
         case TOK_ALIAS2:
-            skip('(');
-            if (tok != TOK_STR)
-                expect("alias(\"target\")");
+            skip(tcc_state, '(');
+            if (tcc_state->tccpp_tok != TOK_STR)
+                expect(tcc_state, "alias(\"target\")");
             ad->alias_target = /* save string as token, for later */
-              tok_alloc((char*)tokc.cstr->data, tokc.cstr->size-1)->tok;
-            next();
-            skip(')');
+              tok_alloc(tcc_state, (char*)tcc_state->tccpp_tokc.cstr->data, tcc_state->tccpp_tokc.cstr->size-1)->tok;
+            next(tcc_state);
+            skip(tcc_state, ')');
             break;
         case TOK_ALIGNED1:
         case TOK_ALIGNED2:
-            if (tok == '(') {
-                next();
-                n = expr_const();
+            if (tcc_state->tccpp_tok == '(') {
+                next(tcc_state);
+                n = expr_const(tcc_state);
                 if (n <= 0 || (n & (n - 1)) != 0) 
-                    tcc_error("alignment must be a positive power of two");
-                skip(')');
+                    tcc_error(tcc_state, "alignment must be a positive power of two");
+                skip(tcc_state, ')');
             } else {
                 n = MAX_ALIGN;
             }
@@ -2704,15 +2702,15 @@ static void parse_attribute(AttributeDef *ad)
 #ifdef TCC_TARGET_I386
         case TOK_REGPARM1:
         case TOK_REGPARM2:
-            skip('(');
-            n = expr_const();
+            skip(tcc_state, '(');
+            n = expr_const(tcc_state);
             if (n > 3) 
                 n = 3;
             else if (n < 0)
                 n = 0;
             if (n > 0)
                 ad->a.func_call = FUNC_FASTCALL1 + n - 1;
-            skip(')');
+            skip(tcc_state, ')');
             break;
         case TOK_FASTCALL1:
         case TOK_FASTCALL2:
@@ -2721,8 +2719,8 @@ static void parse_attribute(AttributeDef *ad)
             break;            
 #endif
         case TOK_MODE:
-            skip('(');
-            switch(tok) {
+            skip(tcc_state, '(');
+            switch(tcc_state->tccpp_tok) {
                 case TOK_MODE_DI:
                     ad->a.mode = VT_LLONG + 1;
                     break;
@@ -2733,11 +2731,11 @@ static void parse_attribute(AttributeDef *ad)
                     ad->a.mode = VT_INT + 1;
                     break;
                 default:
-                    tcc_warning("__mode__(%s) not supported\n", get_tok_str(tok, NULL));
+                    tcc_warning(tcc_state, "__mode__(%s) not supported\n", get_tok_str(tcc_state, tcc_state->tccpp_tok, NULL));
                     break;
             }
-            next();
-            skip(')');
+            next(tcc_state);
+            skip(tcc_state, ')');
             break;
         case TOK_DLLEXPORT:
             ad->a.func_export = 1;
@@ -2747,31 +2745,31 @@ static void parse_attribute(AttributeDef *ad)
             break;
         default:
             if (tcc_state->warn_unsupported)
-                tcc_warning("'%s' attribute ignored", get_tok_str(t, NULL));
+                tcc_warning(tcc_state, "'%s' attribute ignored", get_tok_str(tcc_state, t, NULL));
             /* skip parameters */
-            if (tok == '(') {
+            if (tcc_state->tccpp_tok == '(') {
                 int parenthesis = 0;
                 do {
-                    if (tok == '(') 
+                    if (tcc_state->tccpp_tok == '(') 
                         parenthesis++;
-                    else if (tok == ')') 
+                    else if (tcc_state->tccpp_tok == ')') 
                         parenthesis--;
-                    next();
-                } while (parenthesis && tok != -1);
+                    next(tcc_state);
+                } while (parenthesis && tcc_state->tccpp_tok != -1);
             }
             break;
         }
-        if (tok != ',')
+        if (tcc_state->tccpp_tok != ',')
             break;
-        next();
+        next(tcc_state);
     }
-    skip(')');
-    skip(')');
+    skip(tcc_state, ')');
+    skip(tcc_state, ')');
     }
 }
 
 /* enum/struct/union declaration. u is either VT_ENUM or VT_STRUCT */
-static void struct_decl(CType *type, int u, int tdef)
+static void struct_decl(TCCState* tcc_state, CType *type, int u, int tdef)
 {
     int a, v, size, align, maxalign, c, offset, flexible;
     int bit_size, bit_pos, bsize, bt, lbit_pos, prevbt;
@@ -2779,68 +2777,67 @@ static void struct_decl(CType *type, int u, int tdef)
     AttributeDef ad;
     CType type1, btype;
 
-    a = tok; /* save decl type */
-    next();
-    if (tok != '{') {
-        v = tok;
-        next();
+    a = tcc_state->tccpp_tok; /* save decl type */
+    next(tcc_state);
+    if (tcc_state->tccpp_tok != '{') {
+        v = tcc_state->tccpp_tok;
+        next(tcc_state);
         /* struct already defined ? return it */
         if (v < TOK_IDENT)
-            expect("struct/union/enum name");
-        s = struct_find(v);
+            expect(tcc_state, "struct/union/enum name");
+        s = struct_find(tcc_state, v);
         if (s) {
             if (s->type.t != a)
-                tcc_error("invalid type");
+                tcc_error(tcc_state, "invalid type");
             goto do_decl;
-        } else if (tok >= TOK_IDENT && !tdef)
-            tcc_error("unknown struct/union/enum");
+        } else if (tcc_state->tccpp_tok >= TOK_IDENT && !tdef)
+            tcc_error(tcc_state, "unknown struct/union/enum");
     } else {
-        v = anon_sym++;
+        v = tcc_state->tccgen_anon_sym++;
     }
     type1.t = a;
     type1.ref = NULL;
     /* we put an undefined size for struct/union */
-    s = sym_push(v | SYM_STRUCT, &type1, 0, -1);
+    s = sym_push(tcc_state, v | SYM_STRUCT, &type1, 0, -1);
     s->r = 0; /* default alignment is zero as gcc */
     /* put struct/union/enum name in type */
  do_decl:
     type->t = u;
     type->ref = s;
     
-    if (tok == '{') {
-        next();
+    if (tcc_state->tccpp_tok == '{') {
+        next(tcc_state);
         if (s->c != -1)
-            tcc_error("struct/union/enum already defined");
+            tcc_error(tcc_state, "struct/union/enum already defined");
         /* cannot be empty */
         c = 0;
         /* non empty enums are not allowed */
         if (a == TOK_ENUM) {
             for(;;) {
-                v = tok;
+                v = tcc_state->tccpp_tok;
                 if (v < TOK_UIDENT)
-                    expect("identifier");
-                ss = sym_find(v);
+                    expect(tcc_state, "identifier");
+                ss = sym_find(tcc_state, v);
                 if (ss)
-                    tcc_error("redefinition of enumerator '%s'",
-                              get_tok_str(v, NULL));
-                next();
-                if (tok == '=') {
-                    next();
-                    c = expr_const();
+                    tcc_error(tcc_state, "redefinition of enumerator '%s'");
+                next(tcc_state);
+                if (tcc_state->tccpp_tok == '=') {
+                    next(tcc_state);
+                    c = expr_const(tcc_state);
                 }
                 /* enum symbols have static storage */
-                ss = sym_push(v, &int_type, VT_CONST, c);
+                ss = sym_push(tcc_state, v, &tcc_state->tccgen_int_type, VT_CONST, c);
                 ss->type.t |= VT_STATIC;
-                if (tok != ',')
+                if (tcc_state->tccpp_tok != ',')
                     break;
-                next();
+                next(tcc_state);
                 c++;
                 /* NOTE: we accept a trailing comma */
-                if (tok == '}')
+                if (tcc_state->tccpp_tok == '}')
                     break;
             }
-            s->c = type_size(&int_type, &align);
-            skip('}');
+            s->c = type_size(&tcc_state->tccgen_int_type, &align);
+            skip(tcc_state, '}');
         } else {
             maxalign = 1;
             ps = &s->next;
@@ -2848,41 +2845,36 @@ static void struct_decl(CType *type, int u, int tdef)
             bit_pos = 0;
             offset = 0;
             flexible = 0;
-            while (tok != '}') {
-                parse_btype(&btype, &ad);
+            while (tcc_state->tccpp_tok != '}') {
+                parse_btype(tcc_state, &btype, &ad);
                 while (1) {
 		    if (flexible)
-		        tcc_error("flexible array member '%s' not at the end of struct",
-                              get_tok_str(v, NULL));
+		        tcc_error(tcc_state, "flexible array member '%s' not at the end of struct");
                     bit_size = -1;
                     v = 0;
                     type1 = btype;
-                    if (tok != ':') {
-                        type_decl(&type1, &ad, &v, TYPE_DIRECT | TYPE_ABSTRACT);
+                    if (tcc_state->tccpp_tok != ':') {
+                        type_decl(tcc_state, &type1, &ad, &v, TYPE_DIRECT | TYPE_ABSTRACT);
                         if (v == 0 && (type1.t & VT_BTYPE) != VT_STRUCT)
-                            expect("identifier");
+                            expect(tcc_state, "identifier");
                         if (type_size(&type1, &align) < 0) {
 			    if ((a == TOK_STRUCT) && (type1.t & VT_ARRAY) && c)
 			        flexible = 1;
 			    else
-			        tcc_error("field '%s' has incomplete type",
-                                      get_tok_str(v, NULL));
+			        tcc_error(tcc_state, "field '%s' has incomplete type");
                         }
                         if ((type1.t & VT_BTYPE) == VT_FUNC ||
                             (type1.t & (VT_TYPEDEF | VT_STATIC | VT_EXTERN | VT_INLINE)))
-                            tcc_error("invalid type for '%s'", 
-                                  get_tok_str(v, NULL));
+                            tcc_error(tcc_state, "invalid type for '%s'");
                     }
-                    if (tok == ':') {
-                        next();
-                        bit_size = expr_const();
+                    if (tcc_state->tccpp_tok == ':') {
+                        next(tcc_state);
+                        bit_size = expr_const(tcc_state);
                         /* XXX: handle v = 0 case for messages */
                         if (bit_size < 0)
-                            tcc_error("negative width in bit-field '%s'", 
-                                  get_tok_str(v, NULL));
+                            tcc_error(tcc_state, "negative width in bit-field '%s'");
                         if (v && bit_size == 0)
-                            tcc_error("zero width for bit-field '%s'", 
-                                  get_tok_str(v, NULL));
+                            tcc_error(tcc_state, "zero width for bit-field '%s'");
                     }
                     size = type_size(&type1, &align);
                     if (ad.a.aligned) {
@@ -2903,11 +2895,10 @@ static void struct_decl(CType *type, int u, int tdef)
                             bt != VT_BOOL &&
                             bt != VT_ENUM &&
                             bt != VT_LLONG)
-                            tcc_error("bitfields must have scalar type");
+                            tcc_error(tcc_state, "bitfields must have scalar type");
                         bsize = size * 8;
                         if (bit_size > bsize) {
-                            tcc_error("width of '%s' exceeds its type",
-                                  get_tok_str(v, NULL));
+                            tcc_error(tcc_state, "width of '%s' exceeds its type");
                         } else if (bit_size == bsize) {
                             /* no need for bit fields */
                             bit_pos = 0;
@@ -2953,7 +2944,7 @@ static void struct_decl(CType *type, int u, int tdef)
                         }
 #if 0
                         printf("add field %s offset=%d", 
-                               get_tok_str(v, NULL), offset);
+                               get_tok_str(tcc_state, v, NULL), offset);
                         if (type1.t & VT_BITFIELD) {
                             printf(" pos=%d size=%d", 
                                    (type1.t >> VT_STRUCT_SHIFT) & 0x3f,
@@ -2965,22 +2956,22 @@ static void struct_decl(CType *type, int u, int tdef)
                     if (v == 0 && (type1.t & VT_BTYPE) == VT_STRUCT) {
                         ass = type1.ref;
                         while ((ass = ass->next) != NULL) {
-                           ss = sym_push(ass->v, &ass->type, 0, offset + ass->c);
+                           ss = sym_push(tcc_state, ass->v, &ass->type, 0, offset + ass->c);
                            *ps = ss;
                            ps = &ss->next;
                         }
                     } else if (v) {
-                        ss = sym_push(v | SYM_FIELD, &type1, 0, offset);
+                        ss = sym_push(tcc_state, v | SYM_FIELD, &type1, 0, offset);
                         *ps = ss;
                         ps = &ss->next;
                     }
-                    if (tok == ';' || tok == TOK_EOF)
+                    if (tcc_state->tccpp_tok == ';' || tcc_state->tccpp_tok == TOK_EOF)
                         break;
-                    skip(',');
+                    skip(tcc_state, ',');
                 }
-                skip(';');
+                skip(tcc_state, ';');
             }
-            skip('}');
+            skip(tcc_state, '}');
             /* store size and alignment */
             s->c = (c + maxalign - 1) & -maxalign; 
             s->r = maxalign;
@@ -2991,7 +2982,7 @@ static void struct_decl(CType *type, int u, int tdef)
 /* return 0 if no type declaration. otherwise, return the basic type
    and skip it. 
  */
-static int parse_btype(CType *type, AttributeDef *ad)
+static int parse_btype(TCCState* tcc_state, CType *type, AttributeDef *ad)
 {
     int t, u, type_found, typespec_found, typedef_found;
     Sym *s;
@@ -3003,20 +2994,20 @@ static int parse_btype(CType *type, AttributeDef *ad)
     typedef_found = 0;
     t = 0;
     while(1) {
-        switch(tok) {
+        switch(tcc_state->tccpp_tok) {
         case TOK_EXTENSION:
             /* currently, we really ignore extension */
-            next();
+            next(tcc_state);
             continue;
 
             /* basic types */
         case TOK_CHAR:
             u = VT_BYTE;
         basic_type:
-            next();
+            next(tcc_state);
         basic_type1:
             if ((t & VT_BTYPE) != 0)
-                tcc_error("too many basic types");
+                tcc_error(tcc_state, "too many basic types");
             t |= u;
             typespec_found = 1;
             break;
@@ -3027,11 +3018,11 @@ static int parse_btype(CType *type, AttributeDef *ad)
             u = VT_SHORT;
             goto basic_type;
         case TOK_INT:
-            next();
+            next(tcc_state);
             typespec_found = 1;
             break;
         case TOK_LONG:
-            next();
+            next(tcc_state);
             if ((t & VT_BTYPE) == VT_DOUBLE) {
 #ifndef TCC_TARGET_PE
                 t = (t & ~VT_BTYPE) | VT_LDOUBLE;
@@ -3050,7 +3041,7 @@ static int parse_btype(CType *type, AttributeDef *ad)
             u = VT_FLOAT;
             goto basic_type;
         case TOK_DOUBLE:
-            next();
+            next(tcc_state);
             if ((t & VT_BTYPE) == VT_LONG) {
 #ifdef TCC_TARGET_PE
                 t = (t & ~VT_BTYPE) | VT_DOUBLE;
@@ -3063,14 +3054,14 @@ static int parse_btype(CType *type, AttributeDef *ad)
             }
             break;
         case TOK_ENUM:
-            struct_decl(&type1, VT_ENUM, t & VT_TYPEDEF);
+            struct_decl(tcc_state, &type1, VT_ENUM, t & VT_TYPEDEF);
         basic_type2:
             u = type1.t;
             type->ref = type1.ref;
             goto basic_type1;
         case TOK_STRUCT:
         case TOK_UNION:
-            struct_decl(&type1, VT_STRUCT, t & VT_TYPEDEF);
+            struct_decl(tcc_state, &type1, VT_STRUCT, t & VT_TYPEDEF);
             goto basic_type2;
 
             /* type modifiers */
@@ -3078,62 +3069,62 @@ static int parse_btype(CType *type, AttributeDef *ad)
         case TOK_CONST2:
         case TOK_CONST3:
             t |= VT_CONSTANT;
-            next();
+            next(tcc_state);
             break;
         case TOK_VOLATILE1:
         case TOK_VOLATILE2:
         case TOK_VOLATILE3:
             t |= VT_VOLATILE;
-            next();
+            next(tcc_state);
             break;
         case TOK_SIGNED1:
         case TOK_SIGNED2:
         case TOK_SIGNED3:
             if ((t & (VT_DEFSIGN|VT_UNSIGNED)) == (VT_DEFSIGN|VT_UNSIGNED))
-                tcc_error("signed and unsigned modifier");
+                tcc_error(tcc_state, "signed and unsigned modifier");
             typespec_found = 1;
             t |= VT_DEFSIGN;
-            next();
+            next(tcc_state);
             break;
         case TOK_REGISTER:
         case TOK_AUTO:
         case TOK_RESTRICT1:
         case TOK_RESTRICT2:
         case TOK_RESTRICT3:
-            next();
+            next(tcc_state);
             break;
         case TOK_UNSIGNED:
             if ((t & (VT_DEFSIGN|VT_UNSIGNED)) == VT_DEFSIGN)
-                tcc_error("signed and unsigned modifier");
+                tcc_error(tcc_state, "signed and unsigned modifier");
             t |= VT_DEFSIGN | VT_UNSIGNED;
-            next();
+            next(tcc_state);
             typespec_found = 1;
             break;
 
             /* storage */
         case TOK_EXTERN:
             t |= VT_EXTERN;
-            next();
+            next(tcc_state);
             break;
         case TOK_STATIC:
             t |= VT_STATIC;
-            next();
+            next(tcc_state);
             break;
         case TOK_TYPEDEF:
             t |= VT_TYPEDEF;
-            next();
+            next(tcc_state);
             break;
         case TOK_INLINE1:
         case TOK_INLINE2:
         case TOK_INLINE3:
             t |= VT_INLINE;
-            next();
+            next(tcc_state);
             break;
 
             /* GNUC attribute */
         case TOK_ATTRIBUTE1:
         case TOK_ATTRIBUTE2:
-            parse_attribute(ad);
+            parse_attribute(tcc_state, ad);
             if (ad->a.mode) {
                 u = ad->a.mode -1;
                 t = (t & ~VT_BTYPE) | u;
@@ -3143,15 +3134,15 @@ static int parse_btype(CType *type, AttributeDef *ad)
         case TOK_TYPEOF1:
         case TOK_TYPEOF2:
         case TOK_TYPEOF3:
-            next();
-            parse_expr_type(&type1);
+            next(tcc_state);
+            parse_expr_type(tcc_state, &type1);
             /* remove all storage modifiers except typedef */
             type1.t &= ~(VT_STORAGE&~VT_TYPEDEF);
             goto basic_type2;
         default:
             if (typespec_found || typedef_found)
                 goto the_end;
-            s = sym_find(tok);
+            s = sym_find(tcc_state, tcc_state->tccpp_tok);
             if (!s || !(s->type.t & VT_TYPEDEF))
                 goto the_end;
             typedef_found = 1;
@@ -3165,7 +3156,7 @@ static int parse_btype(CType *type, AttributeDef *ad)
                     ad->a.func_call = s->a.func_call;
                 ad->a.packed |= s->a.packed;
             }
-            next();
+            next(tcc_state);
             typespec_found = 1;
             break;
         }
@@ -3190,7 +3181,7 @@ the_end:
 
 /* convert a function parameter type (array to pointer and function to
    function pointer) */
-static inline void convert_parameter_type(CType *pt)
+static inline void convert_parameter_type(TCCState* tcc_state, CType *pt)
 {
     /* remove const and volatile qualifiers (XXX: const could be used
        to indicate a const function parameter */
@@ -3198,88 +3189,88 @@ static inline void convert_parameter_type(CType *pt)
     /* array must be transformed to pointer according to ANSI C */
     pt->t &= ~VT_ARRAY;
     if ((pt->t & VT_BTYPE) == VT_FUNC) {
-        mk_pointer(pt);
+        mk_pointer(tcc_state, pt);
     }
 }
 
-ST_FUNC void parse_asm_str(CString *astr)
+ST_FUNC void parse_asm_str(TCCState* tcc_state, CString *astr)
 {
-    skip('(');
+    skip(tcc_state, '(');
     /* read the string */
-    if (tok != TOK_STR)
-        expect("string constant");
+    if (tcc_state->tccpp_tok != TOK_STR)
+        expect(tcc_state, "string constant");
     cstr_new(astr);
-    while (tok == TOK_STR) {
+    while (tcc_state->tccpp_tok == TOK_STR) {
         /* XXX: add \0 handling too ? */
-        cstr_cat(astr, tokc.cstr->data);
-        next();
+        cstr_cat(tcc_state, astr, tcc_state->tccpp_tokc.cstr->data);
+        next(tcc_state);
     }
-    cstr_ccat(astr, '\0');
+    cstr_ccat(tcc_state, astr, '\0');
 }
 
 /* Parse an asm label and return the label
  * Don't forget to free the CString in the caller! */
-static void asm_label_instr(CString *astr)
+static void asm_label_instr(TCCState* tcc_state, CString *astr)
 {
-    next();
-    parse_asm_str(astr);
-    skip(')');
+    next(tcc_state);
+    parse_asm_str(tcc_state, astr);
+    skip(tcc_state, ')');
 #ifdef ASM_DEBUG
     printf("asm_alias: \"%s\"\n", (char *)astr->data);
 #endif
 }
 
-static void post_type(CType *type, AttributeDef *ad)
+static void post_type(TCCState* tcc_state, CType *type, AttributeDef *ad)
 {
     int n, l, t1, arg_size, align;
     Sym **plast, *s, *first;
     AttributeDef ad1;
     CType pt;
 
-    if (tok == '(') {
+    if (tcc_state->tccpp_tok == '(') {
         /* function declaration */
-        next();
+        next(tcc_state);
         l = 0;
         first = NULL;
         plast = &first;
         arg_size = 0;
-        if (tok != ')') {
+        if (tcc_state->tccpp_tok != ')') {
             for(;;) {
                 /* read param name and compute offset */
                 if (l != FUNC_OLD) {
-                    if (!parse_btype(&pt, &ad1)) {
+                    if (!parse_btype(tcc_state, &pt, &ad1)) {
                         if (l) {
-                            tcc_error("invalid type");
+                            tcc_error(tcc_state, "invalid type");
                         } else {
                             l = FUNC_OLD;
                             goto old_proto;
                         }
                     }
                     l = FUNC_NEW;
-                    if ((pt.t & VT_BTYPE) == VT_VOID && tok == ')')
+                    if ((pt.t & VT_BTYPE) == VT_VOID && tcc_state->tccpp_tok == ')')
                         break;
-                    type_decl(&pt, &ad1, &n, TYPE_DIRECT | TYPE_ABSTRACT);
+                    type_decl(tcc_state, &pt, &ad1, &n, TYPE_DIRECT | TYPE_ABSTRACT);
                     if ((pt.t & VT_BTYPE) == VT_VOID)
-                        tcc_error("parameter declared as void");
+                        tcc_error(tcc_state, "parameter declared as void");
                     arg_size += (type_size(&pt, &align) + PTR_SIZE - 1) / PTR_SIZE;
                 } else {
                 old_proto:
-                    n = tok;
+                    n = tcc_state->tccpp_tok;
                     if (n < TOK_UIDENT)
-                        expect("identifier");
+                        expect(tcc_state, "identifier");
                     pt.t = VT_INT;
-                    next();
+                    next(tcc_state);
                 }
-                convert_parameter_type(&pt);
-                s = sym_push(n | SYM_FIELD, &pt, 0, 0);
+                convert_parameter_type(tcc_state, &pt);
+                s = sym_push(tcc_state, n | SYM_FIELD, &pt, 0, 0);
                 *plast = s;
                 plast = &s->next;
-                if (tok == ')')
+                if (tcc_state->tccpp_tok == ')')
                     break;
-                skip(',');
-                if (l == FUNC_NEW && tok == TOK_DOTS) {
+                skip(tcc_state, ',');
+                if (l == FUNC_NEW && tcc_state->tccpp_tok == TOK_DOTS) {
                     l = FUNC_ELLIPSIS;
-                    next();
+                    next(tcc_state);
                     break;
                 }
             }
@@ -3287,70 +3278,70 @@ static void post_type(CType *type, AttributeDef *ad)
         /* if no parameters, then old type prototype */
         if (l == 0)
             l = FUNC_OLD;
-        skip(')');
+        skip(tcc_state, ')');
         /* NOTE: const is ignored in returned type as it has a special
            meaning in gcc / C++ */
         type->t &= ~VT_CONSTANT; 
         /* some ancient pre-K&R C allows a function to return an array
            and the array brackets to be put after the arguments, such 
            that "int c()[]" means something like "int[] c()" */
-        if (tok == '[') {
-            next();
-            skip(']'); /* only handle simple "[]" */
+        if (tcc_state->tccpp_tok == '[') {
+            next(tcc_state);
+            skip(tcc_state, ']'); /* only handle simple "[]" */
             type->t |= VT_PTR;
         }
         /* we push a anonymous symbol which will contain the function prototype */
         ad->a.func_args = arg_size;
-        s = sym_push(SYM_FIELD, type, 0, l);
+        s = sym_push(tcc_state, SYM_FIELD, type, 0, l);
         s->a = ad->a;
         s->next = first;
         type->t = VT_FUNC;
         type->ref = s;
-    } else if (tok == '[') {
+    } else if (tcc_state->tccpp_tok == '[') {
         /* array definition */
-        next();
-        if (tok == TOK_RESTRICT1)
-            next();
+        next(tcc_state);
+        if (tcc_state->tccpp_tok == TOK_RESTRICT1)
+            next(tcc_state);
         n = -1;
         t1 = 0;
-        if (tok != ']') {
-            if (!local_stack || nocode_wanted)
-                 vpushi(expr_const());
-            else gexpr();
-            if ((vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST) {
-                n = vtop->c.i;
+        if (tcc_state->tccpp_tok != ']') {
+            if (!tcc_state->tccgen_local_stack || tcc_state->tccgen_nocode_wanted)
+                 vpushi(tcc_state, expr_const(tcc_state));
+            else gexpr(tcc_state);
+            if ((tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST) {
+                n = tcc_state->tccgen_vtop->c.i;
                 if (n < 0)
-                    tcc_error("invalid array size");
+                    tcc_error(tcc_state, "invalid array size");
             } else {
-                if (!is_integer_btype(vtop->type.t & VT_BTYPE))
-                    tcc_error("size of variable length array should be an integer");
+                if (!is_integer_btype(tcc_state->tccgen_vtop->type.t & VT_BTYPE))
+                    tcc_error(tcc_state, "size of variable length array should be an integer");
                 t1 = VT_VLA;
             }
         }
-        skip(']');
+        skip(tcc_state, ']');
         /* parse next post type */
-        post_type(type, ad);
+        post_type(tcc_state, type, ad);
         if (type->t == VT_FUNC)
-            tcc_error("declaration of an array of functions");
+            tcc_error(tcc_state, "declaration of an array of functions");
         t1 |= type->t & VT_VLA;
         
         if (t1 & VT_VLA) {
-            loc -= type_size(&int_type, &align);
-            loc &= -align;
-            n = loc;
+            tcc_state->tccgen_loc -= type_size(&tcc_state->tccgen_int_type, &align);
+            tcc_state->tccgen_loc &= -align;
+            n = tcc_state->tccgen_loc;
 
-            vla_runtime_type_size(type, &align);
-            gen_op('*');
-            vset(&int_type, VT_LOCAL|VT_LVAL, loc);
-            vswap();
-            vstore();
+            vla_runtime_type_size(tcc_state, type, &align);
+            gen_op(tcc_state, '*');
+            vset(tcc_state, &tcc_state->tccgen_int_type, VT_LOCAL|VT_LVAL, tcc_state->tccgen_loc);
+            vswap(tcc_state);
+            vstore(tcc_state);
         }
         if (n != -1)
-            vpop();
+            vpop(tcc_state);
                 
         /* we push an anonymous symbol which will contain the array
            element type */
-        s = sym_push(SYM_FIELD, type, 0, n);
+        s = sym_push(tcc_state, SYM_FIELD, type, 0, n);
         type->t = (t1 ? VT_VLA : VT_ARRAY) | VT_PTR;
         type->ref = s;
     }
@@ -3362,17 +3353,17 @@ static void post_type(CType *type, AttributeDef *ad)
    attribute definition of the basic type. It can be modified by
    type_decl(). 
  */
-static void type_decl(CType *type, AttributeDef *ad, int *v, int td)
+static void type_decl(TCCState* tcc_state, CType *type, AttributeDef *ad, int *v, int td)
 {
     Sym *s;
     CType type1, *type2;
     int qualifiers, storage;
 
-    while (tok == '*') {
+    while (tcc_state->tccpp_tok == '*') {
         qualifiers = 0;
     redo:
-        next();
-        switch(tok) {
+        next(tcc_state);
+        switch(tcc_state->tccpp_tok) {
         case TOK_CONST1:
         case TOK_CONST2:
         case TOK_CONST3:
@@ -3388,48 +3379,48 @@ static void type_decl(CType *type, AttributeDef *ad, int *v, int td)
         case TOK_RESTRICT3:
             goto redo;
         }
-        mk_pointer(type);
+        mk_pointer(tcc_state, type);
         type->t |= qualifiers;
     }
     
     /* XXX: clarify attribute handling */
-    if (tok == TOK_ATTRIBUTE1 || tok == TOK_ATTRIBUTE2)
-        parse_attribute(ad);
+    if (tcc_state->tccpp_tok == TOK_ATTRIBUTE1 || tcc_state->tccpp_tok == TOK_ATTRIBUTE2)
+        parse_attribute(tcc_state, ad);
 
     /* recursive type */
     /* XXX: incorrect if abstract type for functions (e.g. 'int ()') */
     type1.t = 0; /* XXX: same as int */
-    if (tok == '(') {
-        next();
+    if (tcc_state->tccpp_tok == '(') {
+        next(tcc_state);
         /* XXX: this is not correct to modify 'ad' at this point, but
            the syntax is not clear */
-        if (tok == TOK_ATTRIBUTE1 || tok == TOK_ATTRIBUTE2)
-            parse_attribute(ad);
-        type_decl(&type1, ad, v, td);
-        skip(')');
+        if (tcc_state->tccpp_tok == TOK_ATTRIBUTE1 || tcc_state->tccpp_tok == TOK_ATTRIBUTE2)
+            parse_attribute(tcc_state, ad);
+        type_decl(tcc_state, &type1, ad, v, td);
+        skip(tcc_state, ')');
     } else {
         /* type identifier */
-        if (tok >= TOK_IDENT && (td & TYPE_DIRECT)) {
-            *v = tok;
-            next();
+        if (tcc_state->tccpp_tok >= TOK_IDENT && (td & TYPE_DIRECT)) {
+            *v = tcc_state->tccpp_tok;
+            next(tcc_state);
         } else {
             if (!(td & TYPE_ABSTRACT))
-                expect("identifier");
+                expect(tcc_state, "identifier");
             *v = 0;
         }
     }
     storage = type->t & VT_STORAGE;
     type->t &= ~VT_STORAGE;
     if (storage & VT_STATIC) {
-        int saved_nocode_wanted = nocode_wanted;
-        nocode_wanted = 1;
-        post_type(type, ad);
-        nocode_wanted = saved_nocode_wanted;
+        int saved_nocode_wanted = tcc_state->tccgen_nocode_wanted;
+        tcc_state->tccgen_nocode_wanted = 1;
+        post_type(tcc_state, type, ad);
+        tcc_state->tccgen_nocode_wanted = saved_nocode_wanted;
     } else
-        post_type(type, ad);
+        post_type(tcc_state, type, ad);
     type->t |= storage;
-    if (tok == TOK_ATTRIBUTE1 || tok == TOK_ATTRIBUTE2)
-        parse_attribute(ad);
+    if (tcc_state->tccpp_tok == TOK_ATTRIBUTE1 || tcc_state->tccpp_tok == TOK_ATTRIBUTE2)
+        parse_attribute(tcc_state, ad);
     
     if (!type1.t)
         return;
@@ -3464,30 +3455,30 @@ ST_FUNC int lvalue_type(int t)
 }
 
 /* indirection with full error checking and bound check */
-ST_FUNC void indir(void)
+ST_FUNC void indir(TCCState* tcc_state)
 {
-    if ((vtop->type.t & VT_BTYPE) != VT_PTR) {
-        if ((vtop->type.t & VT_BTYPE) == VT_FUNC)
+    if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) != VT_PTR) {
+        if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_FUNC)
             return;
-        expect("pointer");
+        expect(tcc_state, "pointer");
     }
-    if ((vtop->r & VT_LVAL) && !nocode_wanted)
-        gv(RC_INT);
-    vtop->type = *pointed_type(&vtop->type);
+    if ((tcc_state->tccgen_vtop->r & VT_LVAL) && !tcc_state->tccgen_nocode_wanted)
+        gv(tcc_state, RC_INT);
+    tcc_state->tccgen_vtop->type = *pointed_type(&tcc_state->tccgen_vtop->type);
     /* Arrays and functions are never lvalues */
-    if (!(vtop->type.t & VT_ARRAY) && !(vtop->type.t & VT_VLA)
-        && (vtop->type.t & VT_BTYPE) != VT_FUNC) {
-        vtop->r |= lvalue_type(vtop->type.t);
+    if (!(tcc_state->tccgen_vtop->type.t & VT_ARRAY) && !(tcc_state->tccgen_vtop->type.t & VT_VLA)
+        && (tcc_state->tccgen_vtop->type.t & VT_BTYPE) != VT_FUNC) {
+        tcc_state->tccgen_vtop->r |= lvalue_type(tcc_state->tccgen_vtop->type.t);
         /* if bound checking, the referenced pointer must be checked */
 #ifdef CONFIG_TCC_BCHECK
         if (tcc_state->do_bounds_check)
-            vtop->r |= VT_MUSTBOUND;
+            tcc_state->tccgen_vtop->r |= VT_MUSTBOUND;
 #endif
     }
 }
 
 /* pass a parameter to a function and do type checking and casting */
-static void gfunc_param_typed(Sym *func, Sym *arg)
+static void gfunc_param_typed(TCCState* tcc_state, Sym *func, Sym *arg)
 {
     int func_type;
     CType type;
@@ -3496,58 +3487,58 @@ static void gfunc_param_typed(Sym *func, Sym *arg)
     if (func_type == FUNC_OLD ||
         (func_type == FUNC_ELLIPSIS && arg == NULL)) {
         /* default casting : only need to convert float to double */
-        if ((vtop->type.t & VT_BTYPE) == VT_FLOAT) {
+        if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_FLOAT) {
             type.t = VT_DOUBLE;
-            gen_cast(&type);
-        } else if (vtop->type.t & VT_BITFIELD) {
-            type.t = vtop->type.t & (VT_BTYPE | VT_UNSIGNED);
-            gen_cast(&type);
+            gen_cast(tcc_state, &type);
+        } else if (tcc_state->tccgen_vtop->type.t & VT_BITFIELD) {
+            type.t = tcc_state->tccgen_vtop->type.t & (VT_BTYPE | VT_UNSIGNED);
+            gen_cast(tcc_state, &type);
         }
     } else if (arg == NULL) {
-        tcc_error("too many arguments to function");
+        tcc_error(tcc_state, "too many arguments to function");
     } else {
         type = arg->type;
         type.t &= ~VT_CONSTANT; /* need to do that to avoid false warning */
-        gen_assign_cast(&type);
+        gen_assign_cast(tcc_state, &type);
     }
 }
 
 /* parse an expression of the form '(type)' or '(expr)' and return its
    type */
-static void parse_expr_type(CType *type)
+static void parse_expr_type(TCCState* tcc_state, CType *type)
 {
     int n;
     AttributeDef ad;
 
-    skip('(');
-    if (parse_btype(type, &ad)) {
-        type_decl(type, &ad, &n, TYPE_ABSTRACT);
+    skip(tcc_state, '(');
+    if (parse_btype(tcc_state, type, &ad)) {
+        type_decl(tcc_state, type, &ad, &n, TYPE_ABSTRACT);
     } else {
-        expr_type(type);
+        expr_type(tcc_state, type);
     }
-    skip(')');
+    skip(tcc_state, ')');
 }
 
-static void parse_type(CType *type)
+static void parse_type(TCCState* tcc_state, CType *type)
 {
     AttributeDef ad;
     int n;
 
-    if (!parse_btype(type, &ad)) {
-        expect("type");
+    if (!parse_btype(tcc_state, type, &ad)) {
+        expect(tcc_state, "type");
     }
-    type_decl(type, &ad, &n, TYPE_ABSTRACT);
+    type_decl(tcc_state, type, &ad, &n, TYPE_ABSTRACT);
 }
 
-static void vpush_tokc(int t)
+static void vpush_tokc(TCCState* tcc_state, int t)
 {
     CType type;
     type.t = t;
     type.ref = 0;
-    vsetc(&type, VT_CONST, &tokc);
+    vsetc(tcc_state, &type, VT_CONST, &tcc_state->tccpp_tokc);
 }
 
-ST_FUNC void unary(void)
+ST_FUNC void unary(TCCState* tcc_state)
 {
     int n, t, align, size, r, sizeof_caller;
     CType type;
@@ -3560,42 +3551,42 @@ ST_FUNC void unary(void)
     /* XXX: GCC 2.95.3 does not generate a table although it should be
        better here */
  tok_next:
-    switch(tok) {
+    switch(tcc_state->tccpp_tok) {
     case TOK_EXTENSION:
-        next();
+        next(tcc_state);
         goto tok_next;
     case TOK_CINT:
     case TOK_CCHAR: 
     case TOK_LCHAR:
-        vpushi(tokc.i);
-        next();
+        vpushi(tcc_state, tcc_state->tccpp_tokc.i);
+        next(tcc_state);
         break;
     case TOK_CUINT:
-        vpush_tokc(VT_INT | VT_UNSIGNED);
-        next();
+        vpush_tokc(tcc_state, VT_INT | VT_UNSIGNED);
+        next(tcc_state);
         break;
     case TOK_CLLONG:
-        vpush_tokc(VT_LLONG);
-        next();
+        vpush_tokc(tcc_state, VT_LLONG);
+        next(tcc_state);
         break;
     case TOK_CULLONG:
-        vpush_tokc(VT_LLONG | VT_UNSIGNED);
-        next();
+        vpush_tokc(tcc_state, VT_LLONG | VT_UNSIGNED);
+        next(tcc_state);
         break;
     case TOK_CFLOAT:
-        vpush_tokc(VT_FLOAT);
-        next();
+        vpush_tokc(tcc_state, VT_FLOAT);
+        next(tcc_state);
         break;
     case TOK_CDOUBLE:
-        vpush_tokc(VT_DOUBLE);
-        next();
+        vpush_tokc(tcc_state, VT_DOUBLE);
+        next(tcc_state);
         break;
     case TOK_CLDOUBLE:
-        vpush_tokc(VT_LDOUBLE);
-        next();
+        vpush_tokc(tcc_state, VT_LDOUBLE);
+        next(tcc_state);
         break;
     case TOK___FUNCTION__:
-        if (!gnu_ext)
+        if (!tcc_state->libtcc_gnu_ext)
             goto tok_identifier;
         /* fall thru */
     case TOK___FUNC__:
@@ -3603,16 +3594,16 @@ ST_FUNC void unary(void)
             void *ptr;
             int len;
             /* special function name identifier */
-            len = strlen(funcname) + 1;
+            len = strlen(tcc_state->tccgen_funcname) + 1;
             /* generate char[len] type */
             type.t = VT_BYTE;
-            mk_pointer(&type);
+            mk_pointer(tcc_state, &type);
             type.t |= VT_ARRAY;
             type.ref->c = len;
-            vpush_ref(&type, data_section, data_section->data_offset, len);
-            ptr = section_ptr_add(data_section, len);
-            memcpy(ptr, funcname, len);
-            next();
+            vpush_ref(tcc_state, &type, tcc_state->tccgen_data_section, tcc_state->tccgen_data_section->data_offset, len);
+            ptr = section_ptr_add(tcc_state, tcc_state->tccgen_data_section, len);
+            memcpy(ptr, tcc_state->tccgen_funcname, len);
+            next(tcc_state);
         }
         break;
     case TOK_LSTR:
@@ -3629,21 +3620,21 @@ ST_FUNC void unary(void)
         if (tcc_state->warn_write_strings)
             t |= VT_CONSTANT;
         type.t = t;
-        mk_pointer(&type);
+        mk_pointer(tcc_state, &type);
         type.t |= VT_ARRAY;
         memset(&ad, 0, sizeof(AttributeDef));
-        decl_initializer_alloc(&type, &ad, VT_CONST, 2, 0, NULL, 0);
+        decl_initializer_alloc(tcc_state, &type, &ad, VT_CONST, 2, 0, NULL, 0);
         break;
     case '(':
-        next();
+        next(tcc_state);
         /* cast ? */
-        if (parse_btype(&type, &ad)) {
-            type_decl(&type, &ad, &n, TYPE_ABSTRACT);
-            skip(')');
+        if (parse_btype(tcc_state, &type, &ad)) {
+            type_decl(tcc_state, &type, &ad, &n, TYPE_ABSTRACT);
+            skip(tcc_state, ')');
             /* check ISOC99 compound literal */
-            if (tok == '{') {
+            if (tcc_state->tccpp_tok == '{') {
                     /* data is allocated locally by default */
-                if (global_expr)
+                if (tcc_state->tccgen_global_expr)
                     r = VT_CONST;
                 else
                     r = VT_LOCAL;
@@ -3651,149 +3642,149 @@ ST_FUNC void unary(void)
                 if (!(type.t & VT_ARRAY))
                     r |= lvalue_type(type.t);
                 memset(&ad, 0, sizeof(AttributeDef));
-                decl_initializer_alloc(&type, &ad, r, 1, 0, NULL, 0);
+                decl_initializer_alloc(tcc_state, &type, &ad, r, 1, 0, NULL, 0);
             } else {
                 if (sizeof_caller) {
-                    vpush(&type);
+                    vpush(tcc_state, &type);
                     return;
                 }
-                unary();
-                gen_cast(&type);
+                unary(tcc_state);
+                gen_cast(tcc_state, &type);
             }
-        } else if (tok == '{') {
+        } else if (tcc_state->tccpp_tok == '{') {
             /* save all registers */
-            save_regs(0); 
+            save_regs(tcc_state, 0); 
             /* statement expression : we do not accept break/continue
                inside as GCC does */
-            block(NULL, NULL, NULL, NULL, 0, 1);
-            skip(')');
+            block(tcc_state, NULL, NULL, NULL, NULL, 0, 1);
+            skip(tcc_state, ')');
         } else {
-            gexpr();
-            skip(')');
+            gexpr(tcc_state);
+            skip(tcc_state, ')');
         }
         break;
     case '*':
-        next();
-        unary();
-        indir();
+        next(tcc_state);
+        unary(tcc_state);
+        indir(tcc_state);
         break;
     case '&':
-        next();
-        unary();
+        next(tcc_state);
+        unary(tcc_state);
         /* functions names must be treated as function pointers,
            except for unary '&' and sizeof. Since we consider that
            functions are not lvalues, we only have to handle it
            there and in function calls. */
         /* arrays can also be used although they are not lvalues */
-        if ((vtop->type.t & VT_BTYPE) != VT_FUNC &&
-            !(vtop->type.t & VT_ARRAY) && !(vtop->type.t & VT_LLOCAL))
-            test_lvalue();
-        mk_pointer(&vtop->type);
-        gaddrof();
+        if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) != VT_FUNC &&
+            !(tcc_state->tccgen_vtop->type.t & VT_ARRAY) && !(tcc_state->tccgen_vtop->type.t & VT_LLOCAL))
+            test_lvalue(tcc_state);
+        mk_pointer(tcc_state, &tcc_state->tccgen_vtop->type);
+        gaddrof(tcc_state);
         break;
     case '!':
-        next();
-        unary();
-        if ((vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST) {
+        next(tcc_state);
+        unary(tcc_state);
+        if ((tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST) {
             CType boolean;
             boolean.t = VT_BOOL;
-            gen_cast(&boolean);
-            vtop->c.i = !vtop->c.i;
-        } else if ((vtop->r & VT_VALMASK) == VT_CMP)
-            vtop->c.i = vtop->c.i ^ 1;
+            gen_cast(tcc_state, &boolean);
+            tcc_state->tccgen_vtop->c.i = !tcc_state->tccgen_vtop->c.i;
+        } else if ((tcc_state->tccgen_vtop->r & VT_VALMASK) == VT_CMP)
+            tcc_state->tccgen_vtop->c.i = tcc_state->tccgen_vtop->c.i ^ 1;
         else {
-            save_regs(1);
-            vseti(VT_JMP, gvtst(1, 0));
+            save_regs(tcc_state, 1);
+            vseti(tcc_state, VT_JMP, gvtst(tcc_state, 1, 0));
         }
         break;
     case '~':
-        next();
-        unary();
-        vpushi(-1);
-        gen_op('^');
+        next(tcc_state);
+        unary(tcc_state);
+        vpushi(tcc_state, -1);
+        gen_op(tcc_state, '^');
         break;
     case '+':
-        next();
-        unary();
-        if ((vtop->type.t & VT_BTYPE) == VT_PTR)
-            tcc_error("pointer not accepted for unary plus");
+        next(tcc_state);
+        unary(tcc_state);
+        if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_PTR)
+            tcc_error(tcc_state, "pointer not accepted for unary plus");
         /* In order to force cast, we add zero, except for floating point
 	   where we really need an noop (otherwise -0.0 will be transformed
 	   into +0.0).  */
-	if (!is_float(vtop->type.t)) {
-	    vpushi(0);
-	    gen_op('+');
+	if (!is_float(tcc_state->tccgen_vtop->type.t)) {
+	    vpushi(tcc_state, 0);
+	    gen_op(tcc_state, '+');
 	}
         break;
     case TOK_SIZEOF:
     case TOK_ALIGNOF1:
     case TOK_ALIGNOF2:
-        t = tok;
-        next();
+        t = tcc_state->tccpp_tok;
+        next(tcc_state);
         in_sizeof++;
-        unary_type(&type); // Perform a in_sizeof = 0;
+        unary_type(tcc_state, &type); // Perform a in_sizeof = 0;
         size = type_size(&type, &align);
         if (t == TOK_SIZEOF) {
             if (!(type.t & VT_VLA)) {
                 if (size < 0)
-                    tcc_error("sizeof applied to an incomplete type");
-                vpushs(size);
+                    tcc_error(tcc_state, "sizeof applied to an incomplete type");
+                vpushs(tcc_state, size);
             } else {
-                vla_runtime_type_size(&type, &align);
+                vla_runtime_type_size(tcc_state, &type, &align);
             }
         } else {
-            vpushs(align);
+            vpushs(tcc_state, align);
         }
-        vtop->type.t |= VT_UNSIGNED;
+        tcc_state->tccgen_vtop->type.t |= VT_UNSIGNED;
         break;
 
     case TOK_builtin_types_compatible_p:
         {
             CType type1, type2;
-            next();
-            skip('(');
-            parse_type(&type1);
-            skip(',');
-            parse_type(&type2);
-            skip(')');
+            next(tcc_state);
+            skip(tcc_state, '(');
+            parse_type(tcc_state, &type1);
+            skip(tcc_state, ',');
+            parse_type(tcc_state, &type2);
+            skip(tcc_state, ')');
             type1.t &= ~(VT_CONSTANT | VT_VOLATILE);
             type2.t &= ~(VT_CONSTANT | VT_VOLATILE);
-            vpushi(is_compatible_types(&type1, &type2));
+            vpushi(tcc_state, is_compatible_types(&type1, &type2));
         }
         break;
     case TOK_builtin_constant_p:
         {
             int saved_nocode_wanted, res;
-            next();
-            skip('(');
-            saved_nocode_wanted = nocode_wanted;
-            nocode_wanted = 1;
-            gexpr();
-            res = (vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST;
-            vpop();
-            nocode_wanted = saved_nocode_wanted;
-            skip(')');
-            vpushi(res);
+            next(tcc_state);
+            skip(tcc_state, '(');
+            saved_nocode_wanted = tcc_state->tccgen_nocode_wanted;
+            tcc_state->tccgen_nocode_wanted = 1;
+            gexpr(tcc_state);
+            res = (tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) == VT_CONST;
+            vpop(tcc_state);
+            tcc_state->tccgen_nocode_wanted = saved_nocode_wanted;
+            skip(tcc_state, ')');
+            vpushi(tcc_state, res);
         }
         break;
     case TOK_builtin_frame_address:
         {
             int level;
             CType type;
-            next();
-            skip('(');
-            if (tok != TOK_CINT || tokc.i < 0) {
-                tcc_error("__builtin_frame_address only takes positive integers");
+            next(tcc_state);
+            skip(tcc_state, '(');
+            if (tcc_state->tccpp_tok != TOK_CINT || tcc_state->tccpp_tokc.i < 0) {
+                tcc_error(tcc_state, "__builtin_frame_address only takes positive integers");
             }
-            level = tokc.i;
-            next();
-            skip(')');
+            level = tcc_state->tccpp_tokc.i;
+            next(tcc_state);
+            skip(tcc_state, ')');
             type.t = VT_VOID;
-            mk_pointer(&type);
-            vset(&type, VT_LOCAL, 0);       /* local frame */
+            mk_pointer(tcc_state, &type);
+            vset(tcc_state, &type, VT_LOCAL, 0);       /* local frame */
             while (level--) {
-                mk_pointer(&vtop->type);
-                indir();                    /* -> parent frame */
+                mk_pointer(tcc_state, &tcc_state->tccgen_vtop->type);
+                indir(tcc_state);                    /* -> parent frame */
             }
         }
         break;
@@ -3801,112 +3792,112 @@ ST_FUNC void unary(void)
 #ifdef TCC_TARGET_PE
     case TOK_builtin_va_start:
         {
-            next();
-            skip('(');
-            expr_eq();
-            skip(',');
-            expr_eq();
-            skip(')');
-            if ((vtop->r & VT_VALMASK) != VT_LOCAL)
-                tcc_error("__builtin_va_start expects a local variable");
-            vtop->r &= ~(VT_LVAL | VT_REF);
-            vtop->type = char_pointer_type;
-            vstore();
+            next(tcc_state);
+            skip(tcc_state, '(');
+            expr_eq(tcc_state);
+            skip(tcc_state, ',');
+            expr_eq(tcc_state);
+            skip(tcc_state, ')');
+            if ((tcc_state->tccgen_vtop->r & VT_VALMASK) != VT_LOCAL)
+                tcc_error(tcc_state, "__builtin_va_start expects a local variable");
+            tcc_state->tccgen_vtop->r &= ~(VT_LVAL | VT_REF);
+            tcc_state->tccgen_vtop->type = tcc_state->tccgen_char_pointer_type;
+            vstore(tcc_state);
         }
         break;
 #else
     case TOK_builtin_va_arg_types:
         {
             CType type;
-            next();
-            skip('(');
-            parse_type(&type);
-            skip(')');
-            vpushi(classify_x86_64_va_arg(&type));
+            next(tcc_state);
+            skip(tcc_state, '(');
+            parse_type(tcc_state, &type);
+            skip(tcc_state, ')');
+            vpushi(tcc_state, classify_x86_64_va_arg(&type));
         }
         break;
 #endif
 #endif
     case TOK_INC:
     case TOK_DEC:
-        t = tok;
-        next();
-        unary();
-        inc(0, t);
+        t = tcc_state->tccpp_tok;
+        next(tcc_state);
+        unary(tcc_state);
+        inc(tcc_state, 0, t);
         break;
     case '-':
-        next();
-        unary();
-        t = vtop->type.t & VT_BTYPE;
+        next(tcc_state);
+        unary(tcc_state);
+        t = tcc_state->tccgen_vtop->type.t & VT_BTYPE;
 	if (is_float(t)) {
             /* In IEEE negate(x) isn't subtract(0,x), but rather
 	       subtract(-0, x).  */
-	    vpush(&vtop->type);
+	    vpush(tcc_state, &tcc_state->tccgen_vtop->type);
 	    if (t == VT_FLOAT)
-	        vtop->c.f = -0.0f;
+	        tcc_state->tccgen_vtop->c.f = -0.0f;
 	    else if (t == VT_DOUBLE)
-	        vtop->c.d = -0.0;
+	        tcc_state->tccgen_vtop->c.d = -0.0;
 	    else
-	        vtop->c.ld = -0.0;
+	        tcc_state->tccgen_vtop->c.ld = -0.0;
 	} else
-	    vpushi(0);
-	vswap();
-	gen_op('-');
+	    vpushi(tcc_state, 0);
+	vswap(tcc_state);
+	gen_op(tcc_state, '-');
         break;
     case TOK_LAND:
-        if (!gnu_ext)
+        if (!tcc_state->libtcc_gnu_ext)
             goto tok_identifier;
-        next();
+        next(tcc_state);
         /* allow to take the address of a label */
-        if (tok < TOK_UIDENT)
-            expect("label identifier");
-        s = label_find(tok);
+        if (tcc_state->tccpp_tok < TOK_UIDENT)
+            expect(tcc_state, "label identifier");
+        s = label_find(tcc_state, tcc_state->tccpp_tok);
         if (!s) {
-            s = label_push(&global_label_stack, tok, LABEL_FORWARD);
+            s = label_push(tcc_state, &tcc_state->tccgen_global_label_stack, tcc_state->tccpp_tok, LABEL_FORWARD);
         } else {
             if (s->r == LABEL_DECLARED)
                 s->r = LABEL_FORWARD;
         }
         if (!s->type.t) {
             s->type.t = VT_VOID;
-            mk_pointer(&s->type);
+            mk_pointer(tcc_state, &s->type);
             s->type.t |= VT_STATIC;
         }
-        vset(&s->type, VT_CONST | VT_SYM, 0);
-        vtop->sym = s;
-        next();
+        vset(tcc_state, &s->type, VT_CONST | VT_SYM, 0);
+        tcc_state->tccgen_vtop->sym = s;
+        next(tcc_state);
         break;
     
     // special qnan , snan and infinity values
     case TOK___NAN__:
-        vpush64(VT_DOUBLE, 0x7ff8000000000000ULL);
-        next();
+        vpush64(tcc_state, VT_DOUBLE, 0x7ff8000000000000ULL);
+        next(tcc_state);
         break;
     case TOK___SNAN__:
-        vpush64(VT_DOUBLE, 0x7ff0000000000001ULL);
-        next();
+        vpush64(tcc_state, VT_DOUBLE, 0x7ff0000000000001ULL);
+        next(tcc_state);
         break;
     case TOK___INF__:
-        vpush64(VT_DOUBLE, 0x7ff0000000000000ULL);
-        next();
+        vpush64(tcc_state, VT_DOUBLE, 0x7ff0000000000000ULL);
+        next(tcc_state);
         break;
 
     default:
     tok_identifier:
-        t = tok;
-        next();
+        t = tcc_state->tccpp_tok;
+        next(tcc_state);
         if (t < TOK_UIDENT)
-            expect("identifier");
-        s = sym_find(t);
+            expect(tcc_state, "identifier");
+        s = sym_find(tcc_state, t);
         if (!s) {
-            if (tok != '(')
-                tcc_error("'%s' undeclared", get_tok_str(t, NULL));
+            if (tcc_state->tccpp_tok != '(')
+                tcc_error(tcc_state, "'%s' undeclared");
             /* for simple function calls, we tolerate undeclared
                external reference to int() function */
             if (tcc_state->warn_implicit_function_declaration)
-                tcc_warning("implicit declaration of function '%s'",
-                        get_tok_str(t, NULL));
-            s = external_global_sym(t, &func_old_type, 0); 
+                tcc_warning(tcc_state, "implicit declaration of function '%s'",
+                        get_tok_str(tcc_state, t, NULL));
+            s = external_global_sym(tcc_state, t, &tcc_state->tccgen_func_old_type, 0); 
         }
         if ((s->type.t & (VT_STATIC | VT_INLINE | VT_BTYPE)) ==
             (VT_STATIC | VT_INLINE | VT_FUNC)) {
@@ -3916,91 +3907,91 @@ ST_FUNC void unary(void)
                compilation unit. Inline function as always
                generated in the text section. */
             if (!s->c)
-                put_extern_sym(s, text_section, 0, 0);
+                put_extern_sym(tcc_state, s, tcc_state->tccgen_text_section, 0, 0);
             r = VT_SYM | VT_CONST;
         } else {
             r = s->r;
         }
-        vset(&s->type, r, s->c);
+        vset(tcc_state, &s->type, r, s->c);
         /* if forward reference, we must point to s */
-        if (vtop->r & VT_SYM) {
-            vtop->sym = s;
-	    vtop->c.ull = 0;
+        if (tcc_state->tccgen_vtop->r & VT_SYM) {
+            tcc_state->tccgen_vtop->sym = s;
+	    tcc_state->tccgen_vtop->c.ull = 0;
         }
         break;
     }
     
     /* post operations */
     while (1) {
-        if (tok == TOK_INC || tok == TOK_DEC) {
-            inc(1, tok);
-            next();
-        } else if (tok == '.' || tok == TOK_ARROW) {
+        if (tcc_state->tccpp_tok == TOK_INC || tcc_state->tccpp_tok == TOK_DEC) {
+            inc(tcc_state, 1, tcc_state->tccpp_tok);
+            next(tcc_state);
+        } else if (tcc_state->tccpp_tok == '.' || tcc_state->tccpp_tok == TOK_ARROW) {
             int qualifiers;
             /* field */ 
-            if (tok == TOK_ARROW) 
-                indir();
-            qualifiers = vtop->type.t & (VT_CONSTANT | VT_VOLATILE);
-            test_lvalue();
-            gaddrof();
-            next();
+            if (tcc_state->tccpp_tok == TOK_ARROW) 
+                indir(tcc_state);
+            qualifiers = tcc_state->tccgen_vtop->type.t & (VT_CONSTANT | VT_VOLATILE);
+            test_lvalue(tcc_state);
+            gaddrof(tcc_state);
+            next(tcc_state);
             /* expect pointer on structure */
-            if ((vtop->type.t & VT_BTYPE) != VT_STRUCT)
-                expect("struct or union");
-            s = vtop->type.ref;
+            if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) != VT_STRUCT)
+                expect(tcc_state, "struct or union");
+            s = tcc_state->tccgen_vtop->type.ref;
             /* find field */
-            tok |= SYM_FIELD;
+            tcc_state->tccpp_tok |= SYM_FIELD;
             while ((s = s->next) != NULL) {
-                if (s->v == tok)
+                if (s->v == tcc_state->tccpp_tok)
                     break;
             }
             if (!s)
-                tcc_error("field not found: %s",  get_tok_str(tok & ~SYM_FIELD, NULL));
+                tcc_error(tcc_state, "field not found: %s");
             /* add field offset to pointer */
-            vtop->type = char_pointer_type; /* change type to 'char *' */
-            vpushi(s->c);
-            gen_op('+');
+            tcc_state->tccgen_vtop->type = tcc_state->tccgen_char_pointer_type; /* change type to 'char *' */
+            vpushi(tcc_state, s->c);
+            gen_op(tcc_state, '+');
             /* change type to field type, and set to lvalue */
-            vtop->type = s->type;
-            vtop->type.t |= qualifiers;
+            tcc_state->tccgen_vtop->type = s->type;
+            tcc_state->tccgen_vtop->type.t |= qualifiers;
             /* an array is never an lvalue */
-            if (!(vtop->type.t & VT_ARRAY)) {
-                vtop->r |= lvalue_type(vtop->type.t);
+            if (!(tcc_state->tccgen_vtop->type.t & VT_ARRAY)) {
+                tcc_state->tccgen_vtop->r |= lvalue_type(tcc_state->tccgen_vtop->type.t);
 #ifdef CONFIG_TCC_BCHECK
                 /* if bound checking, the referenced pointer must be checked */
                 if (tcc_state->do_bounds_check)
-                    vtop->r |= VT_MUSTBOUND;
+                    tcc_state->tccgen_vtop->r |= VT_MUSTBOUND;
 #endif
             }
-            next();
-        } else if (tok == '[') {
-            next();
-            gexpr();
-            gen_op('+');
-            indir();
-            skip(']');
-        } else if (tok == '(') {
+            next(tcc_state);
+        } else if (tcc_state->tccpp_tok == '[') {
+            next(tcc_state);
+            gexpr(tcc_state);
+            gen_op(tcc_state, '+');
+            indir(tcc_state);
+            skip(tcc_state, ']');
+        } else if (tcc_state->tccpp_tok == '(') {
             SValue ret;
             Sym *sa;
             int nb_args, ret_nregs, ret_align, variadic;
 
             /* function call  */
-            if ((vtop->type.t & VT_BTYPE) != VT_FUNC) {
+            if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) != VT_FUNC) {
                 /* pointer test (no array accepted) */
-                if ((vtop->type.t & (VT_BTYPE | VT_ARRAY)) == VT_PTR) {
-                    vtop->type = *pointed_type(&vtop->type);
-                    if ((vtop->type.t & VT_BTYPE) != VT_FUNC)
+                if ((tcc_state->tccgen_vtop->type.t & (VT_BTYPE | VT_ARRAY)) == VT_PTR) {
+                    tcc_state->tccgen_vtop->type = *pointed_type(&tcc_state->tccgen_vtop->type);
+                    if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) != VT_FUNC)
                         goto error_func;
                 } else {
                 error_func:
-                    expect("function pointer");
+                    expect(tcc_state, "function pointer");
                 }
             } else {
-                vtop->r &= ~VT_LVAL; /* no lvalue */
+                tcc_state->tccgen_vtop->r &= ~VT_LVAL; /* no lvalue */
             }
             /* get return type */
-            s = vtop->type.ref;
-            next();
+            s = tcc_state->tccgen_vtop->type.ref;
+            next(tcc_state);
             sa = s->next; /* first parameter */
             nb_args = 0;
             ret.r2 = VT_CONST;
@@ -4012,13 +4003,13 @@ ST_FUNC void unary(void)
                 if (!ret_nregs) {
                     /* get some space for the returned structure */
                     size = type_size(&s->type, &align);
-                    loc = (loc - size) & -align;
+                    tcc_state->tccgen_loc = (tcc_state->tccgen_loc - size) & -align;
                     ret.type = s->type;
                     ret.r = VT_LOCAL | VT_LVAL;
                     /* pass it as 'int' to avoid structure arg passing
                        problems */
-                    vseti(VT_LOCAL, loc);
-                    ret.c = vtop->c;
+                    vseti(tcc_state, VT_LOCAL, tcc_state->tccgen_loc);
+                    ret.c = tcc_state->tccgen_vtop->c;
                     nb_args++;
                 }
             } else {
@@ -4045,31 +4036,31 @@ ST_FUNC void unary(void)
                 }
                 ret.c.i = 0;
             }
-            if (tok != ')') {
+            if (tcc_state->tccpp_tok != ')') {
                 for(;;) {
-                    expr_eq();
-                    gfunc_param_typed(s, sa);
+                    expr_eq(tcc_state);
+                    gfunc_param_typed(tcc_state, s, sa);
                     nb_args++;
                     if (sa)
                         sa = sa->next;
-                    if (tok == ')')
+                    if (tcc_state->tccpp_tok == ')')
                         break;
-                    skip(',');
+                    skip(tcc_state, ',');
                 }
             }
             if (sa)
-                tcc_error("too few arguments to function");
-            skip(')');
-            if (!nocode_wanted) {
-                gfunc_call(nb_args);
+                tcc_error(tcc_state, "too few arguments to function");
+            skip(tcc_state, ')');
+            if (!tcc_state->tccgen_nocode_wanted) {
+                gfunc_call(tcc_state, nb_args);
             } else {
-                vtop -= (nb_args + 1);
+                tcc_state->tccgen_vtop -= (nb_args + 1);
             }
 
             /* return value */
             for (r = ret.r + ret_nregs + !ret_nregs; r-- > ret.r;) {
-                vsetc(&ret.type, r, &ret.c);
-                vtop->r2 = ret.r2; /* Loop only happens when r2 is VT_CONST */
+                vsetc(tcc_state, &ret.type, r, &ret.c);
+                tcc_state->tccgen_vtop->r2 = ret.r2; /* Loop only happens when r2 is VT_CONST */
             }
 
             /* handle packed struct return */
@@ -4077,20 +4068,20 @@ ST_FUNC void unary(void)
                 int addr, offset;
 
                 size = type_size(&s->type, &align);
-                loc = (loc - size) & -align;
-                addr = loc;
+                tcc_state->tccgen_loc = (tcc_state->tccgen_loc - size) & -align;
+                addr = tcc_state->tccgen_loc;
                 offset = 0;
                 for (;;) {
-                    vset(&ret.type, VT_LOCAL | VT_LVAL, addr + offset);
-                    vswap();
-                    vstore();
-                    vtop--;
+                    vset(tcc_state, &ret.type, VT_LOCAL | VT_LVAL, addr + offset);
+                    vswap(tcc_state);
+                    vstore(tcc_state);
+                    tcc_state->tccgen_vtop--;
                     if (--ret_nregs == 0)
                         break;
                     /* XXX: compatible with arm only: ret_align == register_size */
                     offset += ret_align;
                 }
-                vset(&s->type, VT_LOCAL | VT_LVAL, addr);
+                vset(tcc_state, &s->type, VT_LOCAL | VT_LVAL, addr);
             }
         } else {
             break;
@@ -4098,229 +4089,229 @@ ST_FUNC void unary(void)
     }
 }
 
-ST_FUNC void expr_prod(void)
+ST_FUNC void expr_prod(TCCState* tcc_state)
 {
     int t;
 
-    unary();
-    while (tok == '*' || tok == '/' || tok == '%') {
-        t = tok;
-        next();
-        unary();
-        gen_op(t);
+    unary(tcc_state);
+    while (tcc_state->tccpp_tok == '*' || tcc_state->tccpp_tok == '/' || tcc_state->tccpp_tok == '%') {
+        t = tcc_state->tccpp_tok;
+        next(tcc_state);
+        unary(tcc_state);
+        gen_op(tcc_state, t);
     }
 }
 
-ST_FUNC void expr_sum(void)
+ST_FUNC void expr_sum(TCCState* tcc_state)
 {
     int t;
 
-    expr_prod();
-    while (tok == '+' || tok == '-') {
-        t = tok;
-        next();
-        expr_prod();
-        gen_op(t);
+    expr_prod(tcc_state);
+    while (tcc_state->tccpp_tok == '+' || tcc_state->tccpp_tok == '-') {
+        t = tcc_state->tccpp_tok;
+        next(tcc_state);
+        expr_prod(tcc_state);
+        gen_op(tcc_state, t);
     }
 }
 
-static void expr_shift(void)
+static void expr_shift(TCCState* tcc_state)
 {
     int t;
 
-    expr_sum();
-    while (tok == TOK_SHL || tok == TOK_SAR) {
-        t = tok;
-        next();
-        expr_sum();
-        gen_op(t);
+    expr_sum(tcc_state);
+    while (tcc_state->tccpp_tok == TOK_SHL || tcc_state->tccpp_tok == TOK_SAR) {
+        t = tcc_state->tccpp_tok;
+        next(tcc_state);
+        expr_sum(tcc_state);
+        gen_op(tcc_state, t);
     }
 }
 
-static void expr_cmp(void)
+static void expr_cmp(TCCState* tcc_state)
 {
     int t;
 
-    expr_shift();
-    while ((tok >= TOK_ULE && tok <= TOK_GT) ||
-           tok == TOK_ULT || tok == TOK_UGE) {
-        t = tok;
-        next();
-        expr_shift();
-        gen_op(t);
+    expr_shift(tcc_state);
+    while ((tcc_state->tccpp_tok >= TOK_ULE && tcc_state->tccpp_tok <= TOK_GT) ||
+           tcc_state->tccpp_tok == TOK_ULT || tcc_state->tccpp_tok == TOK_UGE) {
+        t = tcc_state->tccpp_tok;
+        next(tcc_state);
+        expr_shift(tcc_state);
+        gen_op(tcc_state, t);
     }
 }
 
-static void expr_cmpeq(void)
+static void expr_cmpeq(TCCState* tcc_state)
 {
     int t;
 
-    expr_cmp();
-    while (tok == TOK_EQ || tok == TOK_NE) {
-        t = tok;
-        next();
-        expr_cmp();
-        gen_op(t);
+    expr_cmp(tcc_state);
+    while (tcc_state->tccpp_tok == TOK_EQ || tcc_state->tccpp_tok == TOK_NE) {
+        t = tcc_state->tccpp_tok;
+        next(tcc_state);
+        expr_cmp(tcc_state);
+        gen_op(tcc_state, t);
     }
 }
 
-static void expr_and(void)
+static void expr_and(TCCState* tcc_state)
 {
-    expr_cmpeq();
-    while (tok == '&') {
-        next();
-        expr_cmpeq();
-        gen_op('&');
+    expr_cmpeq(tcc_state);
+    while (tcc_state->tccpp_tok == '&') {
+        next(tcc_state);
+        expr_cmpeq(tcc_state);
+        gen_op(tcc_state, '&');
     }
 }
 
-static void expr_xor(void)
+static void expr_xor(TCCState* tcc_state)
 {
-    expr_and();
-    while (tok == '^') {
-        next();
-        expr_and();
-        gen_op('^');
+    expr_and(tcc_state);
+    while (tcc_state->tccpp_tok == '^') {
+        next(tcc_state);
+        expr_and(tcc_state);
+        gen_op(tcc_state, '^');
     }
 }
 
-static void expr_or(void)
+static void expr_or(TCCState* tcc_state)
 {
-    expr_xor();
-    while (tok == '|') {
-        next();
-        expr_xor();
-        gen_op('|');
+    expr_xor(tcc_state);
+    while (tcc_state->tccpp_tok == '|') {
+        next(tcc_state);
+        expr_xor(tcc_state);
+        gen_op(tcc_state, '|');
     }
 }
 
 /* XXX: fix this mess */
-static void expr_land_const(void)
+static void expr_land_const(TCCState* tcc_state)
 {
-    expr_or();
-    while (tok == TOK_LAND) {
-        next();
-        expr_or();
-        gen_op(TOK_LAND);
+    expr_or(tcc_state);
+    while (tcc_state->tccpp_tok == TOK_LAND) {
+        next(tcc_state);
+        expr_or(tcc_state);
+        gen_op(tcc_state, TOK_LAND);
     }
 }
 
 /* XXX: fix this mess */
-static void expr_lor_const(void)
+static void expr_lor_const(TCCState* tcc_state)
 {
-    expr_land_const();
-    while (tok == TOK_LOR) {
-        next();
-        expr_land_const();
-        gen_op(TOK_LOR);
+    expr_land_const(tcc_state);
+    while (tcc_state->tccpp_tok == TOK_LOR) {
+        next(tcc_state);
+        expr_land_const(tcc_state);
+        gen_op(tcc_state, TOK_LOR);
     }
 }
 
 /* only used if non constant */
-static void expr_land(void)
+static void expr_land(TCCState* tcc_state)
 {
     int t;
 
-    expr_or();
-    if (tok == TOK_LAND) {
+    expr_or(tcc_state);
+    if (tcc_state->tccpp_tok == TOK_LAND) {
         t = 0;
-        save_regs(1);
+        save_regs(tcc_state, 1);
         for(;;) {
-            t = gvtst(1, t);
-            if (tok != TOK_LAND) {
-                vseti(VT_JMPI, t);
+            t = gvtst(tcc_state, 1, t);
+            if (tcc_state->tccpp_tok != TOK_LAND) {
+                vseti(tcc_state, VT_JMPI, t);
                 break;
             }
-            next();
-            expr_or();
+            next(tcc_state);
+            expr_or(tcc_state);
         }
     }
 }
 
-static void expr_lor(void)
+static void expr_lor(TCCState* tcc_state)
 {
     int t;
 
-    expr_land();
-    if (tok == TOK_LOR) {
+    expr_land(tcc_state);
+    if (tcc_state->tccpp_tok == TOK_LOR) {
         t = 0;
-        save_regs(1);
+        save_regs(tcc_state, 1);
         for(;;) {
-            t = gvtst(0, t);
-            if (tok != TOK_LOR) {
-                vseti(VT_JMP, t);
+            t = gvtst(tcc_state, 0, t);
+            if (tcc_state->tccpp_tok != TOK_LOR) {
+                vseti(tcc_state, VT_JMP, t);
                 break;
             }
-            next();
-            expr_land();
+            next(tcc_state);
+            expr_land(tcc_state);
         }
     }
 }
 
 /* XXX: better constant handling */
-static void expr_cond(void)
+static void expr_cond(TCCState* tcc_state)
 {
     int tt, u, r1, r2, rc, t1, t2, bt1, bt2;
     SValue sv;
     CType type, type1, type2;
 
-    if (const_wanted) {
-        expr_lor_const();
-        if (tok == '?') {
+    if (tcc_state->tccgen_const_wanted) {
+        expr_lor_const(tcc_state);
+        if (tcc_state->tccpp_tok == '?') {
             CType boolean;
             int c;
             boolean.t = VT_BOOL;
-            vdup();
-            gen_cast(&boolean);
-            c = vtop->c.i;
-            vpop();
-            next();
-            if (tok != ':' || !gnu_ext) {
-                vpop();
-                gexpr();
+            vdup(tcc_state);
+            gen_cast(tcc_state, &boolean);
+            c = tcc_state->tccgen_vtop->c.i;
+            vpop(tcc_state);
+            next(tcc_state);
+            if (tcc_state->tccpp_tok != ':' || !tcc_state->libtcc_gnu_ext) {
+                vpop(tcc_state);
+                gexpr(tcc_state);
             }
             if (!c)
-                vpop();
-            skip(':');
-            expr_cond();
+                vpop(tcc_state);
+            skip(tcc_state, ':');
+            expr_cond(tcc_state);
             if (c)
-                vpop();
+                vpop(tcc_state);
         }
     } else {
-        expr_lor();
-        if (tok == '?') {
-            next();
-            if (vtop != vstack) {
+        expr_lor(tcc_state);
+        if (tcc_state->tccpp_tok == '?') {
+            next(tcc_state);
+            if (tcc_state->tccgen_vtop != vstack) {
                 /* needed to avoid having different registers saved in
                    each branch */
-                if (is_float(vtop->type.t)) {
+                if (is_float(tcc_state->tccgen_vtop->type.t)) {
                     rc = RC_FLOAT;
 #ifdef TCC_TARGET_X86_64
-                    if ((vtop->type.t & VT_BTYPE) == VT_LDOUBLE) {
+                    if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_LDOUBLE) {
                         rc = RC_ST0;
                     }
 #endif
                 }
                 else
                     rc = RC_INT;
-                    gv(rc);
-                    save_regs(1);
+                    gv(tcc_state, rc);
+                    save_regs(tcc_state, 1);
             }
-            if (tok == ':' && gnu_ext) {
-                gv_dup();
-                tt = gvtst(1, 0);
+            if (tcc_state->tccpp_tok == ':' && tcc_state->libtcc_gnu_ext) {
+                gv_dup(tcc_state);
+                tt = gvtst(tcc_state, 1, 0);
             } else {
-                tt = gvtst(1, 0);
-                gexpr();
+                tt = gvtst(tcc_state, 1, 0);
+                gexpr(tcc_state);
             }
-            type1 = vtop->type;
-            sv = *vtop; /* save value to handle it later */
-            vtop--; /* no vpop so that FP stack is not flushed */
-            skip(':');
-            u = gjmp(0);
-            gsym(tt);
-            expr_cond();
-            type2 = vtop->type;
+            type1 = tcc_state->tccgen_vtop->type;
+            sv = *tcc_state->tccgen_vtop; /* save value to handle it later */
+            tcc_state->tccgen_vtop--; /* no vpop so that FP stack is not flushed */
+            skip(tcc_state, ':');
+            u = gjmp(tcc_state, 0);
+            gsym(tcc_state, tt);
+            expr_cond(tcc_state);
+            type2 = tcc_state->tccgen_vtop->type;
 
             t1 = type1.t;
             bt1 = t1 & VT_BTYPE;
@@ -4345,7 +4336,7 @@ static void expr_cond(void)
             } else if (bt1 == VT_PTR || bt2 == VT_PTR) {
 		/* If one is a null ptr constant the result type
 		   is the other.  */
-		if (is_null_pointer (vtop))
+		if (is_null_pointer (tcc_state->tccgen_vtop))
 		  type = type1;
 		else if (is_null_pointer (&sv))
 		  type = type2;
@@ -4372,9 +4363,9 @@ static void expr_cond(void)
             }
                 
             /* now we convert second operand */
-            gen_cast(&type);
-            if (VT_STRUCT == (vtop->type.t & VT_BTYPE))
-                gaddrof();
+            gen_cast(tcc_state, &type);
+            if (VT_STRUCT == (tcc_state->tccgen_vtop->type.t & VT_BTYPE))
+                gaddrof(tcc_state);
             rc = RC_INT;
             if (is_float(type.t)) {
                 rc = RC_FLOAT;
@@ -4389,148 +4380,148 @@ static void expr_cond(void)
                 rc = RC_IRET; 
             }
             
-            r2 = gv(rc);
+            r2 = gv(tcc_state, rc);
             /* this is horrible, but we must also convert first
                operand */
-            tt = gjmp(0);
-            gsym(u);
+            tt = gjmp(tcc_state, 0);
+            gsym(tcc_state, u);
             /* put again first value and cast it */
-            *vtop = sv;
-            gen_cast(&type);
-            if (VT_STRUCT == (vtop->type.t & VT_BTYPE))
-                gaddrof();
-            r1 = gv(rc);
-            move_reg(r2, r1, type.t);
-            vtop->r = r2;
-            gsym(tt);
+            *tcc_state->tccgen_vtop = sv;
+            gen_cast(tcc_state, &type);
+            if (VT_STRUCT == (tcc_state->tccgen_vtop->type.t & VT_BTYPE))
+                gaddrof(tcc_state);
+            r1 = gv(tcc_state, rc);
+            move_reg(tcc_state, r2, r1, type.t);
+            tcc_state->tccgen_vtop->r = r2;
+            gsym(tcc_state, tt);
         }
     }
 }
 
-static void expr_eq(void)
+static void expr_eq(TCCState* tcc_state)
 {
     int t;
     
-    expr_cond();
-    if (tok == '=' ||
-        (tok >= TOK_A_MOD && tok <= TOK_A_DIV) ||
-        tok == TOK_A_XOR || tok == TOK_A_OR ||
-        tok == TOK_A_SHL || tok == TOK_A_SAR) {
-        test_lvalue();
-        t = tok;
-        next();
+    expr_cond(tcc_state);
+    if (tcc_state->tccpp_tok == '=' ||
+        (tcc_state->tccpp_tok >= TOK_A_MOD && tcc_state->tccpp_tok <= TOK_A_DIV) ||
+        tcc_state->tccpp_tok == TOK_A_XOR || tcc_state->tccpp_tok == TOK_A_OR ||
+        tcc_state->tccpp_tok == TOK_A_SHL || tcc_state->tccpp_tok == TOK_A_SAR) {
+        test_lvalue(tcc_state);
+        t = tcc_state->tccpp_tok;
+        next(tcc_state);
         if (t == '=') {
-            expr_eq();
+            expr_eq(tcc_state);
         } else {
-            vdup();
-            expr_eq();
-            gen_op(t & 0x7f);
+            vdup(tcc_state);
+            expr_eq(tcc_state);
+            gen_op(tcc_state, t & 0x7f);
         }
-        vstore();
+        vstore(tcc_state);
     }
 }
 
-ST_FUNC void gexpr(void)
+ST_FUNC void gexpr(TCCState* tcc_state)
 {
     while (1) {
-        expr_eq();
-        if (tok != ',')
+        expr_eq(tcc_state);
+        if (tcc_state->tccpp_tok != ',')
             break;
-        vpop();
-        next();
+        vpop(tcc_state);
+        next(tcc_state);
     }
 }
 
 /* parse an expression and return its type without any side effect. */
-static void expr_type(CType *type)
+static void expr_type(TCCState* tcc_state, CType *type)
 {
     int saved_nocode_wanted;
 
-    saved_nocode_wanted = nocode_wanted;
-    nocode_wanted = 1;
-    gexpr();
-    *type = vtop->type;
-    vpop();
-    nocode_wanted = saved_nocode_wanted;
+    saved_nocode_wanted = tcc_state->tccgen_nocode_wanted;
+    tcc_state->tccgen_nocode_wanted = 1;
+    gexpr(tcc_state);
+    *type = tcc_state->tccgen_vtop->type;
+    vpop(tcc_state);
+    tcc_state->tccgen_nocode_wanted = saved_nocode_wanted;
 }
 
 /* parse a unary expression and return its type without any side
    effect. */
-static void unary_type(CType *type)
+static void unary_type(TCCState* tcc_state, CType *type)
 {
     int a;
 
-    a = nocode_wanted;
-    nocode_wanted = 1;
-    unary();
-    *type = vtop->type;
-    vpop();
-    nocode_wanted = a;
+    a = tcc_state->tccgen_nocode_wanted;
+    tcc_state->tccgen_nocode_wanted = 1;
+    unary(tcc_state);
+    *type = tcc_state->tccgen_vtop->type;
+    vpop(tcc_state);
+    tcc_state->tccgen_nocode_wanted = a;
 }
 
 /* parse a constant expression and return value in vtop.  */
-static void expr_const1(void)
+static void expr_const1(TCCState* tcc_state)
 {
     int a;
-    a = const_wanted;
-    const_wanted = 1;
-    expr_cond();
-    const_wanted = a;
+    a = tcc_state->tccgen_const_wanted;
+    tcc_state->tccgen_const_wanted = 1;
+    expr_cond(tcc_state);
+    tcc_state->tccgen_const_wanted = a;
 }
 
 /* parse an integer constant and return its value. */
-ST_FUNC int expr_const(void)
+ST_FUNC int expr_const(TCCState* tcc_state)
 {
     int c;
-    expr_const1();
-    if ((vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) != VT_CONST)
-        expect("constant expression");
-    c = vtop->c.i;
-    vpop();
+    expr_const1(tcc_state);
+    if ((tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL | VT_SYM)) != VT_CONST)
+        expect(tcc_state, "constant expression");
+    c = tcc_state->tccgen_vtop->c.i;
+    vpop(tcc_state);
     return c;
 }
 
 /* return the label token if current token is a label, otherwise
    return zero */
-static int is_label(void)
+static int is_label(TCCState* tcc_state)
 {
     int last_tok;
 
     /* fast test first */
-    if (tok < TOK_UIDENT)
+    if (tcc_state->tccpp_tok < TOK_UIDENT)
         return 0;
     /* no need to save tokc because tok is an identifier */
-    last_tok = tok;
-    next();
-    if (tok == ':') {
-        next();
+    last_tok = tcc_state->tccpp_tok;
+    next(tcc_state);
+    if (tcc_state->tccpp_tok == ':') {
+        next(tcc_state);
         return last_tok;
     } else {
-        unget_tok(last_tok);
+        unget_tok(tcc_state, last_tok);
         return 0;
     }
 }
 
-static void label_or_decl(int l)
+static void label_or_decl(TCCState* tcc_state, int l)
 {
     int last_tok;
 
     /* fast test first */
-    if (tok >= TOK_UIDENT)
+    if (tcc_state->tccpp_tok >= TOK_UIDENT)
       {
 	/* no need to save tokc because tok is an identifier */
-	last_tok = tok;
-	next();
-	if (tok == ':') {
-	    unget_tok(last_tok);
+	last_tok = tcc_state->tccpp_tok;
+	next(tcc_state);
+	if (tcc_state->tccpp_tok == ':') {
+	    unget_tok(tcc_state, last_tok);
 	    return;
 	}
-	unget_tok(last_tok);
+	unget_tok(tcc_state, last_tok);
       }
-    decl(l);
+    decl(tcc_state, l);
 }
 
-static void block(int *bsym, int *csym, int *case_sym, int *def_sym, 
+static void block(TCCState* tcc_state, int *bsym, int *csym, int *case_sym, int *def_sym, 
                   int case_reg, int is_expr)
 {
     int a, b, c, d;
@@ -4538,163 +4529,163 @@ static void block(int *bsym, int *csym, int *case_sym, int *def_sym,
 
     /* generate line number info */
     if (tcc_state->do_debug &&
-        (last_line_num != file->line_num || last_ind != ind)) {
-        put_stabn(N_SLINE, 0, file->line_num, ind - func_ind);
-        last_ind = ind;
-        last_line_num = file->line_num;
+        (tcc_state->tccgen_last_line_num != tcc_state->tccpp_file->line_num || tcc_state->tccgen_last_ind != tcc_state->tccgen_ind)) {
+        put_stabn(tcc_state, N_SLINE, 0, tcc_state->tccpp_file->line_num, tcc_state->tccgen_ind - tcc_state->tccgen_func_ind);
+        tcc_state->tccgen_last_ind = tcc_state->tccgen_ind;
+        tcc_state->tccgen_last_line_num = tcc_state->tccpp_file->line_num;
     }
 
     if (is_expr) {
         /* default return value is (void) */
-        vpushi(0);
-        vtop->type.t = VT_VOID;
+        vpushi(tcc_state, 0);
+        tcc_state->tccgen_vtop->type.t = VT_VOID;
     }
 
-    if (tok == TOK_IF) {
+    if (tcc_state->tccpp_tok == TOK_IF) {
         /* if test */
-        next();
-        skip('(');
-        gexpr();
-        skip(')');
-        a = gvtst(1, 0);
-        block(bsym, csym, case_sym, def_sym, case_reg, 0);
-        c = tok;
+        next(tcc_state);
+        skip(tcc_state, '(');
+        gexpr(tcc_state);
+        skip(tcc_state, ')');
+        a = gvtst(tcc_state, 1, 0);
+        block(tcc_state, bsym, csym, case_sym, def_sym, case_reg, 0);
+        c = tcc_state->tccpp_tok;
         if (c == TOK_ELSE) {
-            next();
-            d = gjmp(0);
-            gsym(a);
-            block(bsym, csym, case_sym, def_sym, case_reg, 0);
-            gsym(d); /* patch else jmp */
+            next(tcc_state);
+            d = gjmp(tcc_state, 0);
+            gsym(tcc_state, a);
+            block(tcc_state, bsym, csym, case_sym, def_sym, case_reg, 0);
+            gsym(tcc_state, d); /* patch else jmp */
         } else
-            gsym(a);
-    } else if (tok == TOK_WHILE) {
-        next();
-        d = ind;
-        skip('(');
-        gexpr();
-        skip(')');
-        a = gvtst(1, 0);
+            gsym(tcc_state, a);
+    } else if (tcc_state->tccpp_tok == TOK_WHILE) {
+        next(tcc_state);
+        d = tcc_state->tccgen_ind;
+        skip(tcc_state, '(');
+        gexpr(tcc_state);
+        skip(tcc_state, ')');
+        a = gvtst(tcc_state, 1, 0);
         b = 0;
-        block(&a, &b, case_sym, def_sym, case_reg, 0);
-        gjmp_addr(d);
-        gsym(a);
-        gsym_addr(b, d);
-    } else if (tok == '{') {
+        block(tcc_state, &a, &b, case_sym, def_sym, case_reg, 0);
+        gjmp_addr(tcc_state, d);
+        gsym(tcc_state, a);
+        gsym_addr(tcc_state, b, d);
+    } else if (tcc_state->tccpp_tok == '{') {
         Sym *llabel;
         int block_vla_sp_loc, *saved_vla_sp_loc, saved_vla_flags;
 
-        next();
+        next(tcc_state);
         /* record local declaration stack position */
-        s = local_stack;
-        frame_bottom = sym_push2(&local_stack, SYM_FIELD, 0, 0);
-        frame_bottom->next = scope_stack_bottom;
-        scope_stack_bottom = frame_bottom;
-        llabel = local_label_stack;
+        s = tcc_state->tccgen_local_stack;
+        frame_bottom = sym_push2(tcc_state, &tcc_state->tccgen_local_stack, SYM_FIELD, 0, 0);
+        frame_bottom->next = tcc_state->scope_stack_bottom;
+        tcc_state->scope_stack_bottom = frame_bottom;
+        llabel = tcc_state->tccgen_local_label_stack;
         
         /* save VLA state */
-        block_vla_sp_loc = *(saved_vla_sp_loc = vla_sp_loc);
-        if (saved_vla_sp_loc != &vla_sp_root_loc)
-          vla_sp_loc = &block_vla_sp_loc;
+        block_vla_sp_loc = *(saved_vla_sp_loc = tcc_state->tccgen_vla_sp_loc);
+        if (saved_vla_sp_loc != &tcc_state->tccgen_vla_sp_root_loc)
+          tcc_state->tccgen_vla_sp_loc = &block_vla_sp_loc;
 
-        saved_vla_flags = vla_flags;
-        vla_flags |= VLA_NEED_NEW_FRAME;
+        saved_vla_flags = tcc_state->tccgen_vla_flags;
+        tcc_state->tccgen_vla_flags |= VLA_NEED_NEW_FRAME;
         
         /* handle local labels declarations */
-        if (tok == TOK_LABEL) {
-            next();
+        if (tcc_state->tccpp_tok == TOK_LABEL) {
+            next(tcc_state);
             for(;;) {
-                if (tok < TOK_UIDENT)
-                    expect("label identifier");
-                label_push(&local_label_stack, tok, LABEL_DECLARED);
-                next();
-                if (tok == ',') {
-                    next();
+                if (tcc_state->tccpp_tok < TOK_UIDENT)
+                    expect(tcc_state, "label identifier");
+                label_push(tcc_state, &tcc_state->tccgen_local_label_stack, tcc_state->tccpp_tok, LABEL_DECLARED);
+                next(tcc_state);
+                if (tcc_state->tccpp_tok == ',') {
+                    next(tcc_state);
                 } else {
-                    skip(';');
+                    skip(tcc_state, ';');
                     break;
                 }
             }
         }
-        while (tok != '}') {
-            label_or_decl(VT_LOCAL);
-            if (tok != '}') {
+        while (tcc_state->tccpp_tok != '}') {
+            label_or_decl(tcc_state, VT_LOCAL);
+            if (tcc_state->tccpp_tok != '}') {
                 if (is_expr)
-                    vpop();
-                block(bsym, csym, case_sym, def_sym, case_reg, is_expr);
+                    vpop(tcc_state);
+                block(tcc_state, bsym, csym, case_sym, def_sym, case_reg, is_expr);
             }
         }
         /* pop locally defined labels */
-        label_pop(&local_label_stack, llabel);
+        label_pop(tcc_state, &tcc_state->tccgen_local_label_stack, llabel);
         if(is_expr) {
             /* XXX: this solution makes only valgrind happy...
                triggered by gcc.c-torture/execute/20000917-1.c */
             Sym *p;
-            switch(vtop->type.t & VT_BTYPE) {
+            switch(tcc_state->tccgen_vtop->type.t & VT_BTYPE) {
             case VT_PTR:
             case VT_STRUCT:
             case VT_ENUM:
             case VT_FUNC:
-                for(p=vtop->type.ref;p;p=p->prev)
+                for(p=tcc_state->tccgen_vtop->type.ref;p;p=p->prev)
                     if(p->prev==s)
-                        tcc_error("unsupported expression type");
+                        tcc_error(tcc_state, "unsupported expression type");
             }
         }
         /* pop locally defined symbols */
-        scope_stack_bottom = scope_stack_bottom->next;
-        sym_pop(&local_stack, s);
+        tcc_state->scope_stack_bottom = tcc_state->scope_stack_bottom->next;
+        sym_pop(tcc_state, &tcc_state->tccgen_local_stack, s);
         
         /* Pop VLA frames and restore stack pointer if required */
-        if (saved_vla_sp_loc != &vla_sp_root_loc)
+        if (saved_vla_sp_loc != &tcc_state->tccgen_vla_sp_root_loc)
             *saved_vla_sp_loc = block_vla_sp_loc;
-        if (vla_sp_loc != (saved_vla_sp_loc == &vla_sp_root_loc ? &vla_sp_root_loc : &block_vla_sp_loc)) {
-            vla_sp_loc = saved_vla_sp_loc;
-            gen_vla_sp_restore(*vla_sp_loc);
+        if (tcc_state->tccgen_vla_sp_loc != (saved_vla_sp_loc == &tcc_state->tccgen_vla_sp_root_loc ? &tcc_state->tccgen_vla_sp_root_loc : &block_vla_sp_loc)) {
+            tcc_state->tccgen_vla_sp_loc = saved_vla_sp_loc;
+            gen_vla_sp_restore(tcc_state, *tcc_state->tccgen_vla_sp_loc);
         }
-        vla_flags = (vla_flags & ~VLA_SCOPE_FLAGS) | (saved_vla_flags & VLA_SCOPE_FLAGS);
+        tcc_state->tccgen_vla_flags = (tcc_state->tccgen_vla_flags & ~VLA_SCOPE_FLAGS) | (saved_vla_flags & VLA_SCOPE_FLAGS);
         
-        next();
-    } else if (tok == TOK_RETURN) {
-        next();
-        if (tok != ';') {
-            gexpr();
-            gen_assign_cast(&func_vt);
-            if ((func_vt.t & VT_BTYPE) == VT_STRUCT) {
+        next(tcc_state);
+    } else if (tcc_state->tccpp_tok == TOK_RETURN) {
+        next(tcc_state);
+        if (tcc_state->tccpp_tok != ';') {
+            gexpr(tcc_state);
+            gen_assign_cast(tcc_state, &tcc_state->tccgen_func_vt);
+            if ((tcc_state->tccgen_func_vt.t & VT_BTYPE) == VT_STRUCT) {
                 CType type, ret_type;
                 int ret_align, ret_nregs;
-                ret_nregs = gfunc_sret(&func_vt, func_var, &ret_type,
+                ret_nregs = gfunc_sret(&tcc_state->tccgen_func_vt, tcc_state->tccgen_func_var, &ret_type,
                                        &ret_align);
                 if (0 == ret_nregs) {
                     /* if returning structure, must copy it to implicit
                        first pointer arg location */
-                    type = func_vt;
-                    mk_pointer(&type);
-                    vset(&type, VT_LOCAL | VT_LVAL, func_vc);
-                    indir();
-                    vswap();
+                    type = tcc_state->tccgen_func_vt;
+                    mk_pointer(tcc_state, &type);
+                    vset(tcc_state, &type, VT_LOCAL | VT_LVAL, tcc_state->tccgen_func_vc);
+                    indir(tcc_state);
+                    vswap(tcc_state);
                     /* copy structure value to pointer */
-                    vstore();
+                    vstore(tcc_state);
                 } else {
                     /* returning structure packed into registers */
                     int r, size, addr, align;
-                    size = type_size(&func_vt,&align);
-                    if ((vtop->r != (VT_LOCAL | VT_LVAL) || (vtop->c.i & (ret_align-1)))
+                    size = type_size(&tcc_state->tccgen_func_vt,&align);
+                    if ((tcc_state->tccgen_vtop->r != (VT_LOCAL | VT_LVAL) || (tcc_state->tccgen_vtop->c.i & (ret_align-1)))
                         && (align & (ret_align-1))) {
-                        loc = (loc - size) & -align;
-                        addr = loc;
-                        type = func_vt;
-                        vset(&type, VT_LOCAL | VT_LVAL, addr);
-                        vswap();
-                        vstore();
-                        vset(&ret_type, VT_LOCAL | VT_LVAL, addr);
+                        tcc_state->tccgen_loc = (tcc_state->tccgen_loc - size) & -align;
+                        addr = tcc_state->tccgen_loc;
+                        type = tcc_state->tccgen_func_vt;
+                        vset(tcc_state, &type, VT_LOCAL | VT_LVAL, addr);
+                        vswap(tcc_state);
+                        vstore(tcc_state);
+                        vset(tcc_state, &ret_type, VT_LOCAL | VT_LVAL, addr);
                     }
-                    vtop->type = ret_type;
+                    tcc_state->tccgen_vtop->type = ret_type;
                     if (is_float(ret_type.t))
                         r = rc_fret(ret_type.t);
                     else
                         r = RC_IRET;
 
                     for (;;) {
-                        gv(r);
+                        gv(tcc_state, r);
                         if (--ret_nregs == 0)
                             break;
                         /* We assume that when a structure is returned in multiple
@@ -4702,238 +4693,238 @@ static void block(int *bsym, int *csym, int *case_sym, int *def_sym,
                            suite s(n) = 2^n */
                         r <<= 1;
                         /* XXX: compatible with arm only: ret_align == register_size */
-                        vtop->c.i += ret_align;
-                        vtop->r = VT_LOCAL | VT_LVAL;
+                        tcc_state->tccgen_vtop->c.i += ret_align;
+                        tcc_state->tccgen_vtop->r = VT_LOCAL | VT_LVAL;
                     }
                 }
-            } else if (is_float(func_vt.t)) {
-                gv(rc_fret(func_vt.t));
+            } else if (is_float(tcc_state->tccgen_func_vt.t)) {
+                gv(tcc_state, rc_fret(tcc_state->tccgen_func_vt.t));
             } else {
-                gv(RC_IRET);
+                gv(tcc_state, RC_IRET);
             }
-            vtop--; /* NOT vpop() because on x86 it would flush the fp stack */
+            tcc_state->tccgen_vtop--; /* NOT vpop() because on x86 it would flush the fp stack */
         }
-        skip(';');
-        rsym = gjmp(rsym); /* jmp */
-    } else if (tok == TOK_BREAK) {
+        skip(tcc_state, ';');
+        tcc_state->tccgen_rsym = gjmp(tcc_state, tcc_state->tccgen_rsym); /* jmp */
+    } else if (tcc_state->tccpp_tok == TOK_BREAK) {
         /* compute jump */
         if (!bsym)
-            tcc_error("cannot break");
-        *bsym = gjmp(*bsym);
-        next();
-        skip(';');
-    } else if (tok == TOK_CONTINUE) {
+            tcc_error(tcc_state, "cannot break");
+        *bsym = gjmp(tcc_state, *bsym);
+        next(tcc_state);
+        skip(tcc_state, ';');
+    } else if (tcc_state->tccpp_tok == TOK_CONTINUE) {
         /* compute jump */
         if (!csym)
-            tcc_error("cannot continue");
-        *csym = gjmp(*csym);
-        next();
-        skip(';');
-    } else if (tok == TOK_FOR) {
+            tcc_error(tcc_state, "cannot continue");
+        *csym = gjmp(tcc_state, *csym);
+        next(tcc_state);
+        skip(tcc_state, ';');
+    } else if (tcc_state->tccpp_tok == TOK_FOR) {
         int e;
-        next();
-        skip('(');
-        s = local_stack;
-        frame_bottom = sym_push2(&local_stack, SYM_FIELD, 0, 0);
-        frame_bottom->next = scope_stack_bottom;
-        scope_stack_bottom = frame_bottom;
-        if (tok != ';') {
+        next(tcc_state);
+        skip(tcc_state, '(');
+        s = tcc_state->tccgen_local_stack;
+        frame_bottom = sym_push2(tcc_state, &tcc_state->tccgen_local_stack, SYM_FIELD, 0, 0);
+        frame_bottom->next = tcc_state->scope_stack_bottom;
+        tcc_state->scope_stack_bottom = frame_bottom;
+        if (tcc_state->tccpp_tok != ';') {
             /* c99 for-loop init decl? */
-            if (!decl0(VT_LOCAL, 1)) {
+            if (!decl0(tcc_state, VT_LOCAL, 1)) {
                 /* no, regular for-loop init expr */
-                gexpr();
-                vpop();
+                gexpr(tcc_state);
+                vpop(tcc_state);
             }
         }
-        skip(';');
-        d = ind;
-        c = ind;
+        skip(tcc_state, ';');
+        d = tcc_state->tccgen_ind;
+        c = tcc_state->tccgen_ind;
         a = 0;
         b = 0;
-        if (tok != ';') {
-            gexpr();
-            a = gvtst(1, 0);
+        if (tcc_state->tccpp_tok != ';') {
+            gexpr(tcc_state);
+            a = gvtst(tcc_state, 1, 0);
         }
-        skip(';');
-        if (tok != ')') {
-            e = gjmp(0);
-            c = ind;
-            gexpr();
-            vpop();
-            gjmp_addr(d);
-            gsym(e);
+        skip(tcc_state, ';');
+        if (tcc_state->tccpp_tok != ')') {
+            e = gjmp(tcc_state, 0);
+            c = tcc_state->tccgen_ind;
+            gexpr(tcc_state);
+            vpop(tcc_state);
+            gjmp_addr(tcc_state, d);
+            gsym(tcc_state, e);
         }
-        skip(')');
-        block(&a, &b, case_sym, def_sym, case_reg, 0);
-        gjmp_addr(c);
-        gsym(a);
-        gsym_addr(b, c);
-        scope_stack_bottom = scope_stack_bottom->next;
-        sym_pop(&local_stack, s);
+        skip(tcc_state, ')');
+        block(tcc_state, &a, &b, case_sym, def_sym, case_reg, 0);
+        gjmp_addr(tcc_state, c);
+        gsym(tcc_state, a);
+        gsym_addr(tcc_state, b, c);
+        tcc_state->scope_stack_bottom = tcc_state->scope_stack_bottom->next;
+        sym_pop(tcc_state, &tcc_state->tccgen_local_stack, s);
     } else 
-    if (tok == TOK_DO) {
-        next();
+    if (tcc_state->tccpp_tok == TOK_DO) {
+        next(tcc_state);
         a = 0;
         b = 0;
-        d = ind;
-        block(&a, &b, case_sym, def_sym, case_reg, 0);
-        skip(TOK_WHILE);
-        skip('(');
-        gsym(b);
-        gexpr();
-        c = gvtst(0, 0);
-        gsym_addr(c, d);
-        skip(')');
-        gsym(a);
-        skip(';');
+        d = tcc_state->tccgen_ind;
+        block(tcc_state, &a, &b, case_sym, def_sym, case_reg, 0);
+        skip(tcc_state, TOK_WHILE);
+        skip(tcc_state, '(');
+        gsym(tcc_state, b);
+        gexpr(tcc_state);
+        c = gvtst(tcc_state, 0, 0);
+        gsym_addr(tcc_state, c, d);
+        skip(tcc_state, ')');
+        gsym(tcc_state, a);
+        skip(tcc_state, ';');
     } else
-    if (tok == TOK_SWITCH) {
-        next();
-        skip('(');
-        gexpr();
+    if (tcc_state->tccpp_tok == TOK_SWITCH) {
+        next(tcc_state);
+        skip(tcc_state, '(');
+        gexpr(tcc_state);
         /* XXX: other types than integer */
-        case_reg = gv(RC_INT);
-        vpop();
-        skip(')');
+        case_reg = gv(tcc_state, RC_INT);
+        vpop(tcc_state);
+        skip(tcc_state, ')');
         a = 0;
-        b = gjmp(0); /* jump to first case */
+        b = gjmp(tcc_state, 0); /* jump to first case */
         c = 0;
-        block(&a, csym, &b, &c, case_reg, 0);
+        block(tcc_state, &a, csym, &b, &c, case_reg, 0);
         /* if no default, jmp after switch */
         if (c == 0)
-            c = ind;
+            c = tcc_state->tccgen_ind;
         /* default label */
-        gsym_addr(b, c);
+        gsym_addr(tcc_state, b, c);
         /* break label */
-        gsym(a);
+        gsym(tcc_state, a);
     } else
-    if (tok == TOK_CASE) {
+    if (tcc_state->tccpp_tok == TOK_CASE) {
         int v1, v2;
         if (!case_sym)
-            expect("switch");
-        next();
-        v1 = expr_const();
+            expect(tcc_state, "switch");
+        next(tcc_state);
+        v1 = expr_const(tcc_state);
         v2 = v1;
-        if (gnu_ext && tok == TOK_DOTS) {
-            next();
-            v2 = expr_const();
+        if (tcc_state->libtcc_gnu_ext && tcc_state->tccpp_tok == TOK_DOTS) {
+            next(tcc_state);
+            v2 = expr_const(tcc_state);
             if (v2 < v1)
-                tcc_warning("empty case range");
+                tcc_warning(tcc_state, "empty case range");
         }
         /* since a case is like a label, we must skip it with a jmp */
-        b = gjmp(0);
-        gsym(*case_sym);
-        vseti(case_reg, 0);
-        vpushi(v1);
+        b = gjmp(tcc_state, 0);
+        gsym(tcc_state, *case_sym);
+        vseti(tcc_state, case_reg, 0);
+        vpushi(tcc_state, v1);
         if (v1 == v2) {
-            gen_op(TOK_EQ);
-            *case_sym = gtst(1, 0);
+            gen_op(tcc_state, TOK_EQ);
+            *case_sym = gtst(tcc_state, 1, 0);
         } else {
-            gen_op(TOK_GE);
-            *case_sym = gtst(1, 0);
-            vseti(case_reg, 0);
-            vpushi(v2);
-            gen_op(TOK_LE);
-            *case_sym = gtst(1, *case_sym);
+            gen_op(tcc_state, TOK_GE);
+            *case_sym = gtst(tcc_state, 1, 0);
+            vseti(tcc_state, case_reg, 0);
+            vpushi(tcc_state, v2);
+            gen_op(tcc_state, TOK_LE);
+            *case_sym = gtst(tcc_state, 1, *case_sym);
         }
-        gsym(b);
-        skip(':');
+        gsym(tcc_state, b);
+        skip(tcc_state, ':');
         is_expr = 0;
         goto block_after_label;
     } else 
-    if (tok == TOK_DEFAULT) {
-        next();
-        skip(':');
+    if (tcc_state->tccpp_tok == TOK_DEFAULT) {
+        next(tcc_state);
+        skip(tcc_state, ':');
         if (!def_sym)
-            expect("switch");
+            expect(tcc_state, "switch");
         if (*def_sym)
-            tcc_error("too many 'default'");
-        *def_sym = ind;
+            tcc_error(tcc_state, "too many 'default'");
+        *def_sym = tcc_state->tccgen_ind;
         is_expr = 0;
         goto block_after_label;
     } else
-    if (tok == TOK_GOTO) {
-        next();
-        if (tok == '*' && gnu_ext) {
+    if (tcc_state->tccpp_tok == TOK_GOTO) {
+        next(tcc_state);
+        if (tcc_state->tccpp_tok == '*' && tcc_state->libtcc_gnu_ext) {
             /* computed goto */
-            next();
-            gexpr();
-            if ((vtop->type.t & VT_BTYPE) != VT_PTR)
-                expect("pointer");
-            ggoto();
-        } else if (tok >= TOK_UIDENT) {
-            s = label_find(tok);
+            next(tcc_state);
+            gexpr(tcc_state);
+            if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) != VT_PTR)
+                expect(tcc_state, "pointer");
+            ggoto(tcc_state);
+        } else if (tcc_state->tccpp_tok >= TOK_UIDENT) {
+            s = label_find(tcc_state, tcc_state->tccpp_tok);
             /* put forward definition if needed */
             if (!s) {
-                s = label_push(&global_label_stack, tok, LABEL_FORWARD);
+                s = label_push(tcc_state, &tcc_state->tccgen_global_label_stack, tcc_state->tccpp_tok, LABEL_FORWARD);
             } else {
                 if (s->r == LABEL_DECLARED)
                     s->r = LABEL_FORWARD;
             }
             /* label already defined */
-            if (vla_flags & VLA_IN_SCOPE) {
+            if (tcc_state->tccgen_vla_flags & VLA_IN_SCOPE) {
                 /* If VLAs are in use, save the current stack pointer and
                    reset the stack pointer to what it was at function entry
                    (label will restore stack pointer in inner scopes) */
-                vla_sp_save();
-                gen_vla_sp_restore(vla_sp_root_loc);
+                vla_sp_save(tcc_state);
+                gen_vla_sp_restore(tcc_state, tcc_state->tccgen_vla_sp_root_loc);
             }
             if (s->r & LABEL_FORWARD) 
-                s->jnext = gjmp(s->jnext);
+                s->jnext = gjmp(tcc_state, s->jnext);
             else
-                gjmp_addr(s->jnext);
-            next();
+                gjmp_addr(tcc_state, s->jnext);
+            next(tcc_state);
         } else {
-            expect("label identifier");
+            expect(tcc_state, "label identifier");
         }
-        skip(';');
-    } else if (tok == TOK_ASM1 || tok == TOK_ASM2 || tok == TOK_ASM3) {
-        asm_instr();
+        skip(tcc_state, ';');
+    } else if (tcc_state->tccpp_tok == TOK_ASM1 || tcc_state->tccpp_tok == TOK_ASM2 || tcc_state->tccpp_tok == TOK_ASM3) {
+        asm_instr(tcc_state);
     } else {
-        b = is_label();
+        b = is_label(tcc_state);
         if (b) {
             /* label case */
-            if (vla_flags & VLA_IN_SCOPE) {
+            if (tcc_state->tccgen_vla_flags & VLA_IN_SCOPE) {
                 /* save/restore stack pointer across label
                    this is a no-op when combined with the load immediately
                    after the label unless we arrive via goto */
-                vla_sp_save();
+                vla_sp_save(tcc_state);
             }
-            s = label_find(b);
+            s = label_find(tcc_state, b);
             if (s) {
                 if (s->r == LABEL_DEFINED)
-                    tcc_error("duplicate label '%s'", get_tok_str(s->v, NULL));
-                gsym(s->jnext);
+                    tcc_error(tcc_state, "duplicate label '%s'");
+                gsym(tcc_state, s->jnext);
                 s->r = LABEL_DEFINED;
             } else {
-                s = label_push(&global_label_stack, b, LABEL_DEFINED);
+                s = label_push(tcc_state, &tcc_state->tccgen_global_label_stack, b, LABEL_DEFINED);
             }
-            s->jnext = ind;
-            if (vla_flags & VLA_IN_SCOPE) {
-                gen_vla_sp_restore(*vla_sp_loc);
-                vla_flags |= VLA_NEED_NEW_FRAME;
+            s->jnext = tcc_state->tccgen_ind;
+            if (tcc_state->tccgen_vla_flags & VLA_IN_SCOPE) {
+                gen_vla_sp_restore(tcc_state, *tcc_state->tccgen_vla_sp_loc);
+                tcc_state->tccgen_vla_flags |= VLA_NEED_NEW_FRAME;
             }
             /* we accept this, but it is a mistake */
         block_after_label:
-            if (tok == '}') {
-                tcc_warning("deprecated use of label at end of compound statement");
+            if (tcc_state->tccpp_tok == '}') {
+                tcc_warning(tcc_state, "deprecated use of label at end of compound statement");
             } else {
                 if (is_expr)
-                    vpop();
-                block(bsym, csym, case_sym, def_sym, case_reg, is_expr);
+                    vpop(tcc_state);
+                block(tcc_state, bsym, csym, case_sym, def_sym, case_reg, is_expr);
             }
         } else {
             /* expression case */
-            if (tok != ';') {
+            if (tcc_state->tccpp_tok != ';') {
                 if (is_expr) {
-                    vpop();
-                    gexpr();
+                    vpop(tcc_state);
+                    gexpr(tcc_state);
                 } else {
-                    gexpr();
-                    vpop();
+                    gexpr(tcc_state);
+                    vpop(tcc_state);
                 }
             }
-            skip(';');
+            skip(tcc_state, ';');
         }
     }
 }
@@ -4942,7 +4933,7 @@ static void block(int *bsym, int *csym, int *case_sym, int *def_sym,
    address. cur_index/cur_field is the pointer to the current
    value. 'size_only' is true if only size info is needed (only used
    in arrays) */
-static void decl_designator(CType *type, Section *sec, unsigned long c, 
+static void decl_designator(TCCState* tcc_state, CType *type, Section *sec, unsigned long c, 
                             int *cur_index, Sym **cur_field, 
                             int size_only)
 {
@@ -4953,28 +4944,28 @@ static void decl_designator(CType *type, Section *sec, unsigned long c,
     notfirst = 0;
     elem_size = 0;
     nb_elems = 1;
-    if (gnu_ext && (l = is_label()) != 0)
+    if (tcc_state->libtcc_gnu_ext && (l = is_label(tcc_state)) != 0)
         goto struct_field;
-    while (tok == '[' || tok == '.') {
-        if (tok == '[') {
+    while (tcc_state->tccpp_tok == '[' || tcc_state->tccpp_tok == '.') {
+        if (tcc_state->tccpp_tok == '[') {
             if (!(type->t & VT_ARRAY))
-                expect("array type");
+                expect(tcc_state, "array type");
             s = type->ref;
-            next();
-            index = expr_const();
+            next(tcc_state);
+            index = expr_const(tcc_state);
             if (index < 0 || (s->c >= 0 && index >= s->c))
-                expect("invalid index");
-            if (tok == TOK_DOTS && gnu_ext) {
-                next();
-                index_last = expr_const();
+                expect(tcc_state, "invalid index");
+            if (tcc_state->tccpp_tok == TOK_DOTS && tcc_state->libtcc_gnu_ext) {
+                next(tcc_state);
+                index_last = expr_const(tcc_state);
                 if (index_last < 0 || 
                     (s->c >= 0 && index_last >= s->c) ||
                     index_last < index)
-                    expect("invalid index");
+                    expect(tcc_state, "invalid index");
             } else {
                 index_last = index;
             }
-            skip(']');
+            skip(tcc_state, ']');
             if (!notfirst)
                 *cur_index = index_last;
             type = pointed_type(type);
@@ -4987,12 +4978,12 @@ static void decl_designator(CType *type, Section *sec, unsigned long c,
                 break;
             }
         } else {
-            next();
-            l = tok;
-            next();
+            next(tcc_state);
+            l = tcc_state->tccpp_tok;
+            next(tcc_state);
         struct_field:
             if ((type->t & VT_BTYPE) != VT_STRUCT)
-                expect("struct/union type");
+                expect(tcc_state, "struct/union type");
             s = type->ref;
             l |= SYM_FIELD;
             f = s->next;
@@ -5002,7 +4993,7 @@ static void decl_designator(CType *type, Section *sec, unsigned long c,
                 f = f->next;
             }
             if (!f)
-                expect("field");
+                expect(tcc_state, "field");
             if (!notfirst)
                 *cur_field = f;
             /* XXX: fix this mess by using explicit storage field */
@@ -5014,11 +5005,11 @@ static void decl_designator(CType *type, Section *sec, unsigned long c,
         notfirst = 1;
     }
     if (notfirst) {
-        if (tok == '=') {
-            next();
+        if (tcc_state->tccpp_tok == '=') {
+            next(tcc_state);
         } else {
-            if (!gnu_ext)
-                expect("=");
+            if (!tcc_state->libtcc_gnu_ext)
+                expect(tcc_state, "=");
         }
     } else {
         if (type->t & VT_ARRAY) {
@@ -5028,7 +5019,7 @@ static void decl_designator(CType *type, Section *sec, unsigned long c,
         } else {
             f = *cur_field;
             if (!f)
-                tcc_error("too many field init");
+                tcc_error(tcc_state, "too many field init");
             /* XXX: fix this mess by using explicit storage field */
             type1 = f->type;
             type1.t |= (type->t & ~VT_TYPE);
@@ -5036,7 +5027,7 @@ static void decl_designator(CType *type, Section *sec, unsigned long c,
             c += f->c;
         }
     }
-    decl_initializer(type, sec, c, 0, size_only);
+    decl_initializer(tcc_state, type, sec, c, 0, size_only);
 
     /* XXX: make it more general */
     if (!size_only && nb_elems > 1) {
@@ -5045,10 +5036,10 @@ static void decl_designator(CType *type, Section *sec, unsigned long c,
         int i;
 
         if (!sec)
-            tcc_error("range init not supported yet for dynamic storage");
+            tcc_error(tcc_state, "range init not supported yet for dynamic storage");
         c_end = c + nb_elems * elem_size;
         if (c_end > sec->data_allocated)
-            section_realloc(sec, c_end);
+            section_realloc(tcc_state, sec, c_end);
         src = sec->data + c;
         dst = src;
         for(i = 1; i < nb_elems; i++) {
@@ -5063,7 +5054,7 @@ static void decl_designator(CType *type, Section *sec, unsigned long c,
 #define EXPR_ANY   2
 
 /* store a value or an expression directly in global data or in local array */
-static void init_putv(CType *type, Section *sec, unsigned long c, 
+static void init_putv(TCCState* tcc_state, CType *type, Section *sec, unsigned long c, 
                       int v, int expr_type)
 {
     int saved_global_expr, bt, bit_pos, bit_size;
@@ -5073,20 +5064,20 @@ static void init_putv(CType *type, Section *sec, unsigned long c,
 
     switch(expr_type) {
     case EXPR_VAL:
-        vpushi(v);
+        vpushi(tcc_state, v);
         break;
     case EXPR_CONST:
         /* compound literals must be allocated globally in this case */
-        saved_global_expr = global_expr;
-        global_expr = 1;
-        expr_const1();
-        global_expr = saved_global_expr;
+        saved_global_expr = tcc_state->tccgen_global_expr;
+        tcc_state->tccgen_global_expr = 1;
+        expr_const1(tcc_state);
+        tcc_state->tccgen_global_expr = saved_global_expr;
         /* NOTE: symbols are accepted */
-        if ((vtop->r & (VT_VALMASK | VT_LVAL)) != VT_CONST)
-            tcc_error("initializer element is not constant");
+        if ((tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL)) != VT_CONST)
+            tcc_error(tcc_state, "initializer element is not constant");
         break;
     case EXPR_ANY:
-        expr_eq();
+        expr_eq(tcc_state);
         break;
     }
     
@@ -5096,11 +5087,11 @@ static void init_putv(CType *type, Section *sec, unsigned long c,
     if (sec) {
         /* XXX: not portable */
         /* XXX: generate error if incorrect relocation */
-        gen_assign_cast(&dtype);
+        gen_assign_cast(tcc_state, &dtype);
         bt = type->t & VT_BTYPE;
         /* we'll write at most 12 bytes */
         if (c + 12 > sec->data_allocated) {
-            section_realloc(sec, c + 12);
+            section_realloc(tcc_state, sec, c + 12);
         }
         ptr = sec->data + c;
         /* XXX: make code faster ? */
@@ -5109,74 +5100,74 @@ static void init_putv(CType *type, Section *sec, unsigned long c,
             bit_size = 32;
             bit_mask = -1LL;
         } else {
-            bit_pos = (vtop->type.t >> VT_STRUCT_SHIFT) & 0x3f;
-            bit_size = (vtop->type.t >> (VT_STRUCT_SHIFT + 6)) & 0x3f;
+            bit_pos = (tcc_state->tccgen_vtop->type.t >> VT_STRUCT_SHIFT) & 0x3f;
+            bit_size = (tcc_state->tccgen_vtop->type.t >> (VT_STRUCT_SHIFT + 6)) & 0x3f;
             bit_mask = (1LL << bit_size) - 1;
         }
-        if ((vtop->r & VT_SYM) &&
+        if ((tcc_state->tccgen_vtop->r & VT_SYM) &&
             (bt == VT_BYTE ||
              bt == VT_SHORT ||
              bt == VT_DOUBLE ||
              bt == VT_LDOUBLE ||
              bt == VT_LLONG ||
              (bt == VT_INT && bit_size != 32)))
-            tcc_error("initializer element is not computable at load time");
+            tcc_error(tcc_state, "initializer element is not computable at load time");
         switch(bt) {
         case VT_BOOL:
-            vtop->c.i = (vtop->c.i != 0);
+            tcc_state->tccgen_vtop->c.i = (tcc_state->tccgen_vtop->c.i != 0);
         case VT_BYTE:
-            *(char *)ptr |= (vtop->c.i & bit_mask) << bit_pos;
+            *(char *)ptr |= (tcc_state->tccgen_vtop->c.i & bit_mask) << bit_pos;
             break;
         case VT_SHORT:
-            *(short *)ptr |= (vtop->c.i & bit_mask) << bit_pos;
+            *(short *)ptr |= (tcc_state->tccgen_vtop->c.i & bit_mask) << bit_pos;
             break;
         case VT_DOUBLE:
-            *(double *)ptr = vtop->c.d;
+            *(double *)ptr = tcc_state->tccgen_vtop->c.d;
             break;
         case VT_LDOUBLE:
-            *(long double *)ptr = vtop->c.ld;
+            *(long double *)ptr = tcc_state->tccgen_vtop->c.ld;
             break;
         case VT_LLONG:
-            *(long long *)ptr |= (vtop->c.ll & bit_mask) << bit_pos;
+            *(long long *)ptr |= (tcc_state->tccgen_vtop->c.ll & bit_mask) << bit_pos;
             break;
         case VT_PTR:
-            if (vtop->r & VT_SYM) {
-                greloc(sec, vtop->sym, c, R_DATA_PTR);
+            if (tcc_state->tccgen_vtop->r & VT_SYM) {
+                greloc(tcc_state, sec, tcc_state->tccgen_vtop->sym, c, R_DATA_PTR);
             }
-            *(addr_t *)ptr |= (vtop->c.ull & bit_mask) << bit_pos;
+            *(addr_t *)ptr |= (tcc_state->tccgen_vtop->c.ull & bit_mask) << bit_pos;
             break;
         default:
-            if (vtop->r & VT_SYM) {
-                greloc(sec, vtop->sym, c, R_DATA_PTR);
+            if (tcc_state->tccgen_vtop->r & VT_SYM) {
+                greloc(tcc_state, sec, tcc_state->tccgen_vtop->sym, c, R_DATA_PTR);
             }
-            *(int *)ptr |= (vtop->c.i & bit_mask) << bit_pos;
+            *(int *)ptr |= (tcc_state->tccgen_vtop->c.i & bit_mask) << bit_pos;
             break;
         }
-        vtop--;
+        tcc_state->tccgen_vtop--;
     } else {
-        vset(&dtype, VT_LOCAL|VT_LVAL, c);
-        vswap();
-        vstore();
-        vpop();
+        vset(tcc_state, &dtype, VT_LOCAL|VT_LVAL, c);
+        vswap(tcc_state);
+        vstore(tcc_state);
+        vpop(tcc_state);
     }
 }
 
 /* put zeros for variable based init */
-static void init_putz(CType *t, Section *sec, unsigned long c, int size)
+static void init_putz(TCCState* tcc_state, CType *t, Section *sec, unsigned long c, int size)
 {
     if (sec) {
         /* nothing to do because globals are already set to zero */
     } else {
-        vpush_global_sym(&func_old_type, TOK_memset);
-        vseti(VT_LOCAL, c);
+        vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK_memset);
+        vseti(tcc_state, VT_LOCAL, c);
 #ifdef TCC_TARGET_ARM
-        vpushs(size);
-        vpushi(0);
+        vpushs(tcc_state, size);
+        vpushi(tcc_state, 0);
 #else
-        vpushi(0);
-        vpushs(size);
+        vpushi(tcc_state, 0);
+        vpushs(tcc_state, size);
 #endif
-        gfunc_call(3);
+        gfunc_call(tcc_state, 3);
     }
 }
 
@@ -5185,7 +5176,7 @@ static void init_putz(CType *t, Section *sec, unsigned long c, int size)
    allocation. 'first' is true if array '{' must be read (multi
    dimension implicit array init handling). 'size_only' is true if
    size only evaluation is wanted (only for arrays). */
-static void decl_initializer(CType *type, Section *sec, unsigned long c, 
+static void decl_initializer(TCCState* tcc_state, CType *type, Section *sec, unsigned long c, 
                              int first, int size_only)
 {
     int index, array_length, n, no_oblock, nb, parlevel, parlevel1, i;
@@ -5197,18 +5188,18 @@ static void decl_initializer(CType *type, Section *sec, unsigned long c,
         int a;
         
         /* save current stack pointer */
-        if (vla_flags & VLA_NEED_NEW_FRAME) {
-            vla_sp_save();
-            vla_flags = VLA_IN_SCOPE;
-            vla_sp_loc = &vla_sp_loc_tmp;
+        if (tcc_state->tccgen_vla_flags & VLA_NEED_NEW_FRAME) {
+            vla_sp_save(tcc_state);
+            tcc_state->tccgen_vla_flags = VLA_IN_SCOPE;
+            tcc_state->tccgen_vla_sp_loc = &tcc_state->tccgen_vla_sp_loc_tmp;
         }
         
-        vla_runtime_type_size(type, &a);
-        gen_vla_alloc(type, a);
-        vset(type, VT_LOCAL|VT_LVAL, c);
-        vswap();
-        vstore();
-        vpop();
+        vla_runtime_type_size(tcc_state, type, &a);
+        gen_vla_alloc(tcc_state, type, a);
+        vset(tcc_state, type, VT_LOCAL|VT_LVAL, c);
+        vswap(tcc_state);
+        vstore(tcc_state);
+        vpop(tcc_state);
     } else if (type->t & VT_ARRAY) {
         s = type->ref;
         n = s->c;
@@ -5217,31 +5208,31 @@ static void decl_initializer(CType *type, Section *sec, unsigned long c,
         size1 = type_size(t1, &align1);
 
         no_oblock = 1;
-        if ((first && tok != TOK_LSTR && tok != TOK_STR) || 
-            tok == '{') {
-            if (tok != '{')
-                tcc_error("character array initializer must be a literal,"
+        if ((first && tcc_state->tccpp_tok != TOK_LSTR && tcc_state->tccpp_tok != TOK_STR) || 
+            tcc_state->tccpp_tok == '{') {
+            if (tcc_state->tccpp_tok != '{')
+                tcc_error(tcc_state, "character array initializer must be a literal,"
                     " optionally enclosed in braces");
-            skip('{');
+            skip(tcc_state, '{');
             no_oblock = 0;
         }
 
         /* only parse strings here if correct type (otherwise: handle
            them as ((w)char *) expressions */
-        if ((tok == TOK_LSTR && 
+        if ((tcc_state->tccpp_tok == TOK_LSTR && 
 #ifdef TCC_TARGET_PE
              (t1->t & VT_BTYPE) == VT_SHORT && (t1->t & VT_UNSIGNED)
 #else
              (t1->t & VT_BTYPE) == VT_INT
 #endif
-            ) || (tok == TOK_STR && (t1->t & VT_BTYPE) == VT_BYTE)) {
-            while (tok == TOK_STR || tok == TOK_LSTR) {
+            ) || (tcc_state->tccpp_tok == TOK_STR && (t1->t & VT_BTYPE) == VT_BYTE)) {
+            while (tcc_state->tccpp_tok == TOK_STR || tcc_state->tccpp_tok == TOK_LSTR) {
                 int cstr_len, ch;
                 CString *cstr;
 
-                cstr = tokc.cstr;
+                cstr = tcc_state->tccpp_tokc.cstr;
                 /* compute maximum number of chars wanted */
-                if (tok == TOK_STR)
+                if (tcc_state->tccpp_tok == TOK_STR)
                     cstr_len = cstr->size;
                 else
                     cstr_len = cstr->size / sizeof(nwchar_t);
@@ -5251,44 +5242,44 @@ static void decl_initializer(CType *type, Section *sec, unsigned long c,
                     nb = n - array_length;
                 if (!size_only) {
                     if (cstr_len > nb)
-                        tcc_warning("initializer-string for array is too long");
+                        tcc_warning(tcc_state, "initializer-string for array is too long");
                     /* in order to go faster for common case (char
                        string in global variable, we handle it
                        specifically */
-                    if (sec && tok == TOK_STR && size1 == 1) {
+                    if (sec && tcc_state->tccpp_tok == TOK_STR && size1 == 1) {
                         memcpy(sec->data + c + array_length, cstr->data, nb);
                     } else {
                         for(i=0;i<nb;i++) {
-                            if (tok == TOK_STR)
+                            if (tcc_state->tccpp_tok == TOK_STR)
                                 ch = ((unsigned char *)cstr->data)[i];
                             else
                                 ch = ((nwchar_t *)cstr->data)[i];
-                            init_putv(t1, sec, c + (array_length + i) * size1,
+                            init_putv(tcc_state, t1, sec, c + (array_length + i) * size1,
                                       ch, EXPR_VAL);
                         }
                     }
                 }
                 array_length += nb;
-                next();
+                next(tcc_state);
             }
             /* only add trailing zero if enough storage (no
                warning in this case since it is standard) */
             if (n < 0 || array_length < n) {
                 if (!size_only) {
-                    init_putv(t1, sec, c + (array_length * size1), 0, EXPR_VAL);
+                    init_putv(tcc_state, t1, sec, c + (array_length * size1), 0, EXPR_VAL);
                 }
                 array_length++;
             }
         } else {
             index = 0;
-            while (tok != '}') {
-                decl_designator(type, sec, c, &index, NULL, size_only);
+            while (tcc_state->tccpp_tok != '}') {
+                decl_designator(tcc_state, type, sec, c, &index, NULL, size_only);
                 if (n >= 0 && index >= n)
-                    tcc_error("index too large");
+                    tcc_error(tcc_state, "index too large");
                 /* must put zero in holes (note that doing it that way
                    ensures that it even works with designators) */
                 if (!size_only && array_length < index) {
-                    init_putz(t1, sec, c + array_length * size1, 
+                    init_putz(tcc_state, t1, sec, c + array_length * size1, 
                               (index - array_length) * size1);
                 }
                 index++;
@@ -5299,23 +5290,23 @@ static void decl_initializer(CType *type, Section *sec, unsigned long c,
                    same time) */
                 if (index >= n && no_oblock)
                     break;
-                if (tok == '}')
+                if (tcc_state->tccpp_tok == '}')
                     break;
-                skip(',');
+                skip(tcc_state, ',');
             }
         }
         if (!no_oblock)
-            skip('}');
+            skip(tcc_state, '}');
         /* put zeros at the end */
         if (!size_only && n >= 0 && array_length < n) {
-            init_putz(t1, sec, c + array_length * size1, 
+            init_putz(tcc_state, t1, sec, c + array_length * size1, 
                       (n - array_length) * size1);
         }
         /* patch type size if needed */
         if (n < 0)
             s->c = array_length;
     } else if ((type->t & VT_BTYPE) == VT_STRUCT &&
-               (sec || !first || tok == '{')) {
+               (sec || !first || tcc_state->tccpp_tok == '{')) {
         int par_count;
 
         /* NOTE: the previous test is a specific case for automatic
@@ -5327,26 +5318,26 @@ static void decl_initializer(CType *type, Section *sec, unsigned long c,
            to do it correctly (ideally, the expression parser should
            be used in all cases) */
         par_count = 0;
-        if (tok == '(') {
+        if (tcc_state->tccpp_tok == '(') {
             AttributeDef ad1;
             CType type1;
-            next();
-            while (tok == '(') {
+            next(tcc_state);
+            while (tcc_state->tccpp_tok == '(') {
                 par_count++;
-                next();
+                next(tcc_state);
             }
-            if (!parse_btype(&type1, &ad1))
-                expect("cast");
-            type_decl(&type1, &ad1, &n, TYPE_ABSTRACT);
+            if (!parse_btype(tcc_state, &type1, &ad1))
+                expect(tcc_state, "cast");
+            type_decl(tcc_state, &type1, &ad1, &n, TYPE_ABSTRACT);
 #if 0
             if (!is_assignable_types(type, &type1))
-                tcc_error("invalid type for cast");
+                tcc_error(tcc_state, "invalid type for cast");
 #endif
-            skip(')');
+            skip(tcc_state, ')');
         }
         no_oblock = 1;
-        if (first || tok == '{') {
-            skip('{');
+        if (first || tcc_state->tccpp_tok == '{') {
+            skip(tcc_state, '{');
             no_oblock = 0;
         }
         s = type->ref;
@@ -5354,11 +5345,11 @@ static void decl_initializer(CType *type, Section *sec, unsigned long c,
         array_length = 0;
         index = 0;
         n = s->c;
-        while (tok != '}') {
-            decl_designator(type, sec, c, NULL, &f, size_only);
+        while (tcc_state->tccpp_tok != '}') {
+            decl_designator(tcc_state, type, sec, c, NULL, &f, size_only);
             index = f->c;
             if (!size_only && array_length < index) {
-                init_putz(type, sec, c + array_length, 
+                init_putz(tcc_state, type, sec, c + array_length, 
                           index - array_length);
             }
             index = index + type_size(&f->type, &align1);
@@ -5385,39 +5376,39 @@ static void decl_initializer(CType *type, Section *sec, unsigned long c,
             f = f->next;
             if (no_oblock && f == NULL)
                 break;
-            if (tok == '}')
+            if (tcc_state->tccpp_tok == '}')
                 break;
-            skip(',');
+            skip(tcc_state, ',');
         }
         /* put zeros at the end */
         if (!size_only && array_length < n) {
-            init_putz(type, sec, c + array_length, 
+            init_putz(tcc_state, type, sec, c + array_length, 
                       n - array_length);
         }
         if (!no_oblock)
-            skip('}');
+            skip(tcc_state, '}');
         while (par_count) {
-            skip(')');
+            skip(tcc_state, ')');
             par_count--;
         }
-    } else if (tok == '{') {
-        next();
-        decl_initializer(type, sec, c, first, size_only);
-        skip('}');
+    } else if (tcc_state->tccpp_tok == '{') {
+        next(tcc_state);
+        decl_initializer(tcc_state, type, sec, c, first, size_only);
+        skip(tcc_state, '}');
     } else if (size_only) {
         /* just skip expression */
         parlevel = parlevel1 = 0;
         while ((parlevel > 0 || parlevel1 > 0 ||
-		(tok != '}' && tok != ',')) &&  tok != -1) {
-            if (tok == '(')
+		(tcc_state->tccpp_tok != '}' && tcc_state->tccpp_tok != ',')) &&  tcc_state->tccpp_tok != -1) {
+            if (tcc_state->tccpp_tok == '(')
                 parlevel++;
-            else if (tok == ')')
+            else if (tcc_state->tccpp_tok == ')')
                 parlevel--;
-	    else if (tok == '{')
+	    else if (tcc_state->tccpp_tok == '{')
 		parlevel1++;
-	    else if (tok == '}')
+	    else if (tcc_state->tccpp_tok == '}')
 		parlevel1--;
-            next();
+            next(tcc_state);
         }
     } else {
         /* currently, we always use constant expression for globals
@@ -5425,7 +5416,7 @@ static void decl_initializer(CType *type, Section *sec, unsigned long c,
         expr_type = EXPR_CONST;
         if (!sec)
             expr_type = EXPR_ANY;
-        init_putv(type, sec, c, 0, expr_type);
+        init_putv(tcc_state, type, sec, c, 0, expr_type);
     }
 }
 
@@ -5437,7 +5428,7 @@ static void decl_initializer(CType *type, Section *sec, unsigned long c,
    zero, then a reference to the new object is put in the value stack.
    If 'has_init' is 2, a special parsing is done to handle string
    constants. */
-static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r, 
+static void decl_initializer_alloc(TCCState* tcc_state, CType *type, AttributeDef *ad, int r, 
                                    int has_init, int v, char *asm_label,
                                    int scope)
 {
@@ -5469,49 +5460,49 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
     tok_str_new(&init_str);
     if (size < 0 || (flexible_array && has_init)) {
         if (!has_init) 
-            tcc_error("unknown type size");
+            tcc_error(tcc_state, "unknown type size");
         /* get all init string */
         if (has_init == 2) {
             /* only get strings */
-            while (tok == TOK_STR || tok == TOK_LSTR) {
-                tok_str_add_tok(&init_str);
-                next();
+            while (tcc_state->tccpp_tok == TOK_STR || tcc_state->tccpp_tok == TOK_LSTR) {
+                tok_str_add_tok(tcc_state, &init_str);
+                next(tcc_state);
             }
         } else {
             level = 0;
-            while (level > 0 || (tok != ',' && tok != ';')) {
-                if (tok < 0)
-                    tcc_error("unexpected end of file in initializer");
-                tok_str_add_tok(&init_str);
-                if (tok == '{')
+            while (level > 0 || (tcc_state->tccpp_tok != ',' && tcc_state->tccpp_tok != ';')) {
+                if (tcc_state->tccpp_tok < 0)
+                    tcc_error(tcc_state, "unexpected end of file in initializer");
+                tok_str_add_tok(tcc_state, &init_str);
+                if (tcc_state->tccpp_tok == '{')
                     level++;
-                else if (tok == '}') {
+                else if (tcc_state->tccpp_tok == '}') {
                     level--;
                     if (level <= 0) {
-                        next();
+                        next(tcc_state);
                         break;
                     }
                 }
-                next();
+                next(tcc_state);
             }
         }
-        tok_str_add(&init_str, -1);
-        tok_str_add(&init_str, 0);
+        tok_str_add(tcc_state, &init_str, -1);
+        tok_str_add(tcc_state, &init_str, 0);
         
         /* compute size */
-        save_parse_state(&saved_parse_state);
+        save_parse_state(tcc_state, &saved_parse_state);
 
-        macro_ptr = init_str.str;
-        next();
-        decl_initializer(type, NULL, 0, 1, 1);
+        tcc_state->tccpp_macro_ptr = init_str.str;
+        next(tcc_state);
+        decl_initializer(tcc_state, type, NULL, 0, 1, 1);
         /* prepare second initializer parsing */
-        macro_ptr = init_str.str;
-        next();
+        tcc_state->tccpp_macro_ptr = init_str.str;
+        next(tcc_state);
         
         /* if still unknown size, error */
         size = type_size(type, &align);
         if (size < 0) 
-            tcc_error("unknown type size");
+            tcc_error(tcc_state, "unknown type size");
     }
     if (flexible_array)
         size += flexible_array->type.ref->c * pointed_size(&flexible_array->type);
@@ -5526,11 +5517,11 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
         sec = NULL;
 #ifdef CONFIG_TCC_BCHECK
         if (tcc_state->do_bounds_check && (type->t & VT_ARRAY)) {
-            loc--;
+            tcc_state->tccgen_loc--;
         }
 #endif
-        loc = (loc - size) & -align;
-        addr = loc;
+        tcc_state->tccgen_loc = (tcc_state->tccgen_loc - size) & -align;
+        addr = tcc_state->tccgen_loc;
 #ifdef CONFIG_TCC_BCHECK
         /* handles bounds */
         /* XXX: currently, since we do only one pass, we cannot track
@@ -5538,19 +5529,19 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
         if (tcc_state->do_bounds_check && (type->t & VT_ARRAY)) {
             unsigned long *bounds_ptr;
             /* add padding between regions */
-            loc--;
+            tcc_state->tccgen_loc--;
             /* then add local bound info */
-            bounds_ptr = section_ptr_add(lbounds_section, 2 * sizeof(unsigned long));
+            bounds_ptr = section_ptr_add(tcc_state, lbounds_section, 2 * sizeof(unsigned long));
             bounds_ptr[0] = addr;
             bounds_ptr[1] = size;
         }
 #endif
         if (v) {
             /* local variable */
-            sym_push(v, type, r, addr);
+            sym_push(tcc_state, v, type, r, addr);
         } else {
             /* push local reference */
-            vset(type, r, addr);
+            vset(tcc_state, type, r, addr);
         }
     } else {
         Sym *sym;
@@ -5558,11 +5549,10 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
         sym = NULL;
         if (v && scope == VT_CONST) {
             /* see if the symbol was already defined */
-            sym = sym_find(v);
+            sym = sym_find(tcc_state, v);
             if (sym) {
                 if (!is_compatible_types(&sym->type, type))
-                    tcc_error("incompatible types for redefinition of '%s'", 
-                          get_tok_str(v, NULL));
+                    tcc_error(tcc_state, "incompatible types for redefinition of '%s'");
                 if (sym->type.t & VT_EXTERN) {
                     /* if the variable is extern, it was not allocated */
                     sym->type.t &= ~VT_EXTERN;
@@ -5590,9 +5580,9 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
         sec = ad->section;
         if (!sec) {
             if (has_init)
-                sec = data_section;
+                sec = tcc_state->tccgen_data_section;
             else if (tcc_state->nocommon)
-                sec = bss_section;
+                sec = tcc_state->tccgen_bss_section;
         }
         if (sec) {
             data_offset = sec->data_offset;
@@ -5610,7 +5600,7 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
             /* allocate section space to put the data */
             if (sec->sh_type != SHT_NOBITS && 
                 data_offset > sec->data_allocated)
-                section_realloc(sec, data_offset);
+                section_realloc(tcc_state, sec, data_offset);
             /* align section if needed */
             if (align > sec->sh_addralign)
                 sec->sh_addralign = align;
@@ -5620,48 +5610,48 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
 
         if (v) {
             if (scope != VT_CONST || !sym) {
-                sym = sym_push(v, type, r | VT_SYM, 0);
+                sym = sym_push(tcc_state, v, type, r | VT_SYM, 0);
                 sym->asm_label = asm_label;
             }
             /* update symbol definition */
             if (sec) {
-                put_extern_sym(sym, sec, addr, size);
+                put_extern_sym(tcc_state, sym, sec, addr, size);
             } else {
                 ElfW(Sym) *esym;
                 /* put a common area */
-                put_extern_sym(sym, NULL, align, size);
+                put_extern_sym(tcc_state, sym, NULL, align, size);
                 /* XXX: find a nicer way */
-                esym = &((ElfW(Sym) *)symtab_section->data)[sym->c];
+                esym = &((ElfW(Sym) *)tcc_state->tccgen_symtab_section->data)[sym->c];
                 esym->st_shndx = SHN_COMMON;
             }
         } else {
             /* push global reference */
-            sym = get_sym_ref(type, sec, addr, size);
-	    vpushsym(type, sym);
+            sym = get_sym_ref(tcc_state, type, sec, addr, size);
+	    vpushsym(tcc_state, type, sym);
         }
         /* patch symbol weakness */
         if (type->t & VT_WEAK)
-            weaken_symbol(sym);
+            weaken_symbol(tcc_state, sym);
 #ifdef CONFIG_TCC_BCHECK
         /* handles bounds now because the symbol must be defined
            before for the relocation */
         if (tcc_state->do_bounds_check) {
             unsigned long *bounds_ptr;
 
-            greloc(bounds_section, sym, bounds_section->data_offset, R_DATA_PTR);
+            greloc(tcc_state, bounds_section, sym, bounds_section->data_offset, R_DATA_PTR);
             /* then add global bound info */
-            bounds_ptr = section_ptr_add(bounds_section, 2 * sizeof(long));
+            bounds_ptr = section_ptr_add(tcc_state, bounds_section, 2 * sizeof(long));
             bounds_ptr[0] = 0; /* relocated */
             bounds_ptr[1] = size;
         }
 #endif
     }
     if (has_init || (type->t & VT_VLA)) {
-        decl_initializer(type, sec, addr, 1, 0);
+        decl_initializer(tcc_state, type, sec, addr, 1, 0);
         /* restore parse state if needed */
         if (init_str.str) {
             tok_str_free(init_str.str);
-            restore_parse_state(&saved_parse_state);
+            restore_parse_state(tcc_state, &saved_parse_state);
         }
         /* patch flexible array member size back to -1, */
         /* for possible subsequent similar declarations */
@@ -5671,25 +5661,25 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
  no_alloc: ;
 }
 
-static void put_func_debug(Sym *sym)
+static void put_func_debug(TCCState* tcc_state, Sym *sym)
 {
     char buf[512];
 
     /* stabs info */
     /* XXX: we put here a dummy type */
     snprintf(buf, sizeof(buf), "%s:%c1", 
-             funcname, sym->type.t & VT_STATIC ? 'f' : 'F');
-    put_stabs_r(buf, N_FUN, 0, file->line_num, 0,
-                cur_text_section, sym->c);
+             tcc_state->tccgen_funcname, sym->type.t & VT_STATIC ? 'f' : 'F');
+    put_stabs_r(tcc_state, buf, N_FUN, 0, tcc_state->tccpp_file->line_num, 0,
+                tcc_state->tccgen_cur_text_section, sym->c);
     /* //gr gdb wants a line at the function */
-    put_stabn(N_SLINE, 0, file->line_num, 0); 
-    last_ind = 0;
-    last_line_num = 0;
+    put_stabn(tcc_state, N_SLINE, 0, tcc_state->tccpp_file->line_num, 0); 
+    tcc_state->tccgen_last_ind = 0;
+    tcc_state->tccgen_last_line_num = 0;
 }
 
 /* parse an old style function declaration list */
 /* XXX: check multiple parameter */
-static void func_decl_list(Sym *func_sym)
+static void func_decl_list(TCCState* tcc_state, Sym *func_sym)
 {
     AttributeDef ad;
     int v;
@@ -5697,18 +5687,18 @@ static void func_decl_list(Sym *func_sym)
     CType btype, type;
 
     /* parse each declaration */
-    while (tok != '{' && tok != ';' && tok != ',' && tok != TOK_EOF &&
-           tok != TOK_ASM1 && tok != TOK_ASM2 && tok != TOK_ASM3) {
-        if (!parse_btype(&btype, &ad)) 
-            expect("declaration list");
+    while (tcc_state->tccpp_tok != '{' && tcc_state->tccpp_tok != ';' && tcc_state->tccpp_tok != ',' && tcc_state->tccpp_tok != TOK_EOF &&
+           tcc_state->tccpp_tok != TOK_ASM1 && tcc_state->tccpp_tok != TOK_ASM2 && tcc_state->tccpp_tok != TOK_ASM3) {
+        if (!parse_btype(tcc_state, &btype, &ad)) 
+            expect(tcc_state, "declaration list");
         if (((btype.t & VT_BTYPE) == VT_ENUM ||
              (btype.t & VT_BTYPE) == VT_STRUCT) && 
-            tok == ';') {
+            tcc_state->tccpp_tok == ';') {
             /* we accept no variable after */
         } else {
             for(;;) {
                 type = btype;
-                type_decl(&type, &ad, &v, TYPE_DIRECT);
+                type_decl(tcc_state, &type, &ad, &v, TYPE_DIRECT);
                 /* find parameter in function parameter list */
                 s = func_sym->next;
                 while (s != NULL) {
@@ -5716,75 +5706,74 @@ static void func_decl_list(Sym *func_sym)
                         goto found;
                     s = s->next;
                 }
-                tcc_error("declaration for parameter '%s' but no such parameter",
-                      get_tok_str(v, NULL));
+                tcc_error(tcc_state, "declaration for parameter '%s' but no such parameter");
             found:
                 /* check that no storage specifier except 'register' was given */
                 if (type.t & VT_STORAGE)
-                    tcc_error("storage class specified for '%s'", get_tok_str(v, NULL)); 
-                convert_parameter_type(&type);
+                    tcc_error(tcc_state, "storage class specified for '%s'"); 
+                convert_parameter_type(tcc_state, &type);
                 /* we can add the type (NOTE: it could be local to the function) */
                 s->type = type;
                 /* accept other parameters */
-                if (tok == ',')
-                    next();
+                if (tcc_state->tccpp_tok == ',')
+                    next(tcc_state);
                 else
                     break;
             }
         }
-        skip(';');
+        skip(tcc_state, ';');
     }
 }
 
 /* parse a function defined by symbol 'sym' and generate its code in
    'cur_text_section' */
-static void gen_function(Sym *sym)
+static void gen_function(TCCState* tcc_state, Sym *sym)
 {
-    int saved_nocode_wanted = nocode_wanted;
-    nocode_wanted = 0;
-    ind = cur_text_section->data_offset;
+    int saved_nocode_wanted = tcc_state->tccgen_nocode_wanted;
+    tcc_state->tccgen_nocode_wanted = 0;
+    tcc_state->tccgen_ind = tcc_state->tccgen_cur_text_section->data_offset;
     /* NOTE: we patch the symbol size later */
-    put_extern_sym(sym, cur_text_section, ind, 0);
-    funcname = get_tok_str(sym->v, NULL);
-    func_ind = ind;
+    put_extern_sym(tcc_state, sym, tcc_state->tccgen_cur_text_section, tcc_state->tccgen_ind, 0);
+    tcc_state->tccgen_funcname = get_tok_str(tcc_state, sym->v, NULL);
+    tcc_state->tccgen_func_ind = tcc_state->tccgen_ind;
     /* Initialize VLA state */
-    vla_sp_loc = &vla_sp_root_loc;
-    vla_flags = VLA_NEED_NEW_FRAME;
+    tcc_state->tccgen_vla_sp_loc = &tcc_state->tccgen_vla_sp_root_loc;
+    tcc_state->tccgen_vla_flags = VLA_NEED_NEW_FRAME;
     /* put debug symbol */
     if (tcc_state->do_debug)
-        put_func_debug(sym);
+        put_func_debug(tcc_state, sym);
     /* push a dummy symbol to enable local sym storage */
-    sym_push2(&local_stack, SYM_FIELD, 0, 0);
-    gfunc_prolog(&sym->type);
-    rsym = 0;
-    block(NULL, NULL, NULL, NULL, 0, 0);
-    gsym(rsym);
-    gfunc_epilog();
-    cur_text_section->data_offset = ind;
-    label_pop(&global_label_stack, NULL);
+    sym_push2(tcc_state, &tcc_state->tccgen_local_stack, SYM_FIELD, 0, 0);
+    gfunc_prolog(tcc_state, &sym->type);
+    tcc_state->tccgen_rsym = 0;
+    block(tcc_state, NULL, NULL, NULL, NULL, 0, 0);
+    gsym(tcc_state, tcc_state->tccgen_rsym);
+    gfunc_epilog(tcc_state);
+    tcc_state->tccgen_cur_text_section->data_offset = tcc_state->tccgen_ind;
+    label_pop(tcc_state, &tcc_state->tccgen_global_label_stack, NULL);
     /* reset local stack */
-    scope_stack_bottom = NULL;
-    sym_pop(&local_stack, NULL);
+    tcc_state->scope_stack_bottom = NULL;
+    sym_pop(tcc_state, &tcc_state->tccgen_local_stack, NULL);
     /* end of function */
     /* patch symbol size */
-    ((ElfW(Sym) *)symtab_section->data)[sym->c].st_size = 
-        ind - func_ind;
+    ((ElfW(Sym) *)tcc_state->tccgen_symtab_section->data)[sym->c].st_size = 
+        tcc_state->tccgen_ind - tcc_state->tccgen_func_ind;
     /* patch symbol weakness (this definition overrules any prototype) */
     if (sym->type.t & VT_WEAK)
-        weaken_symbol(sym);
+        weaken_symbol(tcc_state, sym);
     if (tcc_state->do_debug) {
-        put_stabn(N_FUN, 0, 0, ind - func_ind);
+        put_stabn(tcc_state, N_FUN, 0, 0, tcc_state->tccgen_ind - tcc_state->tccgen_func_ind);
     }
     /* It's better to crash than to generate wrong code */
-    cur_text_section = NULL;
-    funcname = ""; /* for safety */
-    func_vt.t = VT_VOID; /* for safety */
-    func_var = 0; /* for safety */
-    ind = 0; /* for safety */
-    nocode_wanted = saved_nocode_wanted;
+    tcc_state->tccgen_cur_text_section = NULL;
+    tcc_state->tccgen_funcname = ""; /* for safety */
+    tcc_state->tccgen_func_vt.t = VT_VOID; /* for safety */
+    tcc_state->tccgen_func_var = 0; /* for safety */
+    tcc_state->tccgen_ind = 0; /* for safety */
+    tcc_state->tccgen_nocode_wanted = saved_nocode_wanted;
 }
 
-ST_FUNC void gen_inline_functions(void)
+ST_FUNC void gen_inline_functions(TCCState* tcc_state)
 {
     Sym *sym;
     int *str, inline_generated, i;
@@ -5801,16 +5790,16 @@ ST_FUNC void gen_inline_functions(void)
                    convert it to a normal function */
                 str = fn->token_str;
                 fn->sym = NULL;
-                if (file)
-                    pstrcpy(file->filename, sizeof file->filename, fn->filename);
+                if (tcc_state->tccpp_file)
+                    pstrcpy(tcc_state->tccpp_file->filename, sizeof tcc_state->tccpp_file->filename, fn->filename);
                 sym->r = VT_SYM | VT_CONST;
                 sym->type.t &= ~VT_INLINE;
 
-                macro_ptr = str;
-                next();
-                cur_text_section = text_section;
-                gen_function(sym);
-                macro_ptr = NULL; /* fail safe */
+                tcc_state->tccpp_macro_ptr = str;
+                next(tcc_state);
+                tcc_state->tccgen_cur_text_section = tcc_state->tccgen_text_section;
+                gen_function(tcc_state, sym);
+                tcc_state->tccpp_macro_ptr = NULL; /* fail safe */
 
                 inline_generated = 1;
             }
@@ -5827,7 +5816,7 @@ ST_FUNC void gen_inline_functions(void)
 }
 
 /* 'l' is VT_LOCAL or VT_CONST to define default storage type */
-static int decl0(int l, int is_for_loop_init)
+static int decl0(TCCState* tcc_state, int l, int is_for_loop_init)
 {
     int v, has_init, r;
     CType type, btype;
@@ -5835,66 +5824,66 @@ static int decl0(int l, int is_for_loop_init)
     AttributeDef ad;
 
     while (1) {
-        if (!parse_btype(&btype, &ad)) {
+        if (!parse_btype(tcc_state, &btype, &ad)) {
             if (is_for_loop_init)
                 return 0;
             /* skip redundant ';' */
             /* XXX: find more elegant solution */
-            if (tok == ';') {
-                next();
+            if (tcc_state->tccpp_tok == ';') {
+                next(tcc_state);
                 continue;
             }
             if (l == VT_CONST &&
-                (tok == TOK_ASM1 || tok == TOK_ASM2 || tok == TOK_ASM3)) {
+                (tcc_state->tccpp_tok == TOK_ASM1 || tcc_state->tccpp_tok == TOK_ASM2 || tcc_state->tccpp_tok == TOK_ASM3)) {
                 /* global asm block */
-                asm_global_instr();
+                asm_global_instr(tcc_state);
                 continue;
             }
             /* special test for old K&R protos without explicit int
                type. Only accepted when defining global data */
-            if (l == VT_LOCAL || tok < TOK_DEFINE)
+            if (l == VT_LOCAL || tcc_state->tccpp_tok < TOK_DEFINE)
                 break;
             btype.t = VT_INT;
         }
         if (((btype.t & VT_BTYPE) == VT_ENUM ||
              (btype.t & VT_BTYPE) == VT_STRUCT) && 
-            tok == ';') {
+            tcc_state->tccpp_tok == ';') {
             /* we accept no variable after */
-            next();
+            next(tcc_state);
             continue;
         }
         while (1) { /* iterate thru each declaration */
             char *asm_label; // associated asm label
             type = btype;
-            type_decl(&type, &ad, &v, TYPE_DIRECT);
+            type_decl(tcc_state, &type, &ad, &v, TYPE_DIRECT);
 #if 0
             {
                 char buf[500];
-                type_to_str(buf, sizeof(buf), t, get_tok_str(v, NULL));
+                type_to_str(tcc_state, buf, sizeof(buf), t, get_tok_str(tcc_state, v, NULL));
                 printf("type = '%s'\n", buf);
             }
 #endif
             if ((type.t & VT_BTYPE) == VT_FUNC) {
                 if ((type.t & VT_STATIC) && (l == VT_LOCAL)) {
-                    tcc_error("function without file scope cannot be static");
+                    tcc_error(tcc_state, "function without file scope cannot be static");
                 }
                 /* if old style function prototype, we accept a
                    declaration list */
                 sym = type.ref;
                 if (sym->c == FUNC_OLD)
-                    func_decl_list(sym);
+                    func_decl_list(tcc_state, sym);
             }
 
             asm_label = NULL;
-            if (gnu_ext && (tok == TOK_ASM1 || tok == TOK_ASM2 || tok == TOK_ASM3)) {
+            if (tcc_state->libtcc_gnu_ext && (tcc_state->tccpp_tok == TOK_ASM1 || tcc_state->tccpp_tok == TOK_ASM2 || tcc_state->tccpp_tok == TOK_ASM3)) {
                 CString astr;
 
-                asm_label_instr(&astr);
-                asm_label = tcc_strdup(astr.data);
+                asm_label_instr(tcc_state, &astr);
+                asm_label = tcc_strdup(tcc_state, astr.data);
                 cstr_free(&astr);
                 
                 /* parse one last attribute list, after asm label */
-                parse_attribute(&ad);
+                parse_attribute(tcc_state, &ad);
             }
 
             if (ad.a.weak)
@@ -5905,23 +5894,23 @@ static int decl0(int l, int is_for_loop_init)
             if (ad.a.func_export)
                 type.t |= VT_EXPORT;
 #endif
-            if (tok == '{') {
+            if (tcc_state->tccpp_tok == '{') {
                 if (l == VT_LOCAL)
-                    tcc_error("cannot use local functions");
+                    tcc_error(tcc_state, "cannot use local functions");
                 if ((type.t & VT_BTYPE) != VT_FUNC)
-                    expect("function definition");
+                    expect(tcc_state, "function definition");
 
                 /* reject abstract declarators in function definition */
                 sym = type.ref;
                 while ((sym = sym->next) != NULL)
                     if (!(sym->v & ~SYM_FIELD))
-                       expect("identifier");
+                       expect(tcc_state, "identifier");
                 
                 /* XXX: cannot do better now: convert extern line to static inline */
                 if ((type.t & (VT_EXTERN | VT_INLINE)) == (VT_EXTERN | VT_INLINE))
                     type.t = (type.t & ~VT_EXTERN) | VT_STATIC;
                 
-                sym = sym_find(v);
+                sym = sym_find(tcc_state, v);
                 if (sym) {
                     Sym *ref;
                     if ((sym->type.t & VT_BTYPE) != VT_FUNC)
@@ -5929,7 +5918,7 @@ static int decl0(int l, int is_for_loop_init)
 
                     ref = sym->type.ref;
                     if (0 == ref->a.func_proto)
-                        tcc_error("redefinition of '%s'", get_tok_str(v, NULL));
+                        tcc_error(tcc_state, "redefinition of '%s'");
 
                     /* use func_call from prototype if not defined */
                     if (ref->a.func_call != FUNC_CDECL
@@ -5946,15 +5935,14 @@ static int decl0(int l, int is_for_loop_init)
 
                     if (!is_compatible_types(&sym->type, &type)) {
                     func_error1:
-                        tcc_error("incompatible types for redefinition of '%s'", 
-                              get_tok_str(v, NULL));
+                        tcc_error(tcc_state, "incompatible types for redefinition of '%s'");
                     }
                     type.ref->a.func_proto = 0;
                     /* if symbol is already defined, then put complete type */
                     sym->type = type;
                 } else {
                     /* put function symbol */
-                    sym = global_identifier_push(v, type.t, 0);
+                    sym = global_identifier_push(tcc_state, v, type.t, 0);
                     sym->type.ref = type.ref;
                 }
 
@@ -5973,11 +5961,11 @@ static int decl0(int l, int is_for_loop_init)
                     block_level = 0;
                     for(;;) {
                         int t;
-                        if (tok == TOK_EOF)
-                            tcc_error("unexpected end of file");
-                        tok_str_add_tok(&func_str);
-                        t = tok;
-                        next();
+                        if (tcc_state->tccpp_tok == TOK_EOF)
+                            tcc_error(tcc_state, "unexpected end of file");
+                        tok_str_add_tok(tcc_state, &func_str);
+                        t = tcc_state->tccpp_tok;
+                        next(tcc_state);
                         if (t == '{') {
                             block_level++;
                         } else if (t == '}') {
@@ -5986,29 +5974,29 @@ static int decl0(int l, int is_for_loop_init)
                                 break;
                         }
                     }
-                    tok_str_add(&func_str, -1);
-                    tok_str_add(&func_str, 0);
-                    filename = file ? file->filename : "";
-                    fn = tcc_malloc(sizeof *fn + strlen(filename));
+                    tok_str_add(tcc_state, &func_str, -1);
+                    tok_str_add(tcc_state, &func_str, 0);
+                    filename = tcc_state->tccpp_file ? tcc_state->tccpp_file->filename : "";
+                    fn = tcc_malloc(tcc_state, sizeof *fn + strlen(filename));
                     strcpy(fn->filename, filename);
                     fn->sym = sym;
                     fn->token_str = func_str.str;
-                    dynarray_add((void ***)&tcc_state->inline_fns, &tcc_state->nb_inline_fns, fn);
+                    dynarray_add(tcc_state, (void ***)&tcc_state->inline_fns, &tcc_state->nb_inline_fns, fn);
 
                 } else {
                     /* compute text section */
-                    cur_text_section = ad.section;
-                    if (!cur_text_section)
-                        cur_text_section = text_section;
+                    tcc_state->tccgen_cur_text_section = ad.section;
+                    if (!tcc_state->tccgen_cur_text_section)
+                        tcc_state->tccgen_cur_text_section = tcc_state->tccgen_text_section;
                     sym->r = VT_SYM | VT_CONST;
-                    gen_function(sym);
+                    gen_function(tcc_state, sym);
                 }
                 break;
             } else {
                 if (btype.t & VT_TYPEDEF) {
                     /* save typedefed type  */
                     /* XXX: test storage specifiers ? */
-                    sym = sym_push(v, &type, 0, 0);
+                    sym = sym_push(tcc_state, v, &type, 0, 0);
                     sym->a = ad.a;
                     sym->type.t |= VT_TYPEDEF;
                 } else {
@@ -6022,9 +6010,9 @@ static int decl0(int l, int is_for_loop_init)
                         /* not lvalue if array */
                         r |= lvalue_type(type.t);
                     }
-                    has_init = (tok == '=');
+                    has_init = (tcc_state->tccpp_tok == '=');
                     if (has_init && (type.t & VT_VLA))
-                        tcc_error("Variable length array cannot be initialized");
+                        tcc_error(tcc_state, "Variable length array cannot be initialized");
                     if ((btype.t & VT_EXTERN) || ((type.t & VT_BTYPE) == VT_FUNC) ||
                         ((type.t & VT_ARRAY) && (type.t & VT_STATIC) &&
                          !has_init && l == VT_CONST && type.ref->c < 0)) {
@@ -6032,22 +6020,22 @@ static int decl0(int l, int is_for_loop_init)
                         /* NOTE: as GCC, uninitialized global static
                            arrays of null size are considered as
                            extern */
-                        sym = external_sym(v, &type, r, asm_label);
+                        sym = external_sym(tcc_state, v, &type, r, asm_label);
 
                         if (type.t & VT_WEAK)
-                            weaken_symbol(sym);
+                            weaken_symbol(tcc_state, sym);
 
                         if (ad.alias_target) {
                             Section tsec;
                             Elf32_Sym *esym;
                             Sym *alias_target;
 
-                            alias_target = sym_find(ad.alias_target);
+                            alias_target = sym_find(tcc_state, ad.alias_target);
                             if (!alias_target || !alias_target->c)
-                                tcc_error("unsupported forward __alias__ attribute");
-                            esym = &((Elf32_Sym *)symtab_section->data)[alias_target->c];
+                                tcc_error(tcc_state, "unsupported forward __alias__ attribute");
+                            esym = &((Elf32_Sym *)tcc_state->tccgen_symtab_section->data)[alias_target->c];
                             tsec.sh_num = esym->st_shndx;
-                            put_extern_sym2(sym, &tsec, esym->st_value, esym->st_size, 0);
+                            put_extern_sym2(tcc_state, sym, &tsec, esym->st_value, esym->st_size, 0);
                         }
                     } else {
                         type.t |= (btype.t & VT_STATIC); /* Retain "static". */
@@ -6056,17 +6044,17 @@ static int decl0(int l, int is_for_loop_init)
                         else
                             r |= l;
                         if (has_init)
-                            next();
-                        decl_initializer_alloc(&type, &ad, r, has_init, v, asm_label, l);
+                            next(tcc_state);
+                        decl_initializer_alloc(tcc_state, &type, &ad, r, has_init, v, asm_label, l);
                     }
                 }
-                if (tok != ',') {
+                if (tcc_state->tccpp_tok != ',') {
                     if (is_for_loop_init)
                         return 1;
-                    skip(';');
+                    skip(tcc_state, ';');
                     break;
                 }
-                next();
+                next(tcc_state);
             }
             ad.a.aligned = 0;
         }
@@ -6074,7 +6062,7 @@ static int decl0(int l, int is_for_loop_init)
     return 0;
 }
 
-ST_FUNC void decl(int l)
+ST_FUNC void decl(TCCState* tcc_state, int l)
 {
-    decl0(l, 0);
+    decl0(tcc_state, l, 0);
 }

@@ -97,7 +97,7 @@ static FILE *il_outfile;
 
 static void out_byte(int c)
 {
-    *(char *)ind++ = c;
+    *(char *)tcc_state->tccgen_ind++ = c;
 }
 
 static void out_le32(int c)
@@ -193,10 +193,10 @@ static void il_type_to_str(char *buf, int buf_size,
         pstrcat(buf, buf_size, tstr);
         break;
     case VT_STRUCT:
-        tcc_error("structures not handled yet");
+        tcc_error(tcc_state, "structures not handled yet");
         break;
     case VT_FUNC:
-        s = sym_find((unsigned)t >> VT_STRUCT_SHIFT);
+        s = sym_find(tcc_state, (unsigned)t >> VT_STRUCT_SHIFT);
         il_type_to_str(buf, buf_size, s->t, varstr);
         pstrcat(buf, buf_size, "(");
         sa = s->next;
@@ -210,7 +210,7 @@ static void il_type_to_str(char *buf, int buf_size,
         pstrcat(buf, buf_size, ")");
         goto no_var;
     case VT_PTR:
-        s = sym_find((unsigned)t >> VT_STRUCT_SHIFT);
+        s = sym_find(tcc_state, (unsigned)t >> VT_STRUCT_SHIFT);
         pstrcpy(buf1, sizeof(buf1), "*");
         if (varstr)
             pstrcat(buf1, sizeof(buf1), varstr);
@@ -241,19 +241,19 @@ static int out_opj(int op, int c)
     out_op1(op);
     out_le32(0);
     if (c == 0) {
-        c = ind - (int)cur_text_section->data;
+        c = tcc_state->tccgen_ind - (int)tcc_state->tccgen_cur_text_section->data;
     }
     fprintf(il_outfile, " %s L%d\n", il_opcodes_str[op], c);
     return c;
 }
 
-void gsym(int t)
+void gsym(TCCState* tcc_state, int t)
 {
     fprintf(il_outfile, "L%d:\n", t);
 }
 
 /* load 'r' from value 'sv' */
-void load(int r, SValue *sv)
+void load(TCCState* tcc_state, int r, SValue *sv)
 {
     int v, fc, ft;
 
@@ -332,7 +332,7 @@ void load(int r, SValue *sv)
 }
 
 /* store register 'r' in lvalue 'v' */
-void store(int r, SValue *sv)
+void store(TCCState* tcc_state, int r, SValue *sv)
 {
     int v, fc, ft;
 
@@ -386,13 +386,13 @@ void gfunc_start(GFuncContext *c, int func_call)
    is then popped. */
 void gfunc_param(GFuncContext *c)
 {
-    if ((vtop->t & VT_BTYPE) == VT_STRUCT) {
-        tcc_error("structures passed as value not handled yet");
+    if ((tcc_state->tccgen_vtop->t & VT_BTYPE) == VT_STRUCT) {
+        tcc_error(tcc_state, "structures passed as value not handled yet");
     } else {
         /* simply push on stack */
-        gv(RC_ST0);
+        gv(tcc_state, RC_ST0);
     }
-    vtop--;
+    tcc_state->tccgen_vtop--;
 }
 
 /* generate function call with address in (vtop->t, vtop->c) and free function
@@ -401,17 +401,17 @@ void gfunc_call(GFuncContext *c)
 {
     char buf[1024];
 
-    if ((vtop->r & (VT_VALMASK | VT_LVAL)) == VT_CONST) {
+    if ((tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL)) == VT_CONST) {
         /* XXX: more info needed from tcc */
-        il_type_to_str(buf, sizeof(buf), vtop->t, "xxx");
+        il_type_to_str(buf, sizeof(buf), tcc_state->tccgen_vtop->t, "xxx");
         fprintf(il_outfile, " call %s\n", buf);
     } else {
         /* indirect call */
-        gv(RC_INT);
-        il_type_to_str(buf, sizeof(buf), vtop->t, NULL);
+        gv(tcc_state, RC_INT);
+        il_type_to_str(buf, sizeof(buf), tcc_state->tccgen_vtop->t, NULL);
         fprintf(il_outfile, " calli %s\n", buf);
     }
-    vtop--;
+    tcc_state->tccgen_vtop--;
 }
 
 /* generate function prolog of type 't' */
@@ -424,65 +424,65 @@ void gfunc_prolog(int t)
     init_outfile();
 
     /* XXX: pass function name to gfunc_prolog */
-    il_type_to_str(buf, sizeof(buf), t, funcname);
+    il_type_to_str(buf, sizeof(buf), t, tcc_state->tccgen_funcname);
     fprintf(il_outfile, ".method static %s il managed\n", buf);
     fprintf(il_outfile, "{\n");
     /* XXX: cannot do better now */
     fprintf(il_outfile, " .maxstack %d\n", NB_REGS);
     fprintf(il_outfile, " .locals (int32, int32, int32, int32, int32, int32, int32, int32)\n");
     
-    if (!strcmp(funcname, "main"))
+    if (!strcmp(tcc_state->tccgen_funcname, "main"))
         fprintf(il_outfile, " .entrypoint\n");
         
-    sym = sym_find((unsigned)t >> VT_STRUCT_SHIFT);
+    sym = sym_find(tcc_state, (unsigned)t >> VT_STRUCT_SHIFT);
     func_call = sym->r;
 
     addr = ARG_BASE;
     /* if the function returns a structure, then add an
        implicit pointer parameter */
-    func_vt = sym->t;
-    func_var = (sym->c == FUNC_ELLIPSIS);
-    if ((func_vt & VT_BTYPE) == VT_STRUCT) {
-        func_vc = addr;
+    tcc_state->tccgen_func_vt = sym->t;
+    tcc_state->tccgen_func_var = (sym->c == FUNC_ELLIPSIS);
+    if ((tcc_state->tccgen_func_vt & VT_BTYPE) == VT_STRUCT) {
+        tcc_state->tccgen_func_vc = addr;
         addr++;
     }
     /* define parameters */
     while ((sym = sym->next) != NULL) {
         u = sym->t;
-        sym_push(sym->v & ~SYM_FIELD, u,
+        sym_push(tcc_state, sym->v & ~SYM_FIELD, u,
                  VT_LOCAL | lvalue_type(sym->type.t), addr);
         addr++;
     }
 }
 
 /* generate function epilog */
-void gfunc_epilog(void)
+void gfunc_epilog(TCCState* tcc_state)
 {
     out_op(IL_OP_RET);
     fprintf(il_outfile, "}\n\n");
 }
 
 /* generate a jump to a label */
-int gjmp(int t)
+int gjmp(TCCState* tcc_state, int t)
 {
     return out_opj(IL_OP_BR, t);
 }
 
 /* generate a jump to a fixed address */
-void gjmp_addr(int a)
+void gjmp_addr(TCCState* tcc_state, int a)
 {
     /* XXX: handle syms */
     out_opi(IL_OP_BR, a);
 }
 
 /* generate a test. set 'inv' to invert test. Stack entry is popped */
-int gtst(int inv, int t)
+int gtst(TCCState* tcc_state, int inv, int t)
 {
     int v, *p, c;
 
-    v = vtop->r & VT_VALMASK;
+    v = tcc_state->tccgen_vtop->r & VT_VALMASK;
     if (v == VT_CMP) {
-        c = vtop->c.i ^ inv;
+        c = tcc_state->tccgen_vtop->c.i ^ inv;
         switch(c) {
         case TOK_EQ:
             c = IL_OP_BEQ;
@@ -520,24 +520,24 @@ int gtst(int inv, int t)
         /* && or || optimization */
         if ((v & 1) == inv) {
             /* insert vtop->c jump list in t */
-            p = &vtop->c.i;
+            p = &tcc_state->tccgen_vtop->c.i;
             while (*p != 0)
                 p = (int *)*p;
             *p = t;
-            t = vtop->c.i;
+            t = tcc_state->tccgen_vtop->c.i;
         } else {
-            t = gjmp(t);
-            gsym(vtop->c.i);
+            t = gjmp(tcc_state, t);
+            gsym(tcc_state, tcc_state->tccgen_vtop->c.i);
         }
     }
-    vtop--;
+    tcc_state->tccgen_vtop--;
     return t;
 }
 
 /* generate an integer binary operation */
-void gen_opi(int op)
+void gen_opi(TCCState* tcc_state, int op)
 {
-    gv2(RC_ST1, RC_ST0);
+    gv2(tcc_state, RC_ST1, RC_ST0);
     switch(op) {
     case '+':
         out_op(IL_OP_ADD);
@@ -579,8 +579,8 @@ void gen_opi(int op)
     case TOK_UMOD:
         out_op(IL_OP_REM_UN);
     std_op:
-        vtop--;
-        vtop[0].r = REG_ST0;
+        tcc_state->tccgen_vtop--;
+        tcc_state->tccgen_vtop[0].r = REG_ST0;
         break;
     case TOK_EQ:
     case TOK_NE:
@@ -592,26 +592,26 @@ void gen_opi(int op)
     case TOK_ULE:
     case TOK_UGT:
     case TOK_UGE:
-        vtop--;
-        vtop[0].r = VT_CMP;
-        vtop[0].c.i = op;
+        tcc_state->tccgen_vtop--;
+        tcc_state->tccgen_vtop[0].r = VT_CMP;
+        tcc_state->tccgen_vtop[0].c.i = op;
         break;
     }
 }
 
 /* generate a floating point operation 'v = t1 op t2' instruction. The
    two operands are guaranted to have the same floating point type */
-void gen_opf(int op)
+void gen_opf(TCCState* tcc_state, int op)
 {
     /* same as integer */
-    gen_opi(op);
+    gen_opi(tcc_state, op);
 }
 
 /* convert integers to fp 't' type. Must handle 'int', 'unsigned int'
    and 'long long' cases. */
-void gen_cvt_itof(int t)
+void gen_cvt_itof(TCCState* tcc_state, int t)
 {
-    gv(RC_ST0);
+    gv(tcc_state, RC_ST0);
     if (t == VT_FLOAT)
         out_op(IL_OP_CONV_R4);
     else
@@ -620,9 +620,9 @@ void gen_cvt_itof(int t)
 
 /* convert fp to int 't' type */
 /* XXX: handle long long case */
-void gen_cvt_ftoi(int t)
+void gen_cvt_ftoi(TCCState* tcc_state, int t)
 {
-    gv(RC_ST0);
+    gv(tcc_state, RC_ST0);
     switch(t) {
     case VT_INT | VT_UNSIGNED:
         out_op(IL_OP_CONV_U4);
@@ -640,9 +640,9 @@ void gen_cvt_ftoi(int t)
 }
 
 /* convert from one floating point type to another */
-void gen_cvt_ftof(int t)
+void gen_cvt_ftof(TCCState* tcc_state, int t)
 {
-    gv(RC_ST0);
+    gv(tcc_state, RC_ST0);
     if (t == VT_FLOAT) {
         out_op(IL_OP_CONV_R4);
     } else {

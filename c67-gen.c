@@ -179,7 +179,7 @@ int TotalBytesPushedOnStack;
 #define ALWAYS_ASSERT(x) \
 do {\
    if (!(x))\
-       tcc_error("internal compiler error file at %s:%d", __FILE__, __LINE__);\
+       tcc_error(tcc_state, "internal compiler error file at %s:%d");\
 } while (0)
 
 /******************************************************/
@@ -200,23 +200,23 @@ void C67_g(int c)
 #ifdef ASSEMBLY_LISTING_C67
     fprintf(f, " %08X", c);
 #endif
-    ind1 = ind + 4;
-    if (ind1 > (int) cur_text_section->data_allocated)
-	section_realloc(cur_text_section, ind1);
-    cur_text_section->data[ind] = c & 0xff;
-    cur_text_section->data[ind + 1] = (c >> 8) & 0xff;
-    cur_text_section->data[ind + 2] = (c >> 16) & 0xff;
-    cur_text_section->data[ind + 3] = (c >> 24) & 0xff;
-    ind = ind1;
+    ind1 = tcc_state->tccgen_ind + 4;
+    if (ind1 > (int) tcc_state->tccgen_cur_text_section->data_allocated)
+	section_realloc(tcc_state, tcc_state->tccgen_cur_text_section, ind1);
+    tcc_state->tccgen_cur_text_section->data[tcc_state->tccgen_ind] = c & 0xff;
+    tcc_state->tccgen_cur_text_section->data[tcc_state->tccgen_ind + 1] = (c >> 8) & 0xff;
+    tcc_state->tccgen_cur_text_section->data[tcc_state->tccgen_ind + 2] = (c >> 16) & 0xff;
+    tcc_state->tccgen_cur_text_section->data[tcc_state->tccgen_ind + 3] = (c >> 24) & 0xff;
+    tcc_state->tccgen_ind = ind1;
 }
 
 
 /* output a symbol and patch all calls to it */
-void gsym_addr(int t, int a)
+void gsym_addr(TCCState* tcc_state, int t, int a)
 {
     int n, *ptr;
     while (t) {
-	ptr = (int *) (cur_text_section->data + t);
+	ptr = (int *) (tcc_state->tccgen_cur_text_section->data + t);
 	{
 	    Sym *sym;
 
@@ -226,9 +226,9 @@ void gsym_addr(int t, int a)
 
 	    // define a label that will be relocated
 
-	    sym = get_sym_ref(&char_pointer_type, cur_text_section, a, 0);
-	    greloc(cur_text_section, sym, t, R_C60LO16);
-	    greloc(cur_text_section, sym, t + 4, R_C60HI16);
+	    sym = get_sym_ref(tcc_state, &tcc_state->tccgen_char_pointer_type, tcc_state->tccgen_cur_text_section, a, 0);
+	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, t, R_C60LO16);
+	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, t + 4, R_C60HI16);
 
 	    // clear out where the pointer was
 
@@ -239,9 +239,9 @@ void gsym_addr(int t, int a)
     }
 }
 
-void gsym(int t)
+void gsym(TCCState* tcc_state, int t)
 {
-    gsym_addr(t, ind);
+    gsym_addr(tcc_state, t, tcc_state->tccgen_ind);
 }
 
 // these are regs that tcc doesn't really know about, 
@@ -390,7 +390,7 @@ void C67_asm(char *s, int a, int b, int c)
     if (!f) {
 	f = fopen("TCC67_out.txt", "wt");
     }
-    fprintf(f, "%04X ", ind);
+    fprintf(f, "%04X ", tcc_state->tccgen_ind);
 #endif
 
     if (strstr(s, "MVKL") == s) {
@@ -1406,7 +1406,7 @@ void C67_B_DISP(int disp)	//  B  +2  Branch with constant displacement
     // so add in how many words into the fetch packet the branch is
 
 
-    C67_asm("B DISP", disp + ((ind & 31) >> 2), 0, 0);
+    C67_asm("B DISP", disp + ((tcc_state->tccgen_ind & 31) >> 2), 0, 0);
 }
 
 void C67_NOP(int n)
@@ -1559,7 +1559,7 @@ void C67_SHR(int r, int v)
 
 
 /* load 'r' from value 'sv' */
-void load(int r, SValue * sv)
+void load(TCCState* tcc_state, int r, SValue * sv)
 {
     int v, t, ft, fc, fr, size = 0, element;
     BOOL Unsigned = FALSE;
@@ -1575,10 +1575,10 @@ void load(int r, SValue * sv)
 	    v1.type.t = VT_INT;
 	    v1.r = VT_LOCAL | VT_LVAL;
 	    v1.c.ul = fc;
-	    load(r, &v1);
+	    load(tcc_state, r, &v1);
 	    fr = r;
 	} else if ((ft & VT_BTYPE) == VT_LDOUBLE) {
-	    tcc_error("long double not supported");
+	    tcc_error(tcc_state, "long double not supported");
 	} else if ((ft & VT_TYPE) == VT_BYTE) {
 	    size = 1;
 	} else if ((ft & VT_TYPE) == (VT_BYTE | VT_UNSIGNED)) {
@@ -1636,8 +1636,8 @@ void load(int r, SValue * sv)
 	    C67_NOP(4);		// NOP 4
 	    return;
 	} else if (fr & VT_SYM) {
-	    greloc(cur_text_section, sv->sym, ind, R_C60LO16);	// rem the inst need to be patched
-	    greloc(cur_text_section, sv->sym, ind + 4, R_C60HI16);
+	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sv->sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
+	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sv->sym, tcc_state->tccgen_ind + 4, R_C60HI16);
 
 
 	    C67_MVKL(C67_A0, fc);	//r=reg to load,  constant
@@ -1692,8 +1692,8 @@ void load(int r, SValue * sv)
     } else {
 	if (v == VT_CONST) {
 	    if (fr & VT_SYM) {
-		greloc(cur_text_section, sv->sym, ind, R_C60LO16);	// rem the inst need to be patched
-		greloc(cur_text_section, sv->sym, ind + 4, R_C60HI16);
+		greloc(tcc_state, tcc_state->tccgen_cur_text_section, sv->sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
+		greloc(tcc_state, tcc_state->tccgen_cur_text_section, sv->sym, tcc_state->tccgen_ind + 4, R_C60HI16);
 	    }
 	    C67_MVKL(r, fc);	//r=reg to load, constant
 	    C67_MVKH(r, fc);	//r=reg to load, constant
@@ -1708,7 +1708,7 @@ void load(int r, SValue * sv)
 	    C67_B_DISP(4);	//  Branch with constant displacement, skip over this branch, load, nop, load
 	    C67_MVKL(r, t);	//  r=reg to load, 0 or 1 (do this while branching)
 	    C67_NOP(4);		//  NOP 4
-	    gsym(fc);		//  modifies other branches to branch here
+	    gsym(tcc_state, fc);		//  modifies other branches to branch here
 	    C67_MVKL(r, t ^ 1);	//  r=reg to load, 0 or 1
 	} else if (v != r) {
 	    C67_MV(v, r);	// MV v,r   v -> r
@@ -1721,7 +1721,7 @@ void load(int r, SValue * sv)
 
 
 /* store register 'r' in lvalue 'v' */
-void store(int r, SValue * v)
+void store(TCCState* tcc_state, int r, SValue * v)
 {
     int fr, bt, ft, fc, size, t, element;
 
@@ -1732,7 +1732,7 @@ void store(int r, SValue * v)
     /* XXX: incorrect if float reg to reg */
 
     if (bt == VT_LDOUBLE) {
-	tcc_error("long double not supported");
+	tcc_error(tcc_state, "long double not supported");
     } else {
 	if (bt == VT_SHORT)
 	    size = 2;
@@ -1747,8 +1747,8 @@ void store(int r, SValue * v)
 	    /* constant memory reference */
 
 	    if (v->r & VT_SYM) {
-		greloc(cur_text_section, v->sym, ind, R_C60LO16);	// rem the inst need to be patched
-		greloc(cur_text_section, v->sym, ind + 4, R_C60HI16);
+		greloc(tcc_state, tcc_state->tccgen_cur_text_section, v->sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
+		greloc(tcc_state, tcc_state->tccgen_cur_text_section, v->sym, tcc_state->tccgen_ind + 4, R_C60HI16);
 	    }
 	    C67_MVKL(C67_A0, fc);	//r=reg to load,  constant
 	    C67_MVKH(C67_A0, fc);	//r=reg to load,  constant
@@ -1824,20 +1824,20 @@ void store(int r, SValue * v)
 }
 
 /* 'is_jmp' is '1' if it is a jump */
-static void gcall_or_jmp(int is_jmp)
+static void gcall_or_jmp(TCCState* tcc_state, int is_jmp)
 {
     int r;
     Sym *sym;
 
-    if ((vtop->r & (VT_VALMASK | VT_LVAL)) == VT_CONST) {
+    if ((tcc_state->tccgen_vtop->r & (VT_VALMASK | VT_LVAL)) == VT_CONST) {
 	/* constant case */
-	if (vtop->r & VT_SYM) {
+	if (tcc_state->tccgen_vtop->r & VT_SYM) {
 	    /* relocation case */
 
 	    // get add into A0, then start the jump B3
 
-	    greloc(cur_text_section, vtop->sym, ind, R_C60LO16);	// rem the inst need to be patched
-	    greloc(cur_text_section, vtop->sym, ind + 4, R_C60HI16);
+	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, tcc_state->tccgen_vtop->sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
+	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, tcc_state->tccgen_vtop->sym, tcc_state->tccgen_ind + 4, R_C60HI16);
 
 	    C67_MVKL(C67_A0, 0);	//r=reg to load, constant
 	    C67_MVKH(C67_A0, 0);	//r=reg to load, constant
@@ -1848,9 +1848,9 @@ static void gcall_or_jmp(int is_jmp)
 	    } else {
 		// Call, must load return address into B3 during delay slots
 
-		sym = get_sym_ref(&char_pointer_type, cur_text_section, ind + 12, 0);	// symbol for return address
-		greloc(cur_text_section, sym, ind, R_C60LO16);	// rem the inst need to be patched
-		greloc(cur_text_section, sym, ind + 4, R_C60HI16);
+		sym = get_sym_ref(tcc_state, &tcc_state->tccgen_char_pointer_type, tcc_state->tccgen_cur_text_section, tcc_state->tccgen_ind + 12, 0);	// symbol for return address
+		greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
+		greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, tcc_state->tccgen_ind + 4, R_C60HI16);
 		C67_MVKL(C67_B3, 0);	//r=reg to load, constant
 		C67_MVKH(C67_B3, 0);	//r=reg to load, constant
 		C67_NOP(3);	// put remaining NOPs
@@ -1861,7 +1861,7 @@ static void gcall_or_jmp(int is_jmp)
 	}
     } else {
 	/* otherwise, indirect call */
-	r = gv(RC_INT);
+	r = gv(tcc_state, RC_INT);
 	C67_IREG_B_REG(0, C67_CREG_ZERO, r);	//  B.S2x  r
 
 	if (is_jmp) {
@@ -1869,9 +1869,9 @@ static void gcall_or_jmp(int is_jmp)
 	} else {
 	    // Call, must load return address into B3 during delay slots
 
-	    sym = get_sym_ref(&char_pointer_type, cur_text_section, ind + 12, 0);	// symbol for return address
-	    greloc(cur_text_section, sym, ind, R_C60LO16);	// rem the inst need to be patched
-	    greloc(cur_text_section, sym, ind + 4, R_C60HI16);
+	    sym = get_sym_ref(tcc_state, &tcc_state->tccgen_char_pointer_type, tcc_state->tccgen_cur_text_section, tcc_state->tccgen_ind + 12, 0);	// symbol for return address
+	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
+	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, tcc_state->tccgen_ind + 4, R_C60HI16);
 	    C67_MVKL(C67_B3, 0);	//r=reg to load, constant
 	    C67_MVKH(C67_B3, 0);	//r=reg to load, constant
 	    C67_NOP(3);		// put remaining NOPs
@@ -1888,29 +1888,29 @@ ST_FUNC int gfunc_sret(CType *vt, int variadic, CType *ret, int *ret_align) {
 
 /* generate function call with address in (vtop->t, vtop->c) and free function
    context. Stack entry is popped */
-void gfunc_call(int nb_args)
+void gfunc_call(TCCState* tcc_state, int nb_args)
 {
     int i, r, size = 0;
     int args_sizes[NoCallArgsPassedOnStack];
 
     if (nb_args > NoCallArgsPassedOnStack) {
-	tcc_error("more than 10 function params not currently supported");
+	tcc_error(tcc_state, "more than 10 function params not currently supported");
 	// handle more than 10, put some on the stack
     }
 
     for (i = 0; i < nb_args; i++) {
-	if ((vtop->type.t & VT_BTYPE) == VT_STRUCT) {
+	if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_STRUCT) {
 	    ALWAYS_ASSERT(FALSE);
 	} else {
 	    /* simple type (currently always same size) */
 	    /* XXX: implicit cast ? */
 
 
-	    if ((vtop->type.t & VT_BTYPE) == VT_LLONG) {
-		tcc_error("long long not supported");
-	    } else if ((vtop->type.t & VT_BTYPE) == VT_LDOUBLE) {
-		tcc_error("long double not supported");
-	    } else if ((vtop->type.t & VT_BTYPE) == VT_DOUBLE) {
+	    if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_LLONG) {
+		tcc_error(tcc_state, "long long not supported");
+	    } else if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_LDOUBLE) {
+		tcc_error(tcc_state, "long double not supported");
+	    } else if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_DOUBLE) {
 		size = 8;
 	    } else {
 		size = 4;
@@ -1918,7 +1918,7 @@ void gfunc_call(int nb_args)
 
 	    // put the parameter into the corresponding reg (pair)
 
-	    r = gv(RC_C67_A4 << (2 * i));
+	    r = gv(tcc_state, RC_C67_A4 << (2 * i));
 
 	    // must put on stack because with 1 pass compiler , no way to tell
 	    // if an up coming nested call might overwrite these regs
@@ -1930,7 +1930,7 @@ void gfunc_call(int nb_args)
 	    }
 	    args_sizes[i] = size;
 	}
-	vtop--;
+	tcc_state->tccgen_vtop--;
     }
     // POP all the params on the stack into registers for the
     // immediate call (in reverse order)
@@ -1942,8 +1942,8 @@ void gfunc_call(int nb_args)
 	else
 	    C67_POP(TREG_C67_A4 + i * 2);
     }
-    gcall_or_jmp(0);
-    vtop--;
+    gcall_or_jmp(tcc_state, 0);
+    tcc_state->tccgen_vtop--;
 }
 
 
@@ -1957,7 +1957,7 @@ void gfunc_call(int nb_args)
 // parameters are loaded and restored upon return (or if/when needed).
 
 /* generate function prolog of type 't' */
-void gfunc_prolog(CType * func_type)
+void gfunc_prolog(TCCState* tcc_state, CType * func_type)
 {
     int addr, align, size, func_call, i;
     Sym *sym;
@@ -1968,10 +1968,10 @@ void gfunc_prolog(CType * func_type)
     addr = 8;
     /* if the function returns a structure, then add an
        implicit pointer parameter */
-    func_vt = sym->type;
-    func_var = (sym->c == FUNC_ELLIPSIS);
-    if ((func_vt.t & VT_BTYPE) == VT_STRUCT) {
-	func_vc = addr;
+    tcc_state->tccgen_func_vt = sym->type;
+    tcc_state->tccgen_func_var = (sym->c == FUNC_ELLIPSIS);
+    if ((tcc_state->tccgen_func_vt.t & VT_BTYPE) == VT_STRUCT) {
+	tcc_state->tccgen_func_vc = addr;
 	addr += 4;
     }
 
@@ -1980,7 +1980,7 @@ void gfunc_prolog(CType * func_type)
     /* define parameters */
     while ((sym = sym->next) != NULL) {
 	type = &sym->type;
-	sym_push(sym->v & ~SYM_FIELD, type, VT_LOCAL | lvalue_type(type->t), addr);
+	sym_push(tcc_state, sym->v & ~SYM_FIELD, type, VT_LOCAL | lvalue_type(type->t), addr);
 	size = type_size(type, &align);
 	size = (size + 3) & ~3;
 
@@ -2009,11 +2009,11 @@ void gfunc_prolog(CType * func_type)
 
     // place all the args passed in regs onto the stack
 
-    loc = 0;
+    tcc_state->tccgen_loc = 0;
     for (i = 0; i < NoOfCurFuncArgs; i++) {
 
-	ParamLocOnStack[i] = loc;	// remember where the param is
-	loc += -8;
+	ParamLocOnStack[i] = tcc_state->tccgen_loc;	// remember where the param is
+	tcc_state->tccgen_loc += -8;
 
 	C67_PUSH(TREG_C67_A4 + i * 2);
 
@@ -2022,9 +2022,9 @@ void gfunc_prolog(CType * func_type)
 	}
     }
 
-    TotalBytesPushedOnStack = -loc;
+    TotalBytesPushedOnStack = -tcc_state->tccgen_loc;
 
-    func_sub_sp_offset = ind;	// remember where we put the stack instruction 
+    func_sub_sp_offset = tcc_state->tccgen_ind;	// remember where we put the stack instruction 
     C67_ADDK(0, C67_SP);	//  ADDK.L2 loc,SP  (just put zero temporarily)
 
     C67_PUSH(C67_A0);
@@ -2032,16 +2032,16 @@ void gfunc_prolog(CType * func_type)
 }
 
 /* generate function epilog */
-void gfunc_epilog(void)
+void gfunc_epilog(TCCState* tcc_state)
 {
     {
-	int local = (-loc + 7) & -8;	// stack must stay aligned to 8 bytes for LDDW instr
+	int local = (-tcc_state->tccgen_loc + 7) & -8;	// stack must stay aligned to 8 bytes for LDDW instr
 	C67_POP(C67_B3);
 	C67_NOP(4);		// NOP wait for load
 	C67_IREG_B_REG(0, C67_CREG_ZERO, C67_B3);	//  B.S2  B3
 	C67_POP(C67_FP);
 	C67_ADDK(local, C67_SP);	//  ADDK.L2 loc,SP  
-	C67_Adjust_ADDK((int *) (cur_text_section->data +
+	C67_Adjust_ADDK((int *) (tcc_state->tccgen_cur_text_section->data +
 				 func_sub_sp_offset),
 			-local + TotalBytesPushedOnStack);
 	C67_NOP(3);		// NOP 
@@ -2049,9 +2049,9 @@ void gfunc_epilog(void)
 }
 
 /* generate a jump to a label */
-int gjmp(int t)
+int gjmp(TCCState* tcc_state, int t)
 {
-    int ind1 = ind;
+    int ind1 = tcc_state->tccgen_ind;
 
     C67_MVKL(C67_A0, t);	//r=reg to load,  constant
     C67_MVKH(C67_A0, t);	//r=reg to load,  constant
@@ -2061,7 +2061,7 @@ int gjmp(int t)
 }
 
 /* generate a jump to a fixed address */
-void gjmp_addr(int a)
+void gjmp_addr(TCCState* tcc_state, int a)
 {
     Sym *sym;
     // I guess this routine is used for relative short
@@ -2070,24 +2070,24 @@ void gjmp_addr(int a)
 
     // define a label that will be relocated
 
-    sym = get_sym_ref(&char_pointer_type, cur_text_section, a, 0);
-    greloc(cur_text_section, sym, ind, R_C60LO16);
-    greloc(cur_text_section, sym, ind + 4, R_C60HI16);
+    sym = get_sym_ref(tcc_state, &tcc_state->tccgen_char_pointer_type, tcc_state->tccgen_cur_text_section, a, 0);
+    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, tcc_state->tccgen_ind, R_C60LO16);
+    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, tcc_state->tccgen_ind + 4, R_C60HI16);
 
-    gjmp(0);			// place a zero there later the symbol will be added to it
+    gjmp(tcc_state, 0);			// place a zero there later the symbol will be added to it
 }
 
 /* generate a test. set 'inv' to invert test. Stack entry is popped */
-int gtst(int inv, int t)
+int gtst(TCCState* tcc_state, int inv, int t)
 {
     int ind1, n;
     int v, *p;
 
-    v = vtop->r & VT_VALMASK;
+    v = tcc_state->tccgen_vtop->r & VT_VALMASK;
     if (v == VT_CMP) {
 	/* fast case : can jump directly since flags are set */
 	// C67 uses B2 sort of as flags register
-	ind1 = ind;
+	ind1 = tcc_state->tccgen_ind;
 	C67_MVKL(C67_A0, t);	//r=reg to load, constant
 	C67_MVKH(C67_A0, t);	//r=reg to load, constant
 
@@ -2106,7 +2106,7 @@ int gtst(int inv, int t)
 	/* && or || optimization */
 	if ((v & 1) == inv) {
 	    /* insert vtop->c jump list in t */
-	    p = &vtop->c.i;
+	    p = &tcc_state->tccgen_vtop->c.i;
 
 	    // I guess the idea is to traverse to the
 	    // null at the end of the list and store t
@@ -2114,7 +2114,7 @@ int gtst(int inv, int t)
 
 	    n = *p;
 	    while (n != 0) {
-		p = (int *) (cur_text_section->data + n);
+		p = (int *) (tcc_state->tccgen_cur_text_section->data + n);
 
 		// extract 32 bit address from MVKH/MVKL
 		n = ((*p >> 7) & 0xffff);
@@ -2122,19 +2122,19 @@ int gtst(int inv, int t)
 	    }
 	    *p |= (t & 0xffff) << 7;
 	    *(p + 1) |= ((t >> 16) & 0xffff) << 7;
-	    t = vtop->c.i;
+	    t = tcc_state->tccgen_vtop->c.i;
 
 	} else {
-	    t = gjmp(t);
-	    gsym(vtop->c.i);
+	    t = gjmp(tcc_state, t);
+	    gsym(tcc_state, tcc_state->tccgen_vtop->c.i);
 	}
     }
-    vtop--;
+    tcc_state->tccgen_vtop--;
     return t;
 }
 
 /* generate an integer binary operation */
-void gen_opi(int op)
+void gen_opi(TCCState* tcc_state, int op)
 {
     int r, fr, opc, t;
 
@@ -2151,12 +2151,12 @@ void gen_opi(int op)
 
 
 	if (op >= TOK_ULT && op <= TOK_GT)
-	    gv2(RC_INT_BSIDE, RC_INT);	// make sure r (src1) is on the B Side of CPU
+	    gv2(tcc_state, RC_INT_BSIDE, RC_INT);	// make sure r (src1) is on the B Side of CPU
 	else
-	    gv2(RC_INT, RC_INT);
+	    gv2(tcc_state, RC_INT, RC_INT);
 
-	r = vtop[-1].r;
-	fr = vtop[0].r;
+	r = tcc_state->tccgen_vtop[-1].r;
+	fr = tcc_state->tccgen_vtop[0].r;
 
 	C67_compare_reg = C67_B2;
 
@@ -2204,10 +2204,10 @@ void gen_opi(int op)
 	else
 	    ALWAYS_ASSERT(FALSE);
 
-	vtop--;
+	tcc_state->tccgen_vtop--;
 	if (op >= TOK_ULT && op <= TOK_GT) {
-	    vtop->r = VT_CMP;
-	    vtop->c.i = op;
+	    tcc_state->tccgen_vtop->r = VT_CMP;
+	    tcc_state->tccgen_vtop->c.i = op;
 	}
 	break;
     case '-':
@@ -2231,48 +2231,48 @@ void gen_opi(int op)
 	goto gen_op8;
     case '*':
     case TOK_UMULL:
-	gv2(RC_INT, RC_INT);
-	r = vtop[-1].r;
-	fr = vtop[0].r;
-	vtop--;
+	gv2(tcc_state, RC_INT, RC_INT);
+	r = tcc_state->tccgen_vtop[-1].r;
+	fr = tcc_state->tccgen_vtop[0].r;
+	tcc_state->tccgen_vtop--;
 	C67_MPYI(fr, r);	// 32 bit bultiply  fr,r,fr
 	C67_NOP(8);		// NOP 8 for worst case
 	break;
     case TOK_SHL:
-	gv2(RC_INT_BSIDE, RC_INT_BSIDE);	// shift amount must be on same side as dst
-	r = vtop[-1].r;
-	fr = vtop[0].r;
-	vtop--;
+	gv2(tcc_state, RC_INT_BSIDE, RC_INT_BSIDE);	// shift amount must be on same side as dst
+	r = tcc_state->tccgen_vtop[-1].r;
+	fr = tcc_state->tccgen_vtop[0].r;
+	tcc_state->tccgen_vtop--;
 	C67_SHL(fr, r);		// arithmetic/logical shift
 	break;
 
     case TOK_SHR:
-	gv2(RC_INT_BSIDE, RC_INT_BSIDE);	// shift amount must be on same side as dst
-	r = vtop[-1].r;
-	fr = vtop[0].r;
-	vtop--;
+	gv2(tcc_state, RC_INT_BSIDE, RC_INT_BSIDE);	// shift amount must be on same side as dst
+	r = tcc_state->tccgen_vtop[-1].r;
+	fr = tcc_state->tccgen_vtop[0].r;
+	tcc_state->tccgen_vtop--;
 	C67_SHRU(fr, r);	// logical shift
 	break;
 
     case TOK_SAR:
-	gv2(RC_INT_BSIDE, RC_INT_BSIDE);	// shift amount must be on same side as dst
-	r = vtop[-1].r;
-	fr = vtop[0].r;
-	vtop--;
+	gv2(tcc_state, RC_INT_BSIDE, RC_INT_BSIDE);	// shift amount must be on same side as dst
+	r = tcc_state->tccgen_vtop[-1].r;
+	fr = tcc_state->tccgen_vtop[0].r;
+	tcc_state->tccgen_vtop--;
 	C67_SHR(fr, r);		// arithmetic shift
 	break;
 
     case '/':
 	t = TOK__divi;
       call_func:
-	vswap();
+	vswap(tcc_state);
 	/* call generic idiv function */
-	vpush_global_sym(&func_old_type, t);
-	vrott(3);
-	gfunc_call(2);
-	vpushi(0);
-	vtop->r = REG_IRET;
-	vtop->r2 = VT_CONST;
+	vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, t);
+	vrott(tcc_state, 3);
+	gfunc_call(tcc_state, 2);
+	vpushi(tcc_state, 0);
+	tcc_state->tccgen_vtop->r = REG_IRET;
+	tcc_state->tccgen_vtop->r2 = VT_CONST;
 	break;
     case TOK_UDIV:
     case TOK_PDIV:
@@ -2294,28 +2294,28 @@ void gen_opi(int op)
 /* generate a floating point operation 'v = t1 op t2' instruction. The
    two operands are guaranted to have the same floating point type */
 /* XXX: need to use ST1 too */
-void gen_opf(int op)
+void gen_opf(TCCState* tcc_state, int op)
 {
     int ft, fc, fr, r;
 
     if (op >= TOK_ULT && op <= TOK_GT)
-	gv2(RC_EDX, RC_EAX);	// make sure src2 is on b side
+	gv2(tcc_state, RC_EDX, RC_EAX);	// make sure src2 is on b side
     else
-	gv2(RC_FLOAT, RC_FLOAT);	// make sure src2 is on b side
+	gv2(tcc_state, RC_FLOAT, RC_FLOAT);	// make sure src2 is on b side
 
-    ft = vtop->type.t;
-    fc = vtop->c.ul;
-    r = vtop->r;
-    fr = vtop[-1].r;
+    ft = tcc_state->tccgen_vtop->type.t;
+    fc = tcc_state->tccgen_vtop->c.ul;
+    r = tcc_state->tccgen_vtop->r;
+    fr = tcc_state->tccgen_vtop[-1].r;
 
 
     if ((ft & VT_BTYPE) == VT_LDOUBLE)
-	tcc_error("long doubles not supported");
+	tcc_error(tcc_state, "long doubles not supported");
 
     if (op >= TOK_ULT && op <= TOK_GT) {
 
-	r = vtop[-1].r;
-	fr = vtop[0].r;
+	r = tcc_state->tccgen_vtop[-1].r;
+	fr = tcc_state->tccgen_vtop[0].r;
 
 	C67_compare_reg = C67_B2;
 
@@ -2364,7 +2364,7 @@ void gen_opf(int op)
 	} else {
 	    ALWAYS_ASSERT(FALSE);
 	}
-	vtop->r = VT_CMP;	// tell TCC that result is in "flags" actually B2
+	tcc_state->tccgen_vtop->r = VT_CMP;	// tell TCC that result is in "flags" actually B2
     } else {
 	if (op == '+') {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE) {
@@ -2374,7 +2374,7 @@ void gen_opf(int op)
 		C67_ADDSP(r, fr);	// ADD  fr,r,fr
 		C67_NOP(3);
 	    }
-	    vtop--;
+	    tcc_state->tccgen_vtop--;
 	} else if (op == '-') {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE) {
 		C67_SUBDP(r, fr);	// SUB  fr,r,fr
@@ -2383,7 +2383,7 @@ void gen_opf(int op)
 		C67_SUBSP(r, fr);	// SUB  fr,r,fr
 		C67_NOP(3);
 	    }
-	    vtop--;
+	    tcc_state->tccgen_vtop--;
 	} else if (op == '*') {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE) {
 		C67_MPYDP(r, fr);	// MPY  fr,r,fr
@@ -2392,29 +2392,29 @@ void gen_opf(int op)
 		C67_MPYSP(r, fr);	// MPY  fr,r,fr
 		C67_NOP(3);
 	    }
-	    vtop--;
+	    tcc_state->tccgen_vtop--;
 	} else if (op == '/') {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE) {
 		// must call intrinsic DP floating point divide
-		vswap();
+		vswap(tcc_state);
 		/* call generic idiv function */
-		vpush_global_sym(&func_old_type, TOK__divd);
-		vrott(3);
-		gfunc_call(2);
-		vpushi(0);
-		vtop->r = REG_FRET;
-		vtop->r2 = REG_LRET;
+		vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK__divd);
+		vrott(tcc_state, 3);
+		gfunc_call(tcc_state, 2);
+		vpushi(tcc_state, 0);
+		tcc_state->tccgen_vtop->r = REG_FRET;
+		tcc_state->tccgen_vtop->r2 = REG_LRET;
 
 	    } else {
 		// must call intrinsic SP floating point divide
-		vswap();
+		vswap(tcc_state);
 		/* call generic idiv function */
-		vpush_global_sym(&func_old_type, TOK__divf);
-		vrott(3);
-		gfunc_call(2);
-		vpushi(0);
-		vtop->r = REG_FRET;
-		vtop->r2 = VT_CONST;
+		vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK__divf);
+		vrott(tcc_state, 3);
+		gfunc_call(tcc_state, 2);
+		vpushi(tcc_state, 0);
+		tcc_state->tccgen_vtop->r = REG_FRET;
+		tcc_state->tccgen_vtop->r2 = VT_CONST;
 	    }
 	} else
 	    ALWAYS_ASSERT(FALSE);
@@ -2426,12 +2426,12 @@ void gen_opf(int op)
 
 /* convert integers to fp 't' type. Must handle 'int', 'unsigned int'
    and 'long long' cases. */
-void gen_cvt_itof(int t)
+void gen_cvt_itof(TCCState* tcc_state, int t)
 {
     int r;
 
-    gv(RC_INT);
-    r = vtop->r;
+    gv(tcc_state, RC_INT);
+    r = tcc_state->tccgen_vtop->r;
 
     if ((t & VT_BTYPE) == VT_DOUBLE) {
 	if (t & VT_UNSIGNED)
@@ -2440,31 +2440,31 @@ void gen_cvt_itof(int t)
 	    C67_INTDP(r, r);
 
 	C67_NOP(4);
-	vtop->type.t = VT_DOUBLE;
+	tcc_state->tccgen_vtop->type.t = VT_DOUBLE;
     } else {
 	if (t & VT_UNSIGNED)
 	    C67_INTSPU(r, r);
 	else
 	    C67_INTSP(r, r);
 	C67_NOP(3);
-	vtop->type.t = VT_FLOAT;
+	tcc_state->tccgen_vtop->type.t = VT_FLOAT;
     }
 
 }
 
 /* convert fp to int 't' type */
 /* XXX: handle long long case */
-void gen_cvt_ftoi(int t)
+void gen_cvt_ftoi(TCCState* tcc_state, int t)
 {
     int r;
 
-    gv(RC_FLOAT);
-    r = vtop->r;
+    gv(tcc_state, RC_FLOAT);
+    r = tcc_state->tccgen_vtop->r;
 
     if (t != VT_INT)
-	tcc_error("long long not supported");
+	tcc_error(tcc_state, "long long not supported");
     else {
-	if ((vtop->type.t & VT_BTYPE) == VT_DOUBLE) {
+	if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_DOUBLE) {
 	    C67_DPTRUNC(r, r);
 	    C67_NOP(3);
 	} else {
@@ -2472,41 +2472,41 @@ void gen_cvt_ftoi(int t)
 	    C67_NOP(3);
 	}
 
-	vtop->type.t = VT_INT;
+	tcc_state->tccgen_vtop->type.t = VT_INT;
 
     }
 }
 
 /* convert from one floating point type to another */
-void gen_cvt_ftof(int t)
+void gen_cvt_ftof(TCCState* tcc_state, int t)
 {
     int r, r2;
 
-    if ((vtop->type.t & VT_BTYPE) == VT_DOUBLE &&
+    if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_DOUBLE &&
 	(t & VT_BTYPE) == VT_FLOAT) {
 	// convert double to float
 
-	gv(RC_FLOAT);		// get it in a register pair
+	gv(tcc_state, RC_FLOAT);		// get it in a register pair
 
-	r = vtop->r;
+	r = tcc_state->tccgen_vtop->r;
 
 	C67_DPSP(r, r);		// convert it to SP same register
 	C67_NOP(3);
 
-	vtop->type.t = VT_FLOAT;
-	vtop->r2 = VT_CONST;	// set this as unused
-    } else if ((vtop->type.t & VT_BTYPE) == VT_FLOAT &&
+	tcc_state->tccgen_vtop->type.t = VT_FLOAT;
+	tcc_state->tccgen_vtop->r2 = VT_CONST;	// set this as unused
+    } else if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_FLOAT &&
 	       (t & VT_BTYPE) == VT_DOUBLE) {
 	// convert float to double
 
-	gv(RC_FLOAT);		// get it in a register
+	gv(tcc_state, RC_FLOAT);		// get it in a register
 
-	r = vtop->r;
+	r = tcc_state->tccgen_vtop->r;
 
 	if (r == TREG_EAX) {	// make sure the paired reg is avail
-	    r2 = get_reg(RC_ECX);
+	    r2 = get_reg(tcc_state, RC_ECX);
 	} else if (r == TREG_EDX) {
-	    r2 = get_reg(RC_ST0);
+	    r2 = get_reg(tcc_state, RC_ST0);
 	} else {
 	    ALWAYS_ASSERT(FALSE);
             r2 = 0; /* avoid warning */
@@ -2515,33 +2515,33 @@ void gen_cvt_ftof(int t)
 	C67_SPDP(r, r);		// convert it to DP same register
 	C67_NOP(1);
 
-	vtop->type.t = VT_DOUBLE;
-	vtop->r2 = r2;		// set this as unused
+	tcc_state->tccgen_vtop->type.t = VT_DOUBLE;
+	tcc_state->tccgen_vtop->r2 = r2;		// set this as unused
     } else {
 	ALWAYS_ASSERT(FALSE);
     }
 }
 
 /* computed goto support */
-void ggoto(void)
+void ggoto(TCCState* tcc_state)
 {
-    gcall_or_jmp(1);
-    vtop--;
+    gcall_or_jmp(tcc_state, 1);
+    tcc_state->tccgen_vtop--;
 }
 
 /* Save the stack pointer onto the stack and return the location of its address */
-ST_FUNC void gen_vla_sp_save(int addr) {
-    tcc_error("variable length arrays unsupported for this target");
+ST_FUNC void gen_vla_sp_save(TCCState* tcc_state, int addr) {
+    tcc_error(tcc_state, "variable length arrays unsupported for this target");
 }
 
 /* Restore the SP from a location on the stack */
-ST_FUNC void gen_vla_sp_restore(int addr) {
-    tcc_error("variable length arrays unsupported for this target");
+ST_FUNC void gen_vla_sp_restore(TCCState* tcc_state, int addr) {
+    tcc_error(tcc_state, "variable length arrays unsupported for this target");
 }
 
 /* Subtract from the stack pointer, and push the resulting value onto the stack */
-ST_FUNC void gen_vla_alloc(CType *type, int align) {
-    tcc_error("variable length arrays unsupported for this target");
+ST_FUNC void gen_vla_alloc(TCCState* tcc_state, CType *type, int align) {
+    tcc_error(tcc_state, "variable length arrays unsupported for this target");
 }
 
 /* end of C67 code generator */

@@ -19,6 +19,7 @@ typedef struct TCCState TCCState;
 #define _OFF_T_
   typedef long _off_t;
 #ifndef _SIZE_T_
+#define _SIZE_T_
   typedef unsigned long size_t;
 #endif
 #if !defined(NO_OLDNAMES) || defined(_POSIX)
