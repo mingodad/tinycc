@@ -563,7 +563,7 @@ ST_FUNC int tcc_output_coff(TCCState *s1, FILE *f)
 		}
 
 		if (k >= nFuncs) {
-		    tcc_error(tcc_state, "debug info can't find function: %s");
+		    tcc_error(tcc_state, "debug info can't find function: %s", name);
 		}
 		// put a Function Name
 
@@ -730,7 +730,7 @@ void SortSymbolTable(void)
 		    }
 
 		    if (k >= nFuncs) {
-                        tcc_error(tcc_state, "debug (sort) info can't find function: %s");
+                        tcc_error(tcc_state, "debug (sort) info can't find function: %s", name2);
 		    }
 
 		    if (strcmp(AssociatedFile[k], name) == 0) {
@@ -854,7 +854,7 @@ Section *FindSection(TCCState * s1, const char *sname)
 	    return s;
     }
 
-    tcc_error(tcc_state, "could not find section %s");
+    tcc_error(tcc_state, "could not find section %s", sname);
     return 0;
 }
 

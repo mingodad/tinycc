@@ -55,7 +55,7 @@ static void asm_expr_unary(TCCState *tcc_state, ExprValue *pe)
                 if (sym && sym->r == 0)
                     sym = sym->prev_tok;
                 if (!sym)
-                    tcc_error(tcc_state, "local label '%d' not found backward");
+                    tcc_error(tcc_state, "local label '%d' not found backward", n);
             } else {
                 /* forward */
                 if (!sym || sym->r) {
@@ -120,7 +120,7 @@ static void asm_expr_unary(TCCState *tcc_state, ExprValue *pe)
             }
             next(tcc_state);
         } else {
-            tcc_error(tcc_state, "bad expression syntax [%s]");
+            tcc_error(tcc_state, "bad expression syntax [%s]", get_tok_str(tcc_state, tcc_state->tccpp_tok, &tcc_state->tccpp_tokc));
         }
         break;
     }
@@ -267,7 +267,8 @@ static void asm_new_label1(TCCState *tcc_state, int label, int is_local,
         if (sym->r) {
             /* the label is already defined */
             if (!is_local) {
-                tcc_error(tcc_state, "assembler label '%s' already defined");
+                tcc_error(tcc_state, "assembler label '%s' already defined", 
+                      get_tok_str(tcc_state, label, NULL));
             } else {
                 /* redefinition of local labels is possible */
                 goto new_label;
@@ -584,7 +585,7 @@ static void asm_parse_directive(TCCState *tcc_state)
             next(tcc_state);
             sym = label_find(tcc_state, tcc_state->tccpp_tok);
             if (!sym) {
-                tcc_error(tcc_state, "label not found: %s");
+                tcc_error(tcc_state, "label not found: %s", get_tok_str(tcc_state, tcc_state->tccpp_tok, NULL));
             }
 
             next(tcc_state);
@@ -625,7 +626,7 @@ static void asm_parse_directive(TCCState *tcc_state)
             }
             else if (tcc_state->warn_unsupported)
                 tcc_warning(tcc_state, "change type of '%s' from 0x%x to '%s' ignored", 
-                    get_tok_str(tcc_state, sym->v, NULL));
+                    get_tok_str(tcc_state, sym->v, NULL), sym->type.t, newtype);
 
             next(tcc_state);
         }
@@ -687,7 +688,7 @@ static void asm_parse_directive(TCCState *tcc_state)
         break;
 #endif
     default:
-        tcc_error(tcc_state, "unknown assembler directive '.%s'");
+        tcc_error(tcc_state, "unknown assembler directive '.%s'", get_tok_str(tcc_state, tcc_state->tccpp_tok, NULL));
         break;
     }
 }

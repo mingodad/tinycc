@@ -89,7 +89,7 @@ static void macro_subst(TCCState* tcc_state,
 ST_FUNC void skip(TCCState* tcc_state, int c)
 {
     if (tcc_state->tccpp_tok != c)
-        tcc_error(tcc_state, "'%c' expected (got \"%s\")", c);
+        tcc_error(tcc_state, "'%c' expected (got \"%s\")", c, get_tok_str(tcc_state, tcc_state->tccpp_tok, &tcc_state->tccpp_tokc));
     next(tcc_state);
 }
 
@@ -2863,7 +2863,7 @@ static inline int *macro_twosharps(TCCState* tcc_state, const int *macro_str)
                         break;
                     tok_str_add2(tcc_state, &macro_str1, tcc_state->tccpp_tok, &tcc_state->tccpp_tokc);
                     tcc_warning(tcc_state, "pasting \"%.*s\" and \"%s\" does not give a valid preprocessing token",
-                        n);
+                        n, cstr.data, (char*)cstr.data + n);
                 }
                 tcc_close(tcc_state);
                 cstr_free(&cstr);

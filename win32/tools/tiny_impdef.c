@@ -33,7 +33,7 @@ char *get_export_names(int fd);
 #define tcc_realloc realloc
 
 /* extract the basename of a file */
-static char *file_basename(tcc_state, const char *name)
+static char *file_basename(const char *name)
 {
     const char *p = strchr(name, 0);
     while (p > name
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     char outfile[MAX_PATH];
 
     static const char *ext[] = { ".dll", ".exe", NULL };
-    const char *tcc_state->tccpp_file, **pp;
+    const char *file, **pp;
     char path[MAX_PATH], *p, *q;
     FILE *fp, *op;
 
@@ -97,23 +97,23 @@ usage:
         strcpy(q, ".def");
     }
 
-    tcc_state->tccpp_file = infile;
+    file = infile;
 
 #ifdef _WIN32
     pp = ext;
-    do if (SearchPath(NULL, tcc_state->tccpp_file, *pp, sizeof path, path, NULL)) {
-       tcc_state->tccpp_file = path;
+    do if (SearchPath(NULL, file, *pp, sizeof path, path, NULL)) {
+       file = path;
        break;
     } while (*pp++);
 #endif
 
-    fp = fopen(tcc_state->tccpp_file, "rb");
+    fp = fopen(file, "rb");
     if (NULL == fp) {
         fprintf(stderr, "tiny_impdef: no such file: %s\n", infile);
         goto the_end;
     }
     if (v)
-        printf("--> %s\n", tcc_state->tccpp_file);
+        printf("--> %s\n", file);
 
     p = get_export_names(fileno(fp));
     if (NULL == p) {
@@ -127,7 +127,7 @@ usage:
         goto the_end;
     }
 
-    fprintf(op, "LIBRARY %s\n\nEXPORTS\n", file_basename(tcc_state->tccpp_file));
+    fprintf(op, "LIBRARY %s\n\nEXPORTS\n", file_basename(file));
     for (q = p, i = 0; *q; ++i) {
         fprintf(op, "%s\n", q);
         q += strlen(q) + 1;
@@ -225,7 +225,7 @@ found:
         namep += sizeof ptr;
         for (l = 0;;) {
             if (n+1 >= n0)
-                p = tcc_realloc(tcc_state, p, n0 = n0 ? n0 * 2 : 256);
+                p = tcc_realloc(p, n0 = n0 ? n0 * 2 : 256);
             if (!read_mem(fd, ptr - ref + l, p + n, 1) || ++l >= 80) {
                 tcc_free(p), p = NULL;
                 goto the_end;

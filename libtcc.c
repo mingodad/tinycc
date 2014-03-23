@@ -95,7 +95,7 @@ static char *normalize_slashes(char *path)
 static HMODULE tcc_module;
 
 /* on win32, we suppose the lib and includes are at the location of 'tcc.exe' */
-static void tcc_set_lib_path_w32(TCCState *s)
+static void tcc_set_lib_path_w32(TCCState *tcc_state)
 {
     char path[1024], *p;
     GetModuleFileNameA(tcc_module, path, sizeof path);
@@ -105,15 +105,15 @@ static void tcc_set_lib_path_w32(TCCState *s)
     else if (p > path)
         p--;
     *p = 0;
-    tcc_set_lib_path(s, path);
+    tcc_set_lib_path(tcc_state, path);
 }
 
 #ifdef TCC_TARGET_PE
-static void tcc_add_systemdir(TCCState *s)
+static void tcc_add_systemdir(TCCState *tcc_state)
 {
     char buf[1000];
     GetSystemDirectory(buf, sizeof buf);
-    tcc_add_library_path(s, normalize_slashes(buf));
+    tcc_add_library_path(tcc_state, normalize_slashes(buf));
 }
 #endif
 
@@ -210,7 +210,7 @@ PUB_FUNC void tcc_free(void *ptr)
 #ifdef MEM_DEBUG
     mem_cur_size -= malloc_usable_size(ptr);
 #endif
-    free(ptr);
+    if(ptr) free(ptr);
 }
 
 PUB_FUNC void *tcc_malloc(TCCState* tcc_state, unsigned long size)
@@ -1686,7 +1686,7 @@ static int tcc_set_linker(TCCState *tcc_state, const char *option)
             if (ignoring)
                 tcc_warning(tcc_state, "unsupported linker option '%s'", buf);
             else
-                tcc_error(tcc_state, "unsupported linker option '%s'");
+                tcc_error(tcc_state, "unsupported linker option '%s'", buf);
         }
         option = skip_linker_arg(&p);
     }
@@ -1842,14 +1842,14 @@ PUB_FUNC int tcc_parse_args(TCCState *tcc_state, int argc, char **argv)
             const char *p1 = popt->name;
             const char *r1 = r + 1;
             if (p1 == NULL)
-                tcc_error(tcc_state, "invalid option -- '%s'");
+                tcc_error(tcc_state, "invalid option -- '%s'", r);
             if (!strstart(p1, &r1))
                 continue;
             optarg = r1;
             if (popt->flags & TCC_OPTION_HAS_ARG) {
                 if (*r1 == '\0' && !(popt->flags & TCC_OPTION_NOSEP)) {
                     if (optind >= argc)
-                        tcc_error(tcc_state, "argument to '%s' is missing");
+                        tcc_error(tcc_state, "argument to '%s' is missing", r);
                     optarg = argv[optind++];
                 }
             } else if (*r1 != '\0')
@@ -1914,7 +1914,7 @@ PUB_FUNC int tcc_parse_args(TCCState *tcc_state, int argc, char **argv)
             } else if (!strcmp(optarg, "hard"))
                 tcc_state->float_abi = ARM_HARD_FLOAT;
             else
-                tcc_error(tcc_state, "unsupported float abi '%s'");
+                tcc_error(tcc_state, "unsupported float abi '%s'", optarg);
             break;
 #endif
         case TCC_OPTION_static:

@@ -717,9 +717,11 @@ ST_FUNC void asm_opcode(TCCState *tcc_state, int opcode)
             g(tcc_state, b);
             return;
         } else if (opcode <= TOK_ASM_alllast) {
-            tcc_error(tcc_state, get_tok_str(tcc_state, opcode, NULL), "bad operand with opcode '%s'");
+            tcc_error(tcc_state, "bad operand with opcode '%s'",
+					get_tok_str(tcc_state, opcode, NULL));
         } else {
-            tcc_error(tcc_state, get_tok_str(tcc_state, opcode, NULL), "unknown opcode '%s'");
+            tcc_error(tcc_state, "unknown opcode '%s'",
+					get_tok_str(tcc_state, opcode, NULL));
         }
     }
     /* if the size is unknown, then evaluate it (OPC_B or OPC_WL case) */
@@ -1085,7 +1087,8 @@ ST_FUNC void asm_compute_constraints(TCCState* tcc_state, ASMOperand *operands,
             /* this is a reference to another constraint */
             k = find_constraint(tcc_state, operands, nb_operands, str, NULL);
             if ((unsigned)k >= i || i < nb_outputs)
-                tcc_error(tcc_state, "invalid reference in constraint %d ('%s')", i);
+                tcc_error(tcc_state, "invalid reference in constraint %d ('%s')",
+						i, str);
             op->ref_index = k;
             if (operands[k].input_index >= 0)
                 tcc_error(tcc_state, "cannot reference twice the same operand");
@@ -1239,7 +1242,8 @@ ST_FUNC void asm_compute_constraints(TCCState* tcc_state, ASMOperand *operands,
             }
             break;
         default:
-            tcc_error(tcc_state, "asm constraint %d ('%s') could not be satisfied", j);
+            tcc_error(tcc_state, "asm constraint %d ('%s') could not be satisfied",
+					j, op->constraint);
             break;
         }
         /* if a reference is present for that operand, we assign it too */
@@ -1492,7 +1496,7 @@ ST_FUNC void asm_clobber(TCCState* tcc_state, uint8_t *clobber_regs, const char 
         reg -= TOK_ASM_rax;
 #endif
     } else {
-        tcc_error(tcc_state, str, "invalid clobber register '%s'");
+        tcc_error(tcc_state, "invalid clobber register '%s'", str);
     }
     clobber_regs[reg] = 1;
 }

@@ -167,7 +167,7 @@ ST_FUNC addr_t get_elf_sym_addr(TCCState *tcc_state, const char *name, int err)
     sym = &((ElfW(Sym) *)tcc_state->symtab->data)[sym_index];
     if (!sym_index || sym->st_shndx == SHN_UNDEF) {
         if (err)
-            tcc_error(tcc_state, "%s not defined");
+            tcc_error(tcc_state, "%s not defined", name);
         return 0;
     }
     return sym->st_value;
@@ -622,7 +622,7 @@ ST_FUNC void relocate_section(TCCState *tcc_state, Section *s)
                 }
 #endif
                 if (th_ko || x >= 0x2000000 || x < -0x2000000)
-                    tcc_error(tcc_state, "can't relocate value at %x");
+                    tcc_error(tcc_state, "can't relocate value at %x",addr);
                 x >>= 2;
                 x &= 0xffffff;
                 /* Only reached if blx is avail and it is a call */
@@ -686,7 +686,7 @@ ST_FUNC void relocate_section(TCCState *tcc_state, Section *s)
                      - instruction must be a call (bl) or a jump to PLT */
                 if (!to_thumb || x >= 0x1000000 || x < -0x1000000)
                     if (to_thumb || (val & 2) || (!is_call && !to_plt))
-                        tcc_error(tcc_state, "can't relocate value at %x");
+                        tcc_error(tcc_state, "can't relocate value at %x",addr);
 
                 /* Compute and store final offset */
                 s = (x >> 24) & 1;
@@ -743,7 +743,7 @@ ST_FUNC void relocate_section(TCCState *tcc_state, Section *s)
                 x = (x * 2) / 2;
                 x += val - addr;
                 if((x^(x>>1))&0x40000000)
-                    tcc_error(tcc_state, "can't relocate value at %x");
+                    tcc_error(tcc_state, "can't relocate value at %x",addr);
                 (*(int *)ptr) |= x & 0x7fffffff;
             }
         case R_ARM_ABS32:
@@ -2706,7 +2706,7 @@ ST_FUNC int tcc_load_object_file(TCCState *tcc_state,
                    ) {
                 invalid_reloc:
                     tcc_error_noabort(tcc_state, "Invalid relocation entry [%2d] '%s' @ %.8x",
-                        i);
+                        i, strsec + sh->sh_name, rel->r_offset);
                     goto fail;
                 }
                 rel->r_info = ELFW(R_INFO)(sym_index, type);

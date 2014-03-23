@@ -392,14 +392,14 @@ void gsym(TCCState* tcc_state, int t)
 static uint32_t vfpr(TCCState* tcc_state, int r)
 {
   if(r<TREG_F0 || r>TREG_F7)
-    tcc_error(tcc_state, "compiler error! register %i is no vfp register");
+    tcc_error(tcc_state, "compiler error! register %i is no vfp register",r);
   return r-5;
 }
 #else
 static uint32_t fpr(TCCState* tcc_state, int r)
 {
   if(r<TREG_F0 || r>TREG_F3)
-    tcc_error(tcc_state, "compiler error! register %i is no fpa register");
+    tcc_error(tcc_state, "compiler error! register %i is no fpa register",r);
   return r-5;
 }
 #endif
@@ -409,7 +409,7 @@ static uint32_t intr(TCCState* tcc_state, int r)
   if(r==4)
     return 12;
   if((r<0 || r>4) && r!=14)
-    tcc_error(tcc_state, "compiler error! register %i is no int register");
+    tcc_error(tcc_state, "compiler error! register %i is no int register",r);
   return r;
 }
 
@@ -1596,7 +1596,7 @@ done:
       tcc_state->tccgen_vtop->r = retreg;
       break;
     default:
-      tcc_error(tcc_state, "gen_opi %i unimplemented!");
+      tcc_error(tcc_state, "gen_opi %i unimplemented!",op);
   }
 }
 
@@ -1650,7 +1650,7 @@ void gen_opf(TCCState* tcc_state, int op)
       break;
     default:
       if(op < TOK_ULT || op > TOK_GT) {
-        tcc_error(tcc_state, "unknown fp op %x!");
+        tcc_error(tcc_state, "unknown fp op %x!",op);
         return;
       }
       if(is_zero(tcc_state, -1)) {
@@ -1889,7 +1889,7 @@ void gen_opf(TCCState* tcc_state, int op)
 	tcc_state->tccgen_vtop[-1].r = VT_CMP;
 	tcc_state->tccgen_vtop[-1].c.i = op;
       } else {
-        tcc_error(tcc_state, "unknown fp op %x!");
+        tcc_error(tcc_state, "unknown fp op %x!",op);
 	return;
       }
   }
@@ -1986,7 +1986,7 @@ ST_FUNC void gen_cvt_itof1(TCCState* tcc_state, int t)
       return;
     }
   }
-  tcc_error(tcc_state, "unimplemented gen_cvt_itof %x!");
+  tcc_error(tcc_state, "unimplemented gen_cvt_itof %x!",tcc_state->tccgen_vtop->type.t);
 }
 
 /* convert fp to int 't' type */

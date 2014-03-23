@@ -159,7 +159,8 @@ ST_FUNC Sym *sym_push2(TCCState* tcc_state, Sym **ps, int v, int t, long c)
     if (ps == &tcc_state->tccgen_local_stack) {
         for (s = *ps; s && s != tcc_state->scope_stack_bottom; s = s->prev)
             if (!(v & SYM_FIELD) && (v & ~SYM_STRUCT) < SYM_FIRST_ANOM && s->v == v)
-                tcc_error(tcc_state, "incompatible types for redefinition of '%s'");
+                tcc_error(tcc_state, "incompatible types for redefinition of '%s'",
+                          get_tok_str(tcc_state, v, NULL));
     }
     s = sym_malloc(tcc_state);
     s->asm_label = NULL;
@@ -430,7 +431,8 @@ static Sym *external_sym(TCCState* tcc_state, int v, CType *type, int r, char *a
         s->r = r | VT_CONST | VT_SYM;
         s->type.t |= VT_EXTERN;
     } else if (!is_compatible_types(&s->type, type)) {
-        tcc_error(tcc_state, "incompatible types for redefinition of '%s'");
+        tcc_error(tcc_state, "incompatible types for redefinition of '%s'", 
+              get_tok_str(tcc_state, v, NULL));
     }
     return s;
 }
@@ -1611,7 +1613,7 @@ static void check_comparison_pointer_types(TCCState* tcc_state, SValue *p1, SVal
         type2 = pointed_type(type2);
     } else if (bt2 != VT_FUNC) { 
     invalid_operands:
-        tcc_error(tcc_state, "invalid operands to binary %s");
+        tcc_error(tcc_state, "invalid operands to binary %s", get_tok_str(tcc_state, op, NULL));
     }
     if ((type1->t & VT_BTYPE) == VT_VOID || 
         (type2->t & VT_BTYPE) == VT_VOID)
@@ -2419,7 +2421,7 @@ static void gen_assign_cast(TCCState* tcc_state, CType *dt)
         error:
             type_to_str(tcc_state, buf1, sizeof(buf1), st, NULL);
             type_to_str(tcc_state, buf2, sizeof(buf2), dt, NULL);
-            tcc_error(tcc_state, "cannot cast '%s' to '%s'");
+            tcc_error(tcc_state, "cannot cast '%s' to '%s'", buf1, buf2);
         }
         break;
     }
@@ -2819,7 +2821,8 @@ static void struct_decl(TCCState* tcc_state, CType *type, int u, int tdef)
                     expect(tcc_state, "identifier");
                 ss = sym_find(tcc_state, v);
                 if (ss)
-                    tcc_error(tcc_state, "redefinition of enumerator '%s'");
+                    tcc_error(tcc_state, "redefinition of enumerator '%s'",
+                              get_tok_str(tcc_state, v, NULL));
                 next(tcc_state);
                 if (tcc_state->tccpp_tok == '=') {
                     next(tcc_state);
@@ -2849,7 +2852,8 @@ static void struct_decl(TCCState* tcc_state, CType *type, int u, int tdef)
                 parse_btype(tcc_state, &btype, &ad);
                 while (1) {
 		    if (flexible)
-		        tcc_error(tcc_state, "flexible array member '%s' not at the end of struct");
+		        tcc_error(tcc_state, "flexible array member '%s' not at the end of struct",
+                              get_tok_str(tcc_state, v, NULL));
                     bit_size = -1;
                     v = 0;
                     type1 = btype;
@@ -2861,20 +2865,24 @@ static void struct_decl(TCCState* tcc_state, CType *type, int u, int tdef)
 			    if ((a == TOK_STRUCT) && (type1.t & VT_ARRAY) && c)
 			        flexible = 1;
 			    else
-			        tcc_error(tcc_state, "field '%s' has incomplete type");
+			        tcc_error(tcc_state, "field '%s' has incomplete type",
+                                      get_tok_str(tcc_state, v, NULL));
                         }
                         if ((type1.t & VT_BTYPE) == VT_FUNC ||
                             (type1.t & (VT_TYPEDEF | VT_STATIC | VT_EXTERN | VT_INLINE)))
-                            tcc_error(tcc_state, "invalid type for '%s'");
+                            tcc_error(tcc_state, "invalid type for '%s'", 
+                                  get_tok_str(tcc_state, v, NULL));
                     }
                     if (tcc_state->tccpp_tok == ':') {
                         next(tcc_state);
                         bit_size = expr_const(tcc_state);
                         /* XXX: handle v = 0 case for messages */
                         if (bit_size < 0)
-                            tcc_error(tcc_state, "negative width in bit-field '%s'");
+                            tcc_error(tcc_state, "negative width in bit-field '%s'", 
+                                  get_tok_str(tcc_state, v, NULL));
                         if (v && bit_size == 0)
-                            tcc_error(tcc_state, "zero width for bit-field '%s'");
+                            tcc_error(tcc_state, "zero width for bit-field '%s'", 
+                                  get_tok_str(tcc_state, v, NULL));
                     }
                     size = type_size(&type1, &align);
                     if (ad.a.aligned) {
@@ -2898,7 +2906,8 @@ static void struct_decl(TCCState* tcc_state, CType *type, int u, int tdef)
                             tcc_error(tcc_state, "bitfields must have scalar type");
                         bsize = size * 8;
                         if (bit_size > bsize) {
-                            tcc_error(tcc_state, "width of '%s' exceeds its type");
+                            tcc_error(tcc_state, "width of '%s' exceeds its type", 
+                                  get_tok_str(tcc_state, v, NULL));
                         } else if (bit_size == bsize) {
                             /* no need for bit fields */
                             bit_pos = 0;
@@ -3891,7 +3900,7 @@ ST_FUNC void unary(TCCState* tcc_state)
         s = sym_find(tcc_state, t);
         if (!s) {
             if (tcc_state->tccpp_tok != '(')
-                tcc_error(tcc_state, "'%s' undeclared");
+                tcc_error(tcc_state, "'%s' undeclared", get_tok_str(tcc_state, t, NULL));
             /* for simple function calls, we tolerate undeclared
                external reference to int() function */
             if (tcc_state->warn_implicit_function_declaration)
@@ -3946,7 +3955,7 @@ ST_FUNC void unary(TCCState* tcc_state)
                     break;
             }
             if (!s)
-                tcc_error(tcc_state, "field not found: %s");
+                tcc_error(tcc_state, "field not found: %s",  get_tok_str(tcc_state, tcc_state->tccpp_tok & ~SYM_FIELD, NULL));
             /* add field offset to pointer */
             tcc_state->tccgen_vtop->type = tcc_state->tccgen_char_pointer_type; /* change type to 'char *' */
             vpushi(tcc_state, s->c);
@@ -4893,7 +4902,7 @@ static void block(TCCState* tcc_state, int *bsym, int *csym, int *case_sym, int 
             s = label_find(tcc_state, b);
             if (s) {
                 if (s->r == LABEL_DEFINED)
-                    tcc_error(tcc_state, "duplicate label '%s'");
+                    tcc_error(tcc_state, "duplicate label '%s'", get_tok_str(tcc_state, s->v, NULL));
                 gsym(tcc_state, s->jnext);
                 s->r = LABEL_DEFINED;
             } else {
@@ -5552,7 +5561,8 @@ static void decl_initializer_alloc(TCCState* tcc_state, CType *type, AttributeDe
             sym = sym_find(tcc_state, v);
             if (sym) {
                 if (!is_compatible_types(&sym->type, type))
-                    tcc_error(tcc_state, "incompatible types for redefinition of '%s'");
+                    tcc_error(tcc_state, "incompatible types for redefinition of '%s'", 
+                          get_tok_str(tcc_state, v, NULL));
                 if (sym->type.t & VT_EXTERN) {
                     /* if the variable is extern, it was not allocated */
                     sym->type.t &= ~VT_EXTERN;
@@ -5706,11 +5716,12 @@ static void func_decl_list(TCCState* tcc_state, Sym *func_sym)
                         goto found;
                     s = s->next;
                 }
-                tcc_error(tcc_state, "declaration for parameter '%s' but no such parameter");
+                tcc_error(tcc_state, "declaration for parameter '%s' but no such parameter",
+                      get_tok_str(tcc_state, v, NULL));
             found:
                 /* check that no storage specifier except 'register' was given */
                 if (type.t & VT_STORAGE)
-                    tcc_error(tcc_state, "storage class specified for '%s'"); 
+                    tcc_error(tcc_state, "storage class specified for '%s'", get_tok_str(tcc_state, v, NULL)); 
                 convert_parameter_type(tcc_state, &type);
                 /* we can add the type (NOTE: it could be local to the function) */
                 s->type = type;
@@ -5918,7 +5929,7 @@ static int decl0(TCCState* tcc_state, int l, int is_for_loop_init)
 
                     ref = sym->type.ref;
                     if (0 == ref->a.func_proto)
-                        tcc_error(tcc_state, "redefinition of '%s'");
+                        tcc_error(tcc_state, "redefinition of '%s'", get_tok_str(tcc_state, v, NULL));
 
                     /* use func_call from prototype if not defined */
                     if (ref->a.func_call != FUNC_CDECL
@@ -5935,7 +5946,8 @@ static int decl0(TCCState* tcc_state, int l, int is_for_loop_init)
 
                     if (!is_compatible_types(&sym->type, &type)) {
                     func_error1:
-                        tcc_error(tcc_state, "incompatible types for redefinition of '%s'");
+                        tcc_error(tcc_state, "incompatible types for redefinition of '%s'", 
+                              get_tok_str(tcc_state, v, NULL));
                     }
                     type.ref->a.func_proto = 0;
                     /* if symbol is already defined, then put complete type */

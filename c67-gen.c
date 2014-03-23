@@ -179,7 +179,7 @@ int TotalBytesPushedOnStack;
 #define ALWAYS_ASSERT(x) \
 do {\
    if (!(x))\
-       tcc_error(tcc_state, "internal compiler error file at %s:%d");\
+       tcc_error(tcc_state, "internal compiler error file at %s:%d", __FILE__, __LINE__);\
 } while (0)
 
 /******************************************************/

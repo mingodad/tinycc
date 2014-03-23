@@ -110,7 +110,7 @@ static void exec_other_tcc(TCCState *tcc_state, char **argv, const char *optarg)
                     printf("tcc: using '%s'\n", child_name), fflush(stdout);
                 execvp(argv[0] = child_path, argv);
             }
-            tcc_error(tcc_state, "'%s' not found");
+            tcc_error(tcc_state, "'%s' not found", child_name);
         case 0: /* ignore -march etc. */
             break;
         default:
@@ -142,7 +142,7 @@ static void gen_makedeps(TCCState *tcc_state, const char *target, const char *fi
     /* XXX return err codes instead of error() ? */
     depout = fopen(filename, "w");
     if (!depout)
-        tcc_error(tcc_state, "could not open '%s'");
+        tcc_error(tcc_state, "could not open '%s'", filename);
 
     fprintf(depout, "%s : \\\n", target);
     for (i=0; i<tcc_state->nb_target_deps; ++i)
@@ -391,7 +391,7 @@ int main(int argc, char **argv)
         } else {
             tcc_state->ppfp = fopen(tcc_state->outfile, "w");
             if (!tcc_state->ppfp)
-                tcc_error(tcc_state, "could not write '%s'");
+                tcc_error(tcc_state, "could not write '%s'", tcc_state->outfile);
         }
     }
 

@@ -591,7 +591,7 @@ static int pe_write(struct pe_info *pe)
 
     op = fopen(pe->filename, "wb");
     if (NULL == op) {
-        tcc_error_noabort(tcc_state, "could not write '%s': %s", pe->filename);
+        tcc_error_noabort(tcc_state, "could not write '%s': %s", pe->filename, strerror(errno));
         return -1;
     }
 
@@ -946,7 +946,7 @@ static void pe_build_exports(struct pe_info *pe)
     strcpy(tcc_fileextension(buf), ".def");
     op = fopen(buf, "w");
     if (NULL == op) {
-        tcc_error_noabort(tcc_state, "could not create '%s': %s", buf);
+        tcc_error_noabort(tcc_state, "could not create '%s': %s", buf, strerror(errno));
     } else {
         fprintf(op, "LIBRARY %s\n\nEXPORTS\n", dllname);
         if (pe->s1->verbose)
