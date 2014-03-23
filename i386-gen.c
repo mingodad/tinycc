@@ -96,10 +96,10 @@ ST_DATA const int reg_classes[NB_REGS] = {
     /* st0 */ RC_FLOAT | RC_ST0,
 };
 
-static unsigned long func_sub_sp_offset;
-static int func_ret_sub;
+//static unsigned long func_sub_sp_offset;
+//static int func_ret_sub;
 #ifdef CONFIG_TCC_BCHECK
-static unsigned long func_bound_offset;
+//static unsigned long func_bound_offset;
 #endif
 
 /* XXX: make it faster ? */
@@ -523,7 +523,7 @@ ST_FUNC void gfunc_prolog(TCCState* tcc_state, CType *func_type)
     param_index = 0;
 
     tcc_state->tccgen_ind += FUNC_PROLOG_SIZE;
-    func_sub_sp_offset = tcc_state->tccgen_ind;
+    tcc_state->func_sub_sp_offset = tcc_state->tccgen_ind;
     /* if the function returns a structure, then add an
        implicit pointer parameter */
     tcc_state->tccgen_func_vt = sym->type;
@@ -564,13 +564,13 @@ ST_FUNC void gfunc_prolog(TCCState* tcc_state, CType *func_type)
                  VT_LOCAL | lvalue_type(type->t), param_addr);
         param_index++;
     }
-    func_ret_sub = 0;
+    tcc_state->func_ret_sub = 0;
     /* pascal type call ? */
     if (func_call == FUNC_STDCALL)
-        func_ret_sub = addr - 8;
+        tcc_state->func_ret_sub = addr - 8;
 #ifndef TCC_TARGET_PE
     else if (tcc_state->tccgen_func_vc)
-        func_ret_sub = 4;
+        tcc_state->func_ret_sub = 4;
 #endif
 
 #ifdef CONFIG_TCC_BCHECK
@@ -578,7 +578,7 @@ ST_FUNC void gfunc_prolog(TCCState* tcc_state, CType *func_type)
     if (tcc_state->do_bounds_check) {
         oad(tcc_state, 0xb8, 0); /* lbound section pointer */
         oad(tcc_state, 0xb8, 0); /* call to function */
-        func_bound_offset = lbounds_section->data_offset;
+        tcc_state->func_bound_offset = lbounds_section->data_offset;
     }
 #endif
 }
@@ -590,7 +590,7 @@ ST_FUNC void gfunc_epilog(TCCState* tcc_state)
 
 #ifdef CONFIG_TCC_BCHECK
     if (tcc_state->do_bounds_check
-     && func_bound_offset != lbounds_section->data_offset) {
+     && tcc_state->func_bound_offset != lbounds_section->data_offset) {
         int saved_ind;
         int *bounds_ptr;
         Sym *sym_data;
@@ -599,9 +599,9 @@ ST_FUNC void gfunc_epilog(TCCState* tcc_state)
         *bounds_ptr = 0;
         /* generate bound local allocation */
         saved_ind = tcc_state->tccgen_ind;
-        tcc_state->tccgen_ind = func_sub_sp_offset;
+        tcc_state->tccgen_ind = tcc_state->func_sub_sp_offset;
         sym_data = get_sym_ref(tcc_state, &tcc_state->tccgen_char_pointer_type, lbounds_section, 
-                               func_bound_offset, lbounds_section->data_offset);
+                               tcc_state->func_bound_offset, lbounds_section->data_offset);
         greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym_data,
                tcc_state->tccgen_ind + 1, R_386_32);
         oad(tcc_state, 0xb8, 0); /* mov %eax, xxx */
@@ -619,18 +619,18 @@ ST_FUNC void gfunc_epilog(TCCState* tcc_state)
     }
 #endif
     o(tcc_state, 0xc9); /* leave */
-    if (func_ret_sub == 0) {
+    if (tcc_state->func_ret_sub == 0) {
         o(tcc_state, 0xc3); /* ret */
     } else {
         o(tcc_state, 0xc2); /* ret n */
-        g(tcc_state, func_ret_sub);
-        g(tcc_state, func_ret_sub >> 8);
+        g(tcc_state, tcc_state->func_ret_sub);
+        g(tcc_state, tcc_state->func_ret_sub >> 8);
     }
     /* align local size to word & save local variables */
     
     v = (-tcc_state->tccgen_loc + 3) & -4; 
     saved_ind = tcc_state->tccgen_ind;
-    tcc_state->tccgen_ind = func_sub_sp_offset - FUNC_PROLOG_SIZE;
+    tcc_state->tccgen_ind = tcc_state->func_sub_sp_offset - FUNC_PROLOG_SIZE;
 #ifdef TCC_TARGET_PE
     if (v >= 4096) {
         oad(tcc_state, 0xb8, v); /* mov stacksize, %eax */

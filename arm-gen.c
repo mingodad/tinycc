@@ -151,7 +151,7 @@ enum float_abi {
 /******************************************************/
 #include "tcc.h"
 
-enum float_abi float_abi;
+enum float_abi float_abi; //this should be on TCCState ???????
 
 ST_DATA const int reg_classes[NB_REGS] = {
     /* r0 */ RC_INT | RC_R0,
@@ -171,8 +171,8 @@ ST_DATA const int reg_classes[NB_REGS] = {
 #endif
 };
 
-static int func_sub_sp_offset, last_itod_magic;
-static int leaffunc;
+//static int func_sub_sp_offset, last_itod_magic;
+//static int leaffunc;
 
 #if defined(TCC_ARM_EABI) && defined(TCC_ARM_VFP)
 static CType float_type, double_type, func_float_type, func_double_type;
@@ -1230,7 +1230,7 @@ void gfunc_call(TCCState* tcc_state, int nb_args)
   }
 #endif
   tcc_state->tccgen_vtop -= nb_args + 1; /* Pop all params and fct address from value stack */
-  leaffunc = 0; /* we are calling a function, so we aren't in a leaf function */
+  tcc_state->leaffunc = 0; /* we are calling a function, so we aren't in a leaf function */
   float_abi = def_float_abi;
 }
 
@@ -1287,7 +1287,7 @@ void gfunc_prolog(TCCState* tcc_state, CType *func_type)
   }
   o(tcc_state, 0xE92D5800); /* save fp, ip, lr */
   o(tcc_state, 0xE1A0B00D); /* mov fp, sp */
-  func_sub_sp_offset = tcc_state->tccgen_ind;
+  tcc_state->func_sub_sp_offset = tcc_state->tccgen_ind;
   o(tcc_state, 0xE1A00000); /* nop, leave space for stack adjustment in epilog */
 
 #ifdef TCC_ARM_EABI
@@ -1332,8 +1332,8 @@ from_stack:
     sym_push(tcc_state, sym->v & ~SYM_FIELD, type, VT_LOCAL | lvalue_type(type->t),
              addr + 12);
   }
-  last_itod_magic=0;
-  leaffunc = 1;
+  tcc_state->last_itod_magic=0;
+  tcc_state->leaffunc = 1;
   tcc_state->tccgen_loc = 0;
 }
 
@@ -1357,13 +1357,13 @@ void gfunc_epilog(TCCState* tcc_state)
   o(tcc_state, 0xE89BA800); /* restore fp, sp, pc */
   diff = (-tcc_state->tccgen_loc + 3) & -4;
 #ifdef TCC_ARM_EABI
-  if(!leaffunc)
+  if(!tcc_state->leaffunc)
     diff = ((diff + 11) & -8) - 4;
 #endif
   if(diff > 0) {
     x=stuff_const(0xE24BD000, diff); /* sub sp,fp,# */
     if(x)
-      *(uint32_t *)(tcc_state->tccgen_cur_text_section->data + func_sub_sp_offset) = x;
+      *(uint32_t *)(tcc_state->tccgen_cur_text_section->data + tcc_state->func_sub_sp_offset) = x;
     else {
       int addr;
       addr=tcc_state->tccgen_ind;
@@ -1371,7 +1371,7 @@ void gfunc_epilog(TCCState* tcc_state)
       o(tcc_state, 0xE04BD00C); /* sub sp,fp,ip  */
       o(tcc_state, 0xE1A0F00E); /* mov pc,lr */
       o(tcc_state, diff);
-      *(uint32_t *)(tcc_state->tccgen_cur_text_section->data + func_sub_sp_offset) = 0xE1000000|encbranch(tcc_state, func_sub_sp_offset, addr, 1);
+      *(uint32_t *)(tcc_state->tccgen_cur_text_section->data + tcc_state->func_sub_sp_offset) = 0xE1000000|encbranch(tcc_state, tcc_state->func_sub_sp_offset, addr, 1);
     }
   }
 }
@@ -1935,8 +1935,8 @@ ST_FUNC void gen_cvt_itof1(TCCState* tcc_state, int t)
       uint32_t off = 0;
       o(tcc_state, 0xE3500000|(r<<12));        /* cmp */
       r=fpr(tcc_state, get_reg(tcc_state, RC_FLOAT));
-      if(last_itod_magic) {
-	off=tcc_state->tccgen_ind+8-last_itod_magic;
+      if(tcc_state->last_itod_magic) {
+	off=tcc_state->tccgen_ind+8-tcc_state->last_itod_magic;
 	off/=4;
 	if(off>255)
 	  off=0;
@@ -1944,7 +1944,7 @@ ST_FUNC void gen_cvt_itof1(TCCState* tcc_state, int t)
       o(tcc_state, 0xBD1F0100|(r<<12)|off);    /* ldflts */
       if(!off) {
         o(tcc_state, 0xEA000000);              /* b */
-        last_itod_magic=tcc_state->tccgen_ind;
+        tcc_state->last_itod_magic=tcc_state->tccgen_ind;
         o(tcc_state, 0x4F800000);              /* 4294967296.0f */
       }
       o(tcc_state, 0xBE000100|dsize|(r2<<16)|(r2<<12)|r); /* adflt */

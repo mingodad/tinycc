@@ -152,8 +152,8 @@ ST_DATA const int reg_classes[NB_REGS] = {
     /* st0 */ RC_ST0
 };
 
-static unsigned long func_sub_sp_offset;
-static int func_ret_sub;
+//static unsigned long func_sub_sp_offset;
+//static int func_ret_sub;
 
 /* XXX: make it faster ? */
 void g(TCCState* tcc_state, int c)
@@ -819,13 +819,13 @@ void gfunc_prolog(tcc_state, CType *func_type)
     Sym *sym;
     CType *type;
 
-    func_ret_sub = 0;
+    tcc_state->func_ret_sub = 0;
     func_scratch = 0;
     tcc_state->tccgen_loc = 0;
 
     addr = PTR_SIZE * 2;
     tcc_state->tccgen_ind += FUNC_PROLOG_SIZE;
-    func_sub_sp_offset = tcc_state->tccgen_ind;
+    tcc_state->func_sub_sp_offset = tcc_state->tccgen_ind;
     reg_param_index = 0;
 
     sym = func_type->ref;
@@ -883,16 +883,16 @@ void gfunc_epilog(tcc_state)
     int v, saved_ind;
 
     o(tcc_state, 0xc9); /* leave */
-    if (func_ret_sub == 0) {
+    if (tcc_state->func_ret_sub == 0) {
         o(tcc_state, 0xc3); /* ret */
     } else {
         o(tcc_state, 0xc2); /* ret n */
-        g(tcc_state, func_ret_sub);
-        g(tcc_state, func_ret_sub >> 8);
+        g(tcc_state, tcc_state->func_ret_sub);
+        g(tcc_state, tcc_state->func_ret_sub >> 8);
     }
 
     saved_ind = tcc_state->tccgen_ind;
-    tcc_state->tccgen_ind = func_sub_sp_offset - FUNC_PROLOG_SIZE;
+    tcc_state->tccgen_ind = tcc_state->func_sub_sp_offset - FUNC_PROLOG_SIZE;
     /* align local size to word & save local variables */
     v = (func_scratch + -tcc_state->tccgen_loc + 15) & -16;
 
@@ -1384,8 +1384,8 @@ void gfunc_prolog(TCCState* tcc_state, CType *func_type)
     addr = PTR_SIZE * 2;
     tcc_state->tccgen_loc = 0;
     tcc_state->tccgen_ind += FUNC_PROLOG_SIZE;
-    func_sub_sp_offset = tcc_state->tccgen_ind;
-    func_ret_sub = 0;
+    tcc_state->func_sub_sp_offset = tcc_state->tccgen_ind;
+    tcc_state->func_ret_sub = 0;
 
     if (func_type->ref->c == FUNC_ELLIPSIS) {
         int seen_reg_num, seen_sse_num, seen_stack_size;
@@ -1522,17 +1522,17 @@ void gfunc_epilog(TCCState* tcc_state)
     int v, saved_ind;
 
     o(tcc_state, 0xc9); /* leave */
-    if (func_ret_sub == 0) {
+    if (tcc_state->func_ret_sub == 0) {
         o(tcc_state, 0xc3); /* ret */
     } else {
         o(tcc_state, 0xc2); /* ret n */
-        g(tcc_state, func_ret_sub);
-        g(tcc_state, func_ret_sub >> 8);
+        g(tcc_state, tcc_state->func_ret_sub);
+        g(tcc_state, tcc_state->func_ret_sub >> 8);
     }
     /* align local size to word & save local variables */
     v = (-tcc_state->tccgen_loc + 15) & -16;
     saved_ind = tcc_state->tccgen_ind;
-    tcc_state->tccgen_ind = func_sub_sp_offset - FUNC_PROLOG_SIZE;
+    tcc_state->tccgen_ind = tcc_state->func_sub_sp_offset - FUNC_PROLOG_SIZE;
     o(tcc_state, 0xe5894855);  /* push %rbp, mov %rsp, %rbp */
     o(tcc_state, 0xec8148);  /* sub rsp, stacksize */
     gen_le32(tcc_state, v);

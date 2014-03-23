@@ -719,6 +719,22 @@ struct TCCState {
     
     /* ------------ tccgen.c ------------ */
 
+#if TCC_TARGET_ARM
+    int func_sub_sp_offset, last_itod_magic;
+    int leaffunc;
+#else
+    unsigned long func_sub_sp_offset;
+    int func_ret_sub;
+#endif
+#ifdef CONFIG_TCC_BCHECK
+    unsigned long func_bound_offset;
+#endif
+#ifdef TCC_TARGET_C67
+    BOOL C67_invert_test;
+    int C67_compare_reg;
+#endif
+    //FILE *il_outfile;
+
     Section *tccgen_text_section, *tccgen_data_section, *tccgen_bss_section; /* predefined sections */
     Section *tccgen_cur_text_section; /* current section where function code is generated */
 #ifdef CONFIG_TCC_ASM
@@ -1262,7 +1278,7 @@ ST_DATA Section *lbounds_section; /* contains local data bound description */
 //ST_DATA Sym *tccgen_local_label_stack;
 //ST_DATA Sym *tccgen_global_label_stack;
 //ST_DATA Sym *tccgen_define_stack;
-//ST_DATA CType tcc_state->tccgen_char_pointer_type, tcc_state->tccgen_func_old_type, tcc_state->tccgen_int_type, tcc_state->tccgen_size_type;
+//ST_DATA CType tccgen_char_pointer_type, tccgen_func_old_type, tccgen_int_type, tccgen_size_type;
 //ST_DATA SValue tccgen___vstack[1+/*to make bcheck happy*/ VSTACK_SIZE], *tccgen_vtop;
 //#define vstack  (tcc_state->tccgen___vstack + 1)
 //ST_DATA int tcc_state->tccgen_rsym, tcc_state->tccgen_anon_sym, tcc_state->tccgen_ind, tcc_state->tccgen_loc;

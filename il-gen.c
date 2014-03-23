@@ -93,7 +93,7 @@ char *il_opcodes_str[] = {
 /* arguments variable numbers start from there */
 #define ARG_BASE 0x70000000
 
-static FILE *il_outfile;
+//static FILE *il_outfile;
 
 static void out_byte(int c)
 {

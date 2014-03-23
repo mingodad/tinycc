@@ -71,7 +71,7 @@ ST_DATA Section *lbounds_section; /* contains local data bound description */
 //ST_DATA int tccgen_last_line_num, tccgen_last_ind, tccgen_func_ind; /* debug last line number and pc */
 //ST_DATA char *tccgen_funcname;
 
-//ST_DATA CType tcc_state->tccgen_char_pointer_type, tcc_state->tccgen_func_old_type, tcc_state->tccgen_int_type, tcc_state->tccgen_size_type;
+//ST_DATA CType tccgen_char_pointer_type, tccgen_func_old_type, tccgen_int_type, tccgen_size_type;
 
 /* ------------------------------------------------------------------------- */
 static void gen_cast(TCCState* tcc_state, CType *type);

@@ -23,12 +23,12 @@
 /* only native compiler supports -run */
 #ifdef TCC_IS_NATIVE
 
-TCCState *_rt_tcc_state = 0;
 
 #ifdef CONFIG_TCC_BACKTRACE
 ST_DATA int rt_num_callers = 6;
 ST_DATA const char **rt_bound_error_msg;
 ST_DATA void *rt_prog_main;
+ST_DATA TCCState *rt_tcc_state = 0;
 #endif
 
 #ifdef _WIN32
@@ -98,8 +98,6 @@ LIBTCCAPI int tcc_run(TCCState *tcc_state, int argc, char **argv)
 
     if (tcc_relocate(tcc_state, TCC_RELOCATE_AUTO) < 0)
         return -1;
-
-    _rt_tcc_state = tcc_state; /*for now use this global*/
     
     prog_main = tcc_get_symbol_err(tcc_state, tcc_state->runtime_main);
 
@@ -107,6 +105,7 @@ LIBTCCAPI int tcc_run(TCCState *tcc_state, int argc, char **argv)
     if (tcc_state->do_debug) {
         set_exception_handler();
         rt_prog_main = prog_main;
+        rt_tcc_state = tcc_state; /*for now use this global*/
     }
 #endif
 
@@ -268,7 +267,7 @@ static addr_t rt_printline(addr_t wanted_pc, const char *msg)
     const char *incl_files[INCLUDE_STACK_SIZE];
     int incl_index, len, last_line_num, i;
     const char *str, *p;
-    TCCState *tcc_state = _rt_tcc_state;
+    TCCState *tcc_state = rt_tcc_state;
 
     Stab_Sym *stab_sym = NULL, *stab_sym_end, *sym;
     int stab_len = 0;
