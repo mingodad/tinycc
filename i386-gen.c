@@ -157,7 +157,7 @@ ST_FUNC void gsym(TCCState* tcc_state, int t)
 #define psym oad
 
 /* instruction + 4 bytes data. Return the address of the data */
-ST_FUNC int oad(tcc_state, int c, int s)
+ST_FUNC int oad(TCCState* tcc_state, int c, int s)
 {
     int ind1;
 
@@ -338,7 +338,7 @@ static void gadd_sp(TCCState* tcc_state, int val)
     }
 }
 
-static void gen_static_call(int v)
+static void gen_static_call(TCCState* tcc_state, int v)
 {
     Sym *sym;
 
@@ -605,7 +605,7 @@ ST_FUNC void gfunc_epilog(TCCState* tcc_state)
         greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym_data,
                tcc_state->tccgen_ind + 1, R_386_32);
         oad(tcc_state, 0xb8, 0); /* mov %eax, xxx */
-        gen_static_call(TOK___bound_local_new);
+        gen_static_call(tcc_state, TOK___bound_local_new);
 
         tcc_state->tccgen_ind = saved_ind;
         /* generate bound check local freeing */
@@ -613,7 +613,7 @@ ST_FUNC void gfunc_epilog(TCCState* tcc_state)
         greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym_data,
                tcc_state->tccgen_ind + 1, R_386_32);
         oad(tcc_state, 0xb8, 0); /* mov %eax, xxx */
-        gen_static_call(TOK___bound_local_delete);
+        gen_static_call(tcc_state, TOK___bound_local_delete);
 
         o(tcc_state, 0x585a); /* restore returned value, if any */
     }
@@ -634,7 +634,7 @@ ST_FUNC void gfunc_epilog(TCCState* tcc_state)
 #ifdef TCC_TARGET_PE
     if (v >= 4096) {
         oad(tcc_state, 0xb8, v); /* mov stacksize, %eax */
-        gen_static_call(TOK___chkstk); /* call __chkstk, (does the stackframe too) */
+        gen_static_call(tcc_state, TOK___chkstk); /* call __chkstk, (does the stackframe too) */
     } else
 #endif
     {
@@ -1014,7 +1014,7 @@ ST_FUNC void ggoto(TCCState* tcc_state)
 #ifdef CONFIG_TCC_BCHECK
 
 /* generate a bounded pointer addition */
-ST_FUNC void gen_bounded_ptr_add(void)
+ST_FUNC void gen_bounded_ptr_add(TCCState* tcc_state)
 {
     /* prepare fast i386 function call (args in eax and edx) */
     gv2(tcc_state, RC_EAX, RC_EDX);
@@ -1022,7 +1022,7 @@ ST_FUNC void gen_bounded_ptr_add(void)
     tcc_state->tccgen_vtop -= 2;
     save_regs(tcc_state, 0);
     /* do a fast function call */
-    gen_static_call(TOK___bound_ptr_add);
+    gen_static_call(tcc_state, TOK___bound_ptr_add);
     /* returned pointer is in eax */
     tcc_state->tccgen_vtop++;
     tcc_state->tccgen_vtop->r = TREG_EAX | VT_BOUNDED;
@@ -1032,7 +1032,7 @@ ST_FUNC void gen_bounded_ptr_add(void)
 
 /* patch pointer addition in vtop so that pointer dereferencing is
    also tested */
-ST_FUNC void gen_bounded_ptr_deref(void)
+ST_FUNC void gen_bounded_ptr_deref(TCCState* tcc_state)
 {
     int func;
     int size, align;

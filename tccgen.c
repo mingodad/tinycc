@@ -662,7 +662,7 @@ static void gaddrof(TCCState* tcc_state)
 
 #ifdef CONFIG_TCC_BCHECK
 /* generate lvalue bound code */
-static void gbound(void)
+static void gbound(TCCState* tcc_state)
 {
     int lval_type;
     CType type1;
@@ -678,12 +678,12 @@ static void gbound(void)
             tcc_state->tccgen_vtop->type.t = VT_INT;
             gaddrof(tcc_state);
             vpushi(tcc_state, 0);
-            gen_bounded_ptr_add();
+            gen_bounded_ptr_add(tcc_state);
             tcc_state->tccgen_vtop->r |= lval_type;
             tcc_state->tccgen_vtop->type = type1;
         }
         /* then check for dereferencing */
-        gen_bounded_ptr_deref();
+        gen_bounded_ptr_deref(tcc_state);
     }
 }
 #endif
@@ -765,7 +765,7 @@ ST_FUNC int gv(TCCState* tcc_state, int rc)
         }
 #ifdef CONFIG_TCC_BCHECK
         if (tcc_state->tccgen_vtop->r & VT_MUSTBOUND) 
-            gbound();
+            gbound(tcc_state);
 #endif
 
         r = tcc_state->tccgen_vtop->r & VT_VALMASK;
@@ -1710,7 +1710,7 @@ ST_FUNC void gen_op(TCCState* tcc_state, int op)
                     vswap(tcc_state);
                     gen_op(tcc_state, '-');
                 }
-                gen_bounded_ptr_add();
+                gen_bounded_ptr_add(tcc_state);
             } else
 #endif
             {
@@ -2537,7 +2537,7 @@ ST_FUNC void vstore(TCCState* tcc_state)
         /* bound check case */
         if (tcc_state->tccgen_vtop[-1].r & VT_MUSTBOUND) {
             vswap(tcc_state);
-            gbound();
+            gbound(tcc_state);
             vswap(tcc_state);
         }
 #endif

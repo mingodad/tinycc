@@ -1315,7 +1315,7 @@ ST_FUNC int expr_const(TCCState* tcc_state);
 ST_FUNC void gen_inline_functions(TCCState* tcc_state);
 ST_FUNC void decl(TCCState* tcc_state, int l);
 #if defined CONFIG_TCC_BCHECK || defined TCC_TARGET_C67
-ST_FUNC Sym *get_sym_ref(tcc_state, CType *type, Section *sec, unsigned long offset, unsigned long size);
+ST_FUNC Sym *get_sym_ref(TCCState* tcc_state, CType *type, Section *sec, unsigned long offset, unsigned long size);
 #endif
 #if defined TCC_TARGET_X86_64 && !defined TCC_TARGET_PE
 ST_FUNC int classify_x86_64_va_arg(CType *ty);
@@ -1417,8 +1417,8 @@ ST_FUNC void gen_addrpc32(TCCState* tcc_state, int r, Sym *sym, int c);
 #endif
 
 #ifdef CONFIG_TCC_BCHECK
-ST_FUNC void gen_bounded_ptr_add(void);
-ST_FUNC void gen_bounded_ptr_deref(void);
+ST_FUNC void gen_bounded_ptr_add(TCCState* tcc_state);
+ST_FUNC void gen_bounded_ptr_deref(TCCState* tcc_state);
 #endif
 
 /* ------------ x86_64-gen.c ------------ */
