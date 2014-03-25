@@ -191,7 +191,17 @@ ST_FUNC void arm_init(struct TCCState *tcc_state)
 #define func_float_type tcc_state->tccgen_func_old_type
 #define func_double_type tcc_state->tccgen_func_old_type
 #define func_ldouble_type tcc_state->tccgen_func_old_type
-ST_FUNC void arm_init(struct TCCState *s) {}
+ST_FUNC void arm_init(struct TCCState *s)
+{
+#if !defined (TCC_ARM_VFP)
+    tcc_warning("Support for FPA is deprecated and will be removed in next"
+                " release");
+#endif
+#if !defined (TCC_ARM_EABI)
+    tcc_warning("Support for OABI is deprecated and will be removed in next"
+                " release");
+#endif
+}
 #endif
 
 static int two2mask(int a,int b) {
