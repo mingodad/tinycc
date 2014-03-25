@@ -1377,9 +1377,10 @@ ST_FUNC void tcc_add_runtime(TCCState *tcc_state)
     if (!tcc_state->nostdlib) {
         tcc_add_library(tcc_state, "c");
 #ifdef CONFIG_USE_LIBGCC
-        if (!tcc_state->static_link)
+        if (!tcc_state->static_link) {
             tcc_add_file(tcc_state, TCC_LIBGCC);
-        else
+            tcc_add_support(tcc_state, "libtcc1.a");
+	} else
             tcc_add_support(tcc_state, "libtcc1.a");
 #else
         tcc_add_support(tcc_state, "libtcc1.a");
