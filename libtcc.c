@@ -1169,6 +1169,8 @@ LIBTCCAPI void tcc_delete(TCCState *tcc_state)
 # endif
 #endif
 
+    if(tcc_state->sym_attrs) tcc_free(tcc_state->sym_attrs);
+
     tcc_cleanup(tcc_state);
     tcc_free(tcc_state);
 }

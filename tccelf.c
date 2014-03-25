@@ -2424,6 +2424,7 @@ static int elf_output_file(TCCState *tcc_state, const char *filename)
     tcc_free(sec_order);
     tcc_free(phdr);
     tcc_free(tcc_state->sym_attrs);
+    tcc_state->sym_attrs = NULL;
     return ret;
 }
 
