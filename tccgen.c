@@ -329,6 +329,7 @@ static void vsetc(TCCState* tcc_state, CType *type, int r, CValue *vc)
 void vpush(TCCState* tcc_state, CType *type)
 {
     CValue cval;
+    memset(&cval, 0, sizeof(CValue));
     vsetc(tcc_state, type, VT_CONST, &cval);
 }
 
@@ -336,6 +337,7 @@ void vpush(TCCState* tcc_state, CType *type)
 ST_FUNC void vpushi(TCCState* tcc_state, int v)
 {
     CValue cval;
+    memset(&cval, 0, sizeof(CValue));
     cval.i = v;
     vsetc(tcc_state, &tcc_state->tccgen_int_type, VT_CONST, &cval);
 }
@@ -344,6 +346,7 @@ ST_FUNC void vpushi(TCCState* tcc_state, int v)
 static void vpushs(TCCState* tcc_state, long long v)
 {
   CValue cval;
+  memset(&cval, 0, sizeof(CValue));
   if (PTR_SIZE == 4)
     cval.i = (int)v;
   else
@@ -355,6 +358,7 @@ static void vpushs(TCCState* tcc_state, long long v)
 void vpush64(TCCState* tcc_state, int ty, unsigned long long v)
 {
     CValue cval;
+    memset(&cval, 0, sizeof(CValue));
     CType ctype;
     ctype.t = ty;
     ctype.ref = NULL;
@@ -372,6 +376,7 @@ static inline void vpushll(TCCState* tcc_state, long long v)
 static inline void vpushsym(TCCState* tcc_state, CType *type, Sym *sym)
 {
     CValue cval;
+    memset(&cval, 0, sizeof(CValue));
 
     cval.ull = 0;
     vsetc(tcc_state, type, VT_CONST | VT_SYM, &cval);
@@ -446,6 +451,7 @@ ST_FUNC void vpush_global_sym(TCCState* tcc_state, CType *type, int v)
 ST_FUNC void vset(TCCState* tcc_state, CType *type, int r, int v)
 {
     CValue cval;
+    memset(&cval, 0, sizeof(CValue));
 
     cval.i = v;
     vsetc(tcc_state, type, r, &cval);
@@ -731,6 +737,7 @@ ST_FUNC int gv(TCCState* tcc_state, int rc)
             unsigned long offset;
 #if defined(TCC_TARGET_ARM) && !defined(TCC_ARM_VFP)
             CValue check;
+            memset(&check, 0, sizeof(CValue));
 #endif
             
             /* XXX: unify with initializers handling ? */
@@ -5076,8 +5083,8 @@ static void init_putv(TCCState* tcc_state, CType *type, Section *sec, unsigned l
     int saved_global_expr, bt, bit_pos, bit_size;
     void *ptr;
     unsigned long long bit_mask;
-    CType dtype;
 
+    CType dtype;
     switch(expr_type) {
     case EXPR_VAL:
         vpushi(tcc_state, v);
