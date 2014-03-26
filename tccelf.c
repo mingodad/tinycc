@@ -1027,6 +1027,9 @@ static void put_got_entry(TCCState *tcc_state,
     if (tcc_state->dynsym) {
         sym = &((ElfW(Sym) *)tcc_state->tccgen_symtab_section->data)[sym_index];
         name = (char *) tcc_state->tccgen_symtab_section->link->data + sym->st_name;
+        if (tcc_state->sym_attrs[sym_index].has_plt_entry)
+            return;
+        tcc_state->sym_attrs[sym_index].has_plt_entry = 1;
         offset = sym->st_value;
 #if defined(TCC_TARGET_I386) || defined(TCC_TARGET_X86_64)
         if (reloc_type ==
