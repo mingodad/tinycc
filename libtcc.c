@@ -398,7 +398,7 @@ ST_FUNC Section *new_section(TCCState *tcc_state, const char *name, int sh_type,
 {
     Section *sec;
 
-    sec = tcc_mallocz(tcc_state, sizeof(Section) + strlen(name)+1);
+    sec = tcc_mallocz(tcc_state, sizeof(Section) + strlen(name));
     strcpy(sec->name, name);
     sec->sh_type = sh_type;
     sec->sh_flags = sh_flags;
