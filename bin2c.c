@@ -367,7 +367,7 @@ static int processFile(const char *fileName, long int from, long int to)
 static void handleUnknownOption(const char *s)
 {
     printfError(unknownOption, s);
-    fprintf(stderr, tryHelp);
+    fprintf(stderr, "%s", tryHelp);
     panic();
 }
 
@@ -377,7 +377,7 @@ static void openOutputFile(const char *fileName)
     /* Be sure that a file name is given */
     if (!fileName) {
         printfError(noOutputFilesAreNamed);
-        fprintf(stderr, tryHelp);
+        fprintf(stderr, "%s", tryHelp);
         panic();
     }
     
@@ -400,7 +400,7 @@ static void openHeaderFile(const char *fileName)
     /* Be sure that a file name is given */
     if (!fileName) {
         printfError(noHeaderFilesAreNamed);
-        fprintf(stderr, tryHelp);
+        fprintf(stderr, "%s", tryHelp);
         panic();
     }
     
@@ -440,7 +440,7 @@ static void openFuncFile(const char *fileName)
     /* Be sure that a file name is given */
     if (!fileName) {
         printfError(noHeaderFilesAreNamed);
-        fprintf(stderr, tryHelp);
+        fprintf(stderr, "%s", tryHelp);
         panic();
     }
     
@@ -469,14 +469,14 @@ static void setSymbolName(char *name)
     
     if (symbolName) {
         printfError(symbolNameGiven);
-        fprintf(stderr, tryHelp);
+        fprintf(stderr, "%s", tryHelp);
         panic();
     }
 
     /* Be sure that a symbol name is given */
     if (!name) {
         printfError(noSymbolName);
-        fprintf(stderr, tryHelp);
+        fprintf(stderr, "%s", tryHelp);
         panic();
     }
     
