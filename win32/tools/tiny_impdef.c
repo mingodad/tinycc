@@ -28,7 +28,7 @@
 #include <io.h>
 #include <malloc.h>
 
-char *get_export_names(int fd);
+char *get_export_names(tcc_state, int fd);
 #define tcc_free free
 #define tcc_realloc realloc
 
@@ -115,7 +115,7 @@ usage:
     if (v)
         printf("--> %s\n", file);
 
-    p = get_export_names(fileno(fp));
+    p = get_export_names(tcc_state, fileno(fp));
     if (NULL == p) {
         fprintf(stderr, "tiny_impdef: could not get exported function names.\n");
         goto the_end;
@@ -161,7 +161,7 @@ int read_mem(int fd, unsigned offset, void *buffer, unsigned len)
 /* -------------------------------------------------------------- */
 #endif
 
-char *get_export_names(int fd)
+char *get_export_names(TCCState* tcc_state, int fd)
 {
     int l, i, n, n0;
     char *p;
@@ -225,7 +225,7 @@ found:
         namep += sizeof ptr;
         for (l = 0;;) {
             if (n+1 >= n0)
-                p = tcc_realloc(p, n0 = n0 ? n0 * 2 : 256);
+                p = tcc_realloc(tcc_state, p, n0 = n0 ? n0 * 2 : 256);
             if (!read_mem(fd, ptr - ref + l, p + n, 1) || ++l >= 80) {
                 tcc_free(p), p = NULL;
                 goto the_end;

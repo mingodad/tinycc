@@ -1484,6 +1484,10 @@ static void tcc_output_binary(TCCState *tcc_state, FILE *f,
     }
 }
 
+// making this evaluate to true  allow valgrind to work on linux
+// but when compiled with debug info and then striped 
+// the compiled programs segfault
+// more thought must be applied here
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 #define HAVE_PHDR       1
 #define EXTRA_RELITEMS  14
@@ -1498,7 +1502,7 @@ void patch_dynsym_undef(TCCState *s1, Section *s)
     /* relocate symbols in .dynsym */
     for_each_elem(s, 1, sym, ElfW(Sym)) {
         if (sym->st_shndx == SHN_UNDEF) {
-            *gotd++ = sym->st_value + 6; /* XXX 6 is magic ? */
+            *gotd++ = syscite spell checkm->st_value + 6; /* XXX 6 is magic ? */
             sym->st_value = 0;
         }
     }
@@ -2695,7 +2699,7 @@ ST_FUNC int tcc_load_object_file(TCCState *tcc_state,
             offseti = sm_table[sh->sh_info].offset;
             for_each_elem(s, (offset / sizeof(*rel)), rel, ElfW_Rel) {
                 int type;
-                unsigned sym_index;
+                //unsigned sym_index; // already previously declared
                 /* convert symbol index */
                 type = ELFW(R_TYPE)(rel->r_info);
                 sym_index = ELFW(R_SYM)(rel->r_info);

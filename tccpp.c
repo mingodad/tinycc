@@ -2641,7 +2641,7 @@ static int macro_subst_tok(TCCState* tcc_state, TokenString *tok_str,
 {
     Sym *args, *sa, *sa1;
     int mstr_allocated, parlevel, *mstr, t, t1, spc;
-    const int *p;
+
     TokenString str;
     char *cstrval;
     CString cstr;
@@ -2690,7 +2690,7 @@ static int macro_subst_tok(TCCState* tcc_state, TokenString *tok_str,
                next token. XXX: find better solution */
         redo:
             if (tcc_state->tccpp_macro_ptr) {
-                p = tcc_state->tccpp_macro_ptr;
+                const int *p = tcc_state->tccpp_macro_ptr;
                 while (is_space(t = *p) || TOK_LINEFEED == t) 
                     ++p;
                 if (t == 0 && can_read_stream) {

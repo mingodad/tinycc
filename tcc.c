@@ -340,6 +340,8 @@ int main(int argc, char **argv)
     int ret, optind, i, bench;
     int64_t start_time = 0;
     const char *first_file = NULL;
+    
+    //getchar();
 
     tcc_state = tcc_new();
     tcc_state->output_type = TCC_OUTPUT_EXE;

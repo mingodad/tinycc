@@ -187,21 +187,21 @@ ST_FUNC void arm_init(struct TCCState *tcc_state)
 
     float_abi = tcc_state->float_abi;
 #ifndef TCC_ARM_HARDFLOAT
-    tcc_warning("soft float ABI currently not supported: default to softfp");
+    tcc_warning(tcc_state, "soft float ABI currently not supported: default to softfp");
 #endif
 }
 #else
 #define func_float_type tcc_state->tccgen_func_old_type
 #define func_double_type tcc_state->tccgen_func_old_type
 #define func_ldouble_type tcc_state->tccgen_func_old_type
-ST_FUNC void arm_init(struct TCCState *s)
+ST_FUNC void arm_init(struct TCCState *tcc_state)
 {
 #if !defined (TCC_ARM_VFP)
-    tcc_warning("Support for FPA is deprecated and will be removed in next"
+    tcc_warning(tcc_state, "Support for FPA is deprecated and will be removed in next"
                 " release");
 #endif
 #if !defined (TCC_ARM_EABI)
-    tcc_warning("Support for OABI is deprecated and will be removed in next"
+    tcc_warning(tcc_state, "Support for OABI is deprecated and will be removed in next"
                 " release");
 #endif
 }

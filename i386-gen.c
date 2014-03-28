@@ -217,7 +217,7 @@ ST_FUNC void load(TCCState* tcc_state, int r, SValue *sv)
 
 #ifdef TCC_TARGET_PE
     SValue v2;
-    sv = pe_getimport(sv, &v2);
+    sv = pe_getimport(tcc_state, sv, &v2);
 #endif
 
     fr = sv->r;
@@ -293,7 +293,7 @@ ST_FUNC void store(TCCState* tcc_state, int r, SValue *v)
 
 #ifdef TCC_TARGET_PE
     SValue v2;
-    v = pe_getimport(v, &v2);
+    v = pe_getimport(tcc_state, v, &v2);
 #endif
 
     ft = v->type.t;

@@ -348,7 +348,7 @@ static void gen_modrm(TCCState* tcc_state, int op_reg, int r, Sym *sym, int c)
 static void gen_modrm64(TCCState* tcc_state, int opcode, int op_reg, int r, Sym *sym, int c)
 {
     int is_got;
-    is_got = (op_reg & TREG_MEM) && !(sym->type.t & VT_STATIC);
+    is_got = (op_reg & TREG_MEM) && !(sym && (sym->type.t & VT_STATIC));
     orex(tcc_state, 1, r, op_reg, opcode);
     gen_modrm_impl(tcc_state, op_reg, r, sym, c, is_got);
 }
@@ -362,7 +362,7 @@ void load(TCCState* tcc_state, int r, SValue *sv)
 
 #ifdef TCC_TARGET_PE
     SValue v2;
-    sv = pe_getimport(sv, &v2);
+    sv = pe_getimport(tcc_state, sv, &v2);
 #endif
 
     fr = sv->r;
@@ -526,7 +526,7 @@ void store(TCCState* tcc_state, int r, SValue *v)
 
 #ifdef TCC_TARGET_PE
     SValue v2;
-    v = pe_getimport(v, &v2);
+    v = pe_getimport(tcc_state, v, &v2);
 #endif
 
     ft = v->type.t;
@@ -644,7 +644,7 @@ static int func_scratch;
    all the parameters in call order. This functions pops all the
    parameters and the function address. */
 
-void gen_offs_sp(int b, int r, int d)
+void gen_offs_sp(TCCState* tcc_state, int b, int r, int d)
 {
     orex(tcc_state, 1, 0, r & 0x100 ? 0 : r, b);
     if (d == (char)d) {
@@ -694,7 +694,7 @@ int gfunc_arg_size(CType *type) {
     return type_size(type, &align);
 }
 
-void gfunc_call(tcc_state, int nb_args)
+void gfunc_call(TCCState *tcc_state, int nb_args)
 {
     int size, r, args_size, i, d, bt, struct_size;
     int arg;
@@ -722,7 +722,7 @@ void gfunc_call(tcc_state, int nb_args)
             size = (size + 15) & ~15;
             /* generate structure store */
             r = get_reg(tcc_state, RC_INT);
-            gen_offs_sp(0x8d, r, struct_size);
+            gen_offs_sp(tcc_state, 0x8d, r, struct_size);
             struct_size += size;
 
             /* generate memcpy call */
@@ -732,7 +732,7 @@ void gfunc_call(tcc_state, int nb_args)
             --tcc_state->tccgen_vtop;
         } else if (bt == VT_LDOUBLE) {
             gv(tcc_state, RC_ST0);
-            gen_offs_sp(0xdb, 0x107, struct_size);
+            gen_offs_sp(tcc_state, 0xdb, 0x107, struct_size);
             struct_size += 16;
         }
     }
@@ -753,11 +753,11 @@ void gfunc_call(tcc_state, int nb_args)
             size = (size + 15) & ~15;
             if (arg >= REGN) {
                 d = get_reg(tcc_state, RC_INT);
-                gen_offs_sp(0x8d, d, struct_size);
-                gen_offs_sp(0x89, d, arg*8);
+                gen_offs_sp(tcc_state, 0x8d, d, struct_size);
+                gen_offs_sp(tcc_state, 0x89, d, arg*8);
             } else {
                 d = arg_prepare_reg(arg);
-                gen_offs_sp(0x8d, d, struct_size);
+                gen_offs_sp(tcc_state, 0x8d, d, struct_size);
             }
             struct_size += size;
         } else {
@@ -765,7 +765,7 @@ void gfunc_call(tcc_state, int nb_args)
                 gv(tcc_state, RC_XMM0); /* only use one float register */
                 if (arg >= REGN) {
                     /* movq %xmm0, j*8(%rsp) */
-                    gen_offs_sp(0xd60f66, 0x100, arg*8);
+                    gen_offs_sp(tcc_state, 0xd60f66, 0x100, arg*8);
                 } else {
                     /* movaps %xmm0, %xmmN */
                     o(tcc_state, 0x280f);
@@ -785,7 +785,7 @@ void gfunc_call(tcc_state, int nb_args)
                 
                 r = gv(tcc_state, RC_INT);
                 if (arg >= REGN) {
-                    gen_offs_sp(0x89, r, arg*8);
+                    gen_offs_sp(tcc_state, 0x89, r, arg*8);
                 } else {
                     d = arg_prepare_reg(arg);
                     orex(tcc_state, 1, d, r, 0x89); /* mov */
@@ -813,7 +813,7 @@ void gfunc_call(tcc_state, int nb_args)
 #define FUNC_PROLOG_SIZE 11
 
 /* generate function prolog of type 't' */
-void gfunc_prolog(tcc_state, CType *func_type)
+void gfunc_prolog(TCCState *tcc_state, CType *func_type)
 {
     int addr, reg_param_index, bt, size;
     Sym *sym;
@@ -878,7 +878,7 @@ void gfunc_prolog(tcc_state, CType *func_type)
 }
 
 /* generate function epilog */
-void gfunc_epilog(tcc_state)
+void gfunc_epilog(TCCState *tcc_state)
 {
     int v, saved_ind;
 
@@ -909,7 +909,7 @@ void gfunc_epilog(tcc_state)
     }
 
     tcc_state->tccgen_cur_text_section->data_offset = saved_ind;
-    pe_add_unwind_data(tcc_state->tccgen_ind, saved_ind, v);
+    pe_add_unwind_data(tcc_state, tcc_state->tccgen_ind, saved_ind, v);
     tcc_state->tccgen_ind = tcc_state->tccgen_cur_text_section->data_offset;
 }
 

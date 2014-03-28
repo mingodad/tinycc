@@ -3793,7 +3793,7 @@ ST_FUNC void unary(TCCState* tcc_state)
     case TOK_builtin_frame_address:
         {
             int level;
-            CType type;
+            //CType type; //this was already previously declared
             next(tcc_state);
             skip(tcc_state, '(');
             if (tcc_state->tccpp_tok != TOK_CINT || tcc_state->tccpp_tokc.i < 0) {
@@ -3831,7 +3831,7 @@ ST_FUNC void unary(TCCState* tcc_state)
 #else
     case TOK_builtin_va_arg_types:
         {
-            CType type;
+            //CType type; //this was already previously declared
             next(tcc_state);
             skip(tcc_state, '(');
             parse_type(tcc_state, &type);

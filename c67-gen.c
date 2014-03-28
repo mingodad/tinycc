@@ -193,7 +193,7 @@ do {\
 FILE *f = NULL;
 #endif
 
-void C67_g(int c)
+void C67_g(TCCState* tcc_state, int c)
 {
     int ind1;
 
@@ -266,7 +266,7 @@ int ConvertRegToRegClass(int r)
 
 // map TCC reg to C67 reg number
 
-int C67_map_regn(int r)
+int C67_map_regn(TCCState* tcc_state, int r)
 {
     if (r == 0)			// normal tcc regs
 	return 0x2;		// A2
@@ -307,7 +307,7 @@ int C67_map_regn(int r)
 // tcc reg 1 -> A3 -> X
 // tcc reg      B2 -> 3
 
-int C67_map_regc(int r)
+int C67_map_regc(TCCState* tcc_state, int r)
 {
     if (r == 0)			// normal tcc regs
 	return 0x5;
@@ -328,7 +328,7 @@ int C67_map_regc(int r)
 
 // map TCC reg to C67 reg side A or B
 
-int C67_map_regs(int r)
+int C67_map_regs(TCCState* tcc_state, int r)
 {
     if (r == 0)			// normal tcc regs
 	return 0x0;
@@ -356,7 +356,7 @@ int C67_map_regs(int r)
     return 0;
 }
 
-int C67_map_S12(char *s)
+int C67_map_S12(TCCState* tcc_state, char *s)
 {
     if (strstr(s, ".S1") != NULL)
 	return 0;
@@ -368,7 +368,7 @@ int C67_map_S12(char *s)
     return 0;
 }
 
-int C67_map_D12(char *s)
+int C67_map_D12(TCCState* tcc_state, char *s)
 {
     if (strstr(s, ".D1") != NULL)
 	return 0;
@@ -382,7 +382,7 @@ int C67_map_D12(char *s)
 
 
 
-void C67_asm(char *s, int a, int b, int c)
+void C67_asm(TCCState* tcc_state, char *s, int a, int b, int c)
 {
     BOOL xpath;
 
@@ -394,14 +394,14 @@ void C67_asm(char *s, int a, int b, int c)
 #endif
 
     if (strstr(s, "MVKL") == s) {
-	C67_g((C67_map_regn(b) << 23) |
-	      ((a & 0xffff) << 7) | (0x0a << 2) | (C67_map_regs(b) << 1));
+	C67_g(tcc_state, (C67_map_regn(tcc_state, b) << 23) |
+	      ((a & 0xffff) << 7) | (0x0a << 2) | (C67_map_regs(tcc_state, b) << 1));
     } else if (strstr(s, "MVKH") == s) {
-	C67_g((C67_map_regn(b) << 23) |
+	C67_g(tcc_state, (C67_map_regn(tcc_state, b) << 23) |
 	      (((a >> 16) & 0xffff) << 7) |
-	      (0x1a << 2) | (C67_map_regs(b) << 1));
+	      (0x1a << 2) | (C67_map_regs(tcc_state, b) << 1));
     } else if (strstr(s, "STW.D SP POST DEC") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//src
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//src
 	      (15 << 18) |	//SP B15
 	      (2 << 13) |	//ucst5 (must keep 8 byte boundary !!)
 	      (0xa << 9) |	//mode a = post dec ucst
@@ -409,10 +409,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (1 << 7) |	//y D1/D2 use B side
 	      (7 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of src
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of src
 	      (0 << 0));	//parallel
     } else if (strstr(s, "STB.D *+SP[A0]") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//src
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//src
 	      (15 << 18) |	//base reg A15
 	      (0 << 13) |	//offset reg A0
 	      (5 << 9) |	//mode 5 = pos offset, base reg + off reg
@@ -420,10 +420,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (0 << 7) |	//y D1/D2 A side
 	      (3 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU 
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of src
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of src
 	      (0 << 0));	//parallel
     } else if (strstr(s, "STH.D *+SP[A0]") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//src
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//src
 	      (15 << 18) |	//base reg A15
 	      (0 << 13) |	//offset reg A0
 	      (5 << 9) |	//mode 5 = pos offset, base reg + off reg
@@ -431,10 +431,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (0 << 7) |	//y D1/D2 A side
 	      (5 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of src
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of src
 	      (0 << 0));	//parallel
     } else if (strstr(s, "STB.D *+SP[A0]") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//src
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//src
 	      (15 << 18) |	//base reg A15
 	      (0 << 13) |	//offset reg A0
 	      (5 << 9) |	//mode 5 = pos offset, base reg + off reg
@@ -442,10 +442,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (0 << 7) |	//y D1/D2 A side
 	      (3 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU 
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of src
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of src
 	      (0 << 0));	//parallel
     } else if (strstr(s, "STH.D *+SP[A0]") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//src
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//src
 	      (15 << 18) |	//base reg A15
 	      (0 << 13) |	//offset reg A0
 	      (5 << 9) |	//mode 5 = pos offset, base reg + off reg
@@ -453,10 +453,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (0 << 7) |	//y D1/D2 A side
 	      (5 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of src
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of src
 	      (0 << 0));	//parallel
     } else if (strstr(s, "STW.D *+SP[A0]") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//src
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//src
 	      (15 << 18) |	//base reg A15
 	      (0 << 13) |	//offset reg A0
 	      (5 << 9) |	//mode 5 = pos offset, base reg + off reg
@@ -464,55 +464,55 @@ void C67_asm(char *s, int a, int b, int c)
 	      (0 << 7) |	//y D1/D2 A side
 	      (7 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU 
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of src
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of src
 	      (0 << 0));	//parallel
     } else if (strstr(s, "STW.D *") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//src
-	      (C67_map_regn(b) << 18) |	//base reg A0
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//src
+	      (C67_map_regn(tcc_state, b) << 18) |	//base reg A0
 	      (0 << 13) |	//cst5
 	      (1 << 9) |	//mode 1 = pos cst offset
 	      (0 << 8) |	//r (LDDW bit 0)
-	      (C67_map_regs(b) << 7) |	//y D1/D2 base reg side
+	      (C67_map_regs(tcc_state, b) << 7) |	//y D1/D2 base reg side
 	      (7 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU 
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of src
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of src
 	      (0 << 0));	//parallel
     } else if (strstr(s, "STH.D *") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//src
-	      (C67_map_regn(b) << 18) |	//base reg A0
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//src
+	      (C67_map_regn(tcc_state, b) << 18) |	//base reg A0
 	      (0 << 13) |	//cst5
 	      (1 << 9) |	//mode 1 = pos cst offset
 	      (0 << 8) |	//r (LDDW bit 0)
-	      (C67_map_regs(b) << 7) |	//y D1/D2 base reg side
+	      (C67_map_regs(tcc_state, b) << 7) |	//y D1/D2 base reg side
 	      (5 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU 
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of src
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of src
 	      (0 << 0));	//parallel
     } else if (strstr(s, "STB.D *") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//src
-	      (C67_map_regn(b) << 18) |	//base reg A0
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//src
+	      (C67_map_regn(tcc_state, b) << 18) |	//base reg A0
 	      (0 << 13) |	//cst5
 	      (1 << 9) |	//mode 1 = pos cst offset
 	      (0 << 8) |	//r (LDDW bit 0)
-	      (C67_map_regs(b) << 7) |	//y D1/D2 base reg side
+	      (C67_map_regs(tcc_state, b) << 7) |	//y D1/D2 base reg side
 	      (3 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU 
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of src
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of src
 	      (0 << 0));	//parallel
     } else if (strstr(s, "STW.D +*") == s) {
 	ALWAYS_ASSERT(c < 32);
-	C67_g((C67_map_regn(a) << 23) |	//src
-	      (C67_map_regn(b) << 18) |	//base reg A0
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//src
+	      (C67_map_regn(tcc_state, b) << 18) |	//base reg A0
 	      (c << 13) |	//cst5
 	      (1 << 9) |	//mode 1 = pos cst offset
 	      (0 << 8) |	//r (LDDW bit 0)
-	      (C67_map_regs(b) << 7) |	//y D1/D2 base reg side
+	      (C67_map_regs(tcc_state, b) << 7) |	//y D1/D2 base reg side
 	      (7 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU 
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of src
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of src
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDW.D SP PRE INC") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//dst
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//dst
 	      (15 << 18) |	//base reg B15
 	      (2 << 13) |	//ucst5 (must keep 8 byte boundary)
 	      (9 << 9) |	//mode 9 = pre inc ucst5
@@ -520,10 +520,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (1 << 7) |	//y D1/D2  B side
 	      (6 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDDW.D SP PRE INC") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//dst
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//dst
 	      (15 << 18) |	//base reg B15
 	      (1 << 13) |	//ucst5 (must keep 8 byte boundary)
 	      (9 << 9) |	//mode 9 = pre inc ucst5
@@ -531,10 +531,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (1 << 7) |	//y D1/D2  B side
 	      (6 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDW.D *+SP[A0]") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//dst
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//dst
 	      (15 << 18) |	//base reg A15
 	      (0 << 13) |	//offset reg A0
 	      (5 << 9) |	//mode 5 = pos offset, base reg + off reg
@@ -542,10 +542,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (0 << 7) |	//y D1/D2  A side
 	      (6 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDDW.D *+SP[A0]") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//dst
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//dst
 	      (15 << 18) |	//base reg A15
 	      (0 << 13) |	//offset reg A0
 	      (5 << 9) |	//mode 5 = pos offset, base reg + off reg
@@ -553,10 +553,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (0 << 7) |	//y D1/D2  A side
 	      (6 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDH.D *+SP[A0]") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//dst
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//dst
 	      (15 << 18) |	//base reg A15
 	      (0 << 13) |	//offset reg A0
 	      (5 << 9) |	//mode 5 = pos offset, base reg + off reg
@@ -564,10 +564,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (0 << 7) |	//y D1/D2  A side
 	      (4 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDB.D *+SP[A0]") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//dst
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//dst
 	      (15 << 18) |	//base reg A15
 	      (0 << 13) |	//offset reg A0
 	      (5 << 9) |	//mode 5 = pos offset, base reg + off reg
@@ -575,10 +575,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (0 << 7) |	//y D1/D2  A side
 	      (2 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDHU.D *+SP[A0]") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//dst
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//dst
 	      (15 << 18) |	//base reg A15
 	      (0 << 13) |	//offset reg A0
 	      (5 << 9) |	//mode 5 = pos offset, base reg + off reg
@@ -586,10 +586,10 @@ void C67_asm(char *s, int a, int b, int c)
 	      (0 << 7) |	//y D1/D2  A side
 	      (0 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDBU.D *+SP[A0]") == s) {
-	C67_g((C67_map_regn(a) << 23) |	//dst
+	C67_g(tcc_state, (C67_map_regn(tcc_state, a) << 23) |	//dst
 	      (15 << 18) |	//base reg A15
 	      (0 << 13) |	//offset reg A0
 	      (5 << 9) |	//mode 5 = pos offset, base reg + off reg
@@ -597,233 +597,233 @@ void C67_asm(char *s, int a, int b, int c)
 	      (0 << 7) |	//y D1/D2  A side
 	      (1 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(a) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, a) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDW.D *") == s) {
-	C67_g((C67_map_regn(b) << 23) |	//dst
-	      (C67_map_regn(a) << 18) |	//base reg A15
+	C67_g(tcc_state, (C67_map_regn(tcc_state, b) << 23) |	//dst
+	      (C67_map_regn(tcc_state, a) << 18) |	//base reg A15
 	      (0 << 13) |	//cst5
 	      (1 << 9) |	//mode 1 = pos cst offset
 	      (0 << 8) |	//r (LDDW bit 0)
-	      (C67_map_regs(a) << 7) |	//y D1/D2  src side
+	      (C67_map_regs(tcc_state, a) << 7) |	//y D1/D2  src side
 	      (6 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(b) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, b) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDDW.D *") == s) {
-	C67_g((C67_map_regn(b) << 23) |	//dst
-	      (C67_map_regn(a) << 18) |	//base reg A15
+	C67_g(tcc_state, (C67_map_regn(tcc_state, b) << 23) |	//dst
+	      (C67_map_regn(tcc_state, a) << 18) |	//base reg A15
 	      (0 << 13) |	//cst5
 	      (1 << 9) |	//mode 1 = pos cst offset
 	      (1 << 8) |	//r (LDDW bit 1)
-	      (C67_map_regs(a) << 7) |	//y D1/D2  src side
+	      (C67_map_regs(tcc_state, a) << 7) |	//y D1/D2  src side
 	      (6 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(b) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, b) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDH.D *") == s) {
-	C67_g((C67_map_regn(b) << 23) |	//dst
-	      (C67_map_regn(a) << 18) |	//base reg A15
+	C67_g(tcc_state, (C67_map_regn(tcc_state, b) << 23) |	//dst
+	      (C67_map_regn(tcc_state, a) << 18) |	//base reg A15
 	      (0 << 13) |	//cst5
 	      (1 << 9) |	//mode 1 = pos cst offset
 	      (0 << 8) |	//r (LDDW bit 0)
-	      (C67_map_regs(a) << 7) |	//y D1/D2  src side
+	      (C67_map_regs(tcc_state, a) << 7) |	//y D1/D2  src side
 	      (4 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(b) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, b) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDB.D *") == s) {
-	C67_g((C67_map_regn(b) << 23) |	//dst
-	      (C67_map_regn(a) << 18) |	//base reg A15
+	C67_g(tcc_state, (C67_map_regn(tcc_state, b) << 23) |	//dst
+	      (C67_map_regn(tcc_state, a) << 18) |	//base reg A15
 	      (0 << 13) |	//cst5
 	      (1 << 9) |	//mode 1 = pos cst offset
 	      (0 << 8) |	//r (LDDW bit 0)
-	      (C67_map_regs(a) << 7) |	//y D1/D2  src side
+	      (C67_map_regs(tcc_state, a) << 7) |	//y D1/D2  src side
 	      (2 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU 
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(b) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, b) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDHU.D *") == s) {
-	C67_g((C67_map_regn(b) << 23) |	//dst
-	      (C67_map_regn(a) << 18) |	//base reg A15
+	C67_g(tcc_state, (C67_map_regn(tcc_state, b) << 23) |	//dst
+	      (C67_map_regn(tcc_state, a) << 18) |	//base reg A15
 	      (0 << 13) |	//cst5
 	      (1 << 9) |	//mode 1 = pos cst offset
 	      (0 << 8) |	//r (LDDW bit 0)
-	      (C67_map_regs(a) << 7) |	//y D1/D2  src side
+	      (C67_map_regs(tcc_state, a) << 7) |	//y D1/D2  src side
 	      (0 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU 
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(b) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, b) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDBU.D *") == s) {
-	C67_g((C67_map_regn(b) << 23) |	//dst
-	      (C67_map_regn(a) << 18) |	//base reg A15
+	C67_g(tcc_state, (C67_map_regn(tcc_state, b) << 23) |	//dst
+	      (C67_map_regn(tcc_state, a) << 18) |	//base reg A15
 	      (0 << 13) |	//cst5
 	      (1 << 9) |	//mode 1 = pos cst offset
 	      (0 << 8) |	//r (LDDW bit 0)
-	      (C67_map_regs(a) << 7) |	//y D1/D2  src side
+	      (C67_map_regs(tcc_state, a) << 7) |	//y D1/D2  src side
 	      (1 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(b) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, b) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "LDW.D +*") == s) {
-	C67_g((C67_map_regn(b) << 23) |	//dst
-	      (C67_map_regn(a) << 18) |	//base reg A15
+	C67_g(tcc_state, (C67_map_regn(tcc_state, b) << 23) |	//dst
+	      (C67_map_regn(tcc_state, a) << 18) |	//base reg A15
 	      (1 << 13) |	//cst5
 	      (1 << 9) |	//mode 1 = pos cst offset
 	      (0 << 8) |	//r (LDDW bit 0)
-	      (C67_map_regs(a) << 7) |	//y D1/D2  src side
+	      (C67_map_regs(tcc_state, a) << 7) |	//y D1/D2  src side
 	      (6 << 4) |	//ldst 3=STB, 5=STH 5, 7=STW, 6=LDW 4=LDH 2=LDB 0=LDHU 1=LDBU 
 	      (1 << 2) |	//opcode
-	      (C67_map_regs(b) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, b) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "CMPLTSP") == s) {
-	xpath = C67_map_regs(a) ^ C67_map_regs(b);
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	xpath = C67_map_regs(tcc_state, a) ^ C67_map_regs(tcc_state, b);
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1
+	C67_g(tcc_state, (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1
 	      (xpath << 12) |	//x use cross path for src2
 	      (0x3a << 6) |	//opcode
 	      (0x8 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side for reg c
+	      (C67_map_regs(tcc_state, c) << 1) |	//side for reg c
 	      (0 << 0));	//parallel
     } else if (strstr(s, "CMPGTSP") == s) {
-	xpath = C67_map_regs(a) ^ C67_map_regs(b);
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	xpath = C67_map_regs(tcc_state, a) ^ C67_map_regs(tcc_state, b);
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1
+	C67_g(tcc_state, (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1
 	      (xpath << 12) |	//x use cross path for src2
 	      (0x39 << 6) |	//opcode
 	      (0x8 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side for reg c
+	      (C67_map_regs(tcc_state, c) << 1) |	//side for reg c
 	      (0 << 0));	//parallel
     } else if (strstr(s, "CMPEQSP") == s) {
-	xpath = C67_map_regs(a) ^ C67_map_regs(b);
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	xpath = C67_map_regs(tcc_state, a) ^ C67_map_regs(tcc_state, b);
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1
+	C67_g(tcc_state, (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1
 	      (xpath << 12) |	//x use cross path for src2
 	      (0x38 << 6) |	//opcode
 	      (0x8 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side for reg c
+	      (C67_map_regs(tcc_state, c) << 1) |	//side for reg c
 	      (0 << 0));	//parallel
     }
 
     else if (strstr(s, "CMPLTDP") == s) {
-	xpath = C67_map_regs(a) ^ C67_map_regs(b);
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	xpath = C67_map_regs(tcc_state, a) ^ C67_map_regs(tcc_state, b);
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1
+	C67_g(tcc_state, (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1
 	      (xpath << 12) |	//x use cross path for src2
 	      (0x2a << 6) |	//opcode
 	      (0x8 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side for reg c
+	      (C67_map_regs(tcc_state, c) << 1) |	//side for reg c
 	      (0 << 0));	//parallel
     } else if (strstr(s, "CMPGTDP") == s) {
-	xpath = C67_map_regs(a) ^ C67_map_regs(b);
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	xpath = C67_map_regs(tcc_state, a) ^ C67_map_regs(tcc_state, b);
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1
+	C67_g(tcc_state, (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1
 	      (xpath << 12) |	//x use cross path for src2
 	      (0x29 << 6) |	//opcode
 	      (0x8 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side for reg c
+	      (C67_map_regs(tcc_state, c) << 1) |	//side for reg c
 	      (0 << 0));	//parallel
     } else if (strstr(s, "CMPEQDP") == s) {
-	xpath = C67_map_regs(a) ^ C67_map_regs(b);
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	xpath = C67_map_regs(tcc_state, a) ^ C67_map_regs(tcc_state, b);
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1
+	C67_g(tcc_state, (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1
 	      (xpath << 12) |	//x use cross path for src2
 	      (0x28 << 6) |	//opcode
 	      (0x8 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side for reg c
+	      (C67_map_regs(tcc_state, c) << 1) |	//side for reg c
 	      (0 << 0));	//parallel
     } else if (strstr(s, "CMPLT") == s) {
-	xpath = C67_map_regs(a) ^ C67_map_regs(b);
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	xpath = C67_map_regs(tcc_state, a) ^ C67_map_regs(tcc_state, b);
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1
+	C67_g(tcc_state, (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1
 	      (xpath << 12) |	//x use cross path for src2
 	      (0x57 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side for reg c
+	      (C67_map_regs(tcc_state, c) << 1) |	//side for reg c
 	      (0 << 0));	//parallel
     } else if (strstr(s, "CMPGT") == s) {
-	xpath = C67_map_regs(a) ^ C67_map_regs(b);
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	xpath = C67_map_regs(tcc_state, a) ^ C67_map_regs(tcc_state, b);
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1
+	C67_g(tcc_state, (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1
 	      (xpath << 12) |	//x use cross path for src2
 	      (0x47 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side for reg c
+	      (C67_map_regs(tcc_state, c) << 1) |	//side for reg c
 	      (0 << 0));	//parallel
     } else if (strstr(s, "CMPEQ") == s) {
-	xpath = C67_map_regs(a) ^ C67_map_regs(b);
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	xpath = C67_map_regs(tcc_state, a) ^ C67_map_regs(tcc_state, b);
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1
+	C67_g(tcc_state, (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1
 	      (xpath << 12) |	//x use cross path for src2
 	      (0x53 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side for reg c
+	      (C67_map_regs(tcc_state, c) << 1) |	//side for reg c
 	      (0 << 0));	//parallel
     } else if (strstr(s, "CMPLTU") == s) {
-	xpath = C67_map_regs(a) ^ C67_map_regs(b);
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	xpath = C67_map_regs(tcc_state, a) ^ C67_map_regs(tcc_state, b);
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1
+	C67_g(tcc_state, (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1
 	      (xpath << 12) |	//x use cross path for src2
 	      (0x5f << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side for reg c
+	      (C67_map_regs(tcc_state, c) << 1) |	//side for reg c
 	      (0 << 0));	//parallel
     } else if (strstr(s, "CMPGTU") == s) {
-	xpath = C67_map_regs(a) ^ C67_map_regs(b);
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	xpath = C67_map_regs(tcc_state, a) ^ C67_map_regs(tcc_state, b);
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1
+	C67_g(tcc_state, (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1
 	      (xpath << 12) |	//x use cross path for src2
 	      (0x4f << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side for reg c
+	      (C67_map_regs(tcc_state, c) << 1) |	//side for reg c
 	      (0 << 0));	//parallel
     } else if (strstr(s, "B DISP") == s) {
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//z
 	      (a << 7) |	//cnst
 	      (0x4 << 2) |	//opcode fixed
 	      (0 << 1) |	//S0/S1
 	      (0 << 0));	//parallel
     } else if (strstr(s, "B.") == s) {
-	xpath = C67_map_regs(c) ^ 1;
+	xpath = C67_map_regs(tcc_state, c) ^ 1;
 
-	C67_g((C67_map_regc(b) << 29) |	//creg
+	C67_g(tcc_state, (C67_map_regc(tcc_state, b) << 29) |	//creg
 	      (a << 28) |	//inv
 	      (0 << 23) |	//dst
-	      (C67_map_regn(c) << 18) |	//src2
+	      (C67_map_regn(tcc_state, c) << 18) |	//src2
 	      (0 << 13) |	//
 	      (xpath << 12) |	//x cross path if !B side
 	      (0xd << 6) |	//opcode
@@ -831,369 +831,369 @@ void C67_asm(char *s, int a, int b, int c)
 	      (1 << 1) |	//must be S2
 	      (0 << 0));	//parallel
     } else if (strstr(s, "MV.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
 	      (0 << 13) |	//src1 (cst5)
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x2 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "SPTRUNC.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
 	      (0 << 13) |	//src1 NA
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0xb << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "DPTRUNC.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      ((C67_map_regn(b) + 1) << 18) |	//src2   WEIRD CPU must specify odd reg for some reason
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      ((C67_map_regn(tcc_state, b) + 1) << 18) |	//src2   WEIRD CPU must specify odd reg for some reason
 	      (0 << 13) |	//src1 NA
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x1 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "INTSP.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2   
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2   
 	      (0 << 13) |	//src1 NA
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x4a << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "INTSPU.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2  
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2  
 	      (0 << 13) |	//src1 NA
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x49 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "INTDP.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2  
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2  
 	      (0 << 13) |	//src1 NA
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x39 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "INTDPU.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      ((C67_map_regn(b) + 1) << 18) |	//src2   WEIRD CPU must specify odd reg for some reason
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      ((C67_map_regn(tcc_state, b) + 1) << 18) |	//src2   WEIRD CPU must specify odd reg for some reason
 	      (0 << 13) |	//src1 NA
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x3b << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "SPDP.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
 	      (0 << 13) |	//src1 NA
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x2 << 6) |	//opcode
 	      (0x8 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "DPSP.L") == s) {
-	ALWAYS_ASSERT(C67_map_regs(b) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, b) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      ((C67_map_regn(b) + 1) << 18) |	//src2 WEIRD CPU must specify odd reg for some reason
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      ((C67_map_regn(tcc_state, b) + 1) << 18) |	//src2 WEIRD CPU must specify odd reg for some reason
 	      (0 << 13) |	//src1 NA
 	      (0 << 12) |	//x cross path if opposite sides
 	      (0x9 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "ADD.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2 (possible x path)
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2 (possible x path)
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x3 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "SUB.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2 (possible x path)
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2 (possible x path)
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x7 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "OR.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2 (possible x path)
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2 (possible x path)
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x7f << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "AND.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2 (possible x path)
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2 (possible x path)
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x7b << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "XOR.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2 (possible x path)
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2 (possible x path)
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x6f << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "ADDSP.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2 (possible x path)
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2 (possible x path)
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x10 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "ADDDP.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2 (possible x path)
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2 (possible x path)
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x18 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "SUBSP.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2 (possible x path)
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2 (possible x path)
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x11 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "SUBDP.L") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2 (possible x path)
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2 (possible x path)
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x19 << 5) |	//opcode
 	      (0x6 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "MPYSP.M") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2 (possible x path)
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2 (possible x path)
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x1c << 7) |	//opcode
 	      (0x0 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "MPYDP.M") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2 (possible x path)
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2 (possible x path)
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x0e << 7) |	//opcode
 	      (0x0 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "MPYI.M") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(a) == C67_map_regs(c));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, a) == C67_map_regs(tcc_state, c));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1 (cst5)
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 (cst5)
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x4 << 7) |	//opcode
 	      (0x0 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "SHR.S") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x37 << 6) |	//opcode
 	      (0x8 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "SHRU.S") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x27 << 6) |	//opcode
 	      (0x8 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "SHL.S") == s) {
-	xpath = C67_map_regs(b) ^ C67_map_regs(c);
+	xpath = C67_map_regs(tcc_state, b) ^ C67_map_regs(tcc_state, c);
 
-	ALWAYS_ASSERT(C67_map_regs(c) == C67_map_regs(a));
+	ALWAYS_ASSERT(C67_map_regs(tcc_state, c) == C67_map_regs(tcc_state, a));
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(c) << 23) |	//dst
-	      (C67_map_regn(b) << 18) |	//src2
-	      (C67_map_regn(a) << 13) |	//src1 
+	      (C67_map_regn(tcc_state, c) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 18) |	//src2
+	      (C67_map_regn(tcc_state, a) << 13) |	//src1 
 	      (xpath << 12) |	//x cross path if opposite sides
 	      (0x33 << 6) |	//opcode
 	      (0x8 << 2) |	//opcode fixed
-	      (C67_map_regs(c) << 1) |	//side of dest
+	      (C67_map_regs(tcc_state, c) << 1) |	//side of dest
 	      (0 << 0));	//parallel
     } else if (strstr(s, "||ADDK") == s) {
 	xpath = 0;		// no xpath required just use the side of the src/dst
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(b) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 23) |	//dst
 	      (a << 07) |	//scst16
 	      (0x14 << 2) |	//opcode fixed
-	      (C67_map_regs(b) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, b) << 1) |	//side of dst
 	      (1 << 0));	//parallel
     } else if (strstr(s, "ADDK") == s) {
 	xpath = 0;		// no xpath required just use the side of the src/dst
 
-	C67_g((0 << 29) |	//creg
+	C67_g(tcc_state, (0 << 29) |	//creg
 	      (0 << 28) |	//inv
-	      (C67_map_regn(b) << 23) |	//dst
+	      (C67_map_regn(tcc_state, b) << 23) |	//dst
 	      (a << 07) |	//scst16
 	      (0x14 << 2) |	//opcode fixed
-	      (C67_map_regs(b) << 1) |	//side of dst
+	      (C67_map_regs(tcc_state, b) << 1) |	//side of dst
 	      (0 << 0));	//parallel
     } else if (strstr(s, "NOP") == s) {
-	C67_g(((a - 1) << 13) |	//no of cycles
+	C67_g(tcc_state, ((a - 1) << 13) |	//no of cycles
 	      (0 << 0));	//parallel
     } else
 	ALWAYS_ASSERT(FALSE);
@@ -1206,198 +1206,198 @@ void C67_asm(char *s, int a, int b, int c)
 
 //r=reg to load, fr=from reg, symbol for relocation, constant
 
-void C67_MVKL(int r, int fc)
+void C67_MVKL(TCCState* tcc_state, int r, int fc)
 {
-    C67_asm("MVKL.", fc, r, 0);
+    C67_asm(tcc_state, "MVKL.", fc, r, 0);
 }
 
-void C67_MVKH(int r, int fc)
+void C67_MVKH(TCCState* tcc_state, int r, int fc)
 {
-    C67_asm("MVKH.", fc, r, 0);
+    C67_asm(tcc_state, "MVKH.", fc, r, 0);
 }
 
-void C67_STB_SP_A0(int r)
+void C67_STB_SP_A0(TCCState* tcc_state, int r)
 {
-    C67_asm("STB.D *+SP[A0]", r, 0, 0);	// STB  r,*+SP[A0]
+    C67_asm(tcc_state, "STB.D *+SP[A0]", r, 0, 0);	// STB  r,*+SP[A0]
 }
 
-void C67_STH_SP_A0(int r)
+void C67_STH_SP_A0(TCCState* tcc_state, int r)
 {
-    C67_asm("STH.D *+SP[A0]", r, 0, 0);	// STH  r,*+SP[A0]
+    C67_asm(tcc_state, "STH.D *+SP[A0]", r, 0, 0);	// STH  r,*+SP[A0]
 }
 
-void C67_STW_SP_A0(int r)
+void C67_STW_SP_A0(TCCState* tcc_state, int r)
 {
-    C67_asm("STW.D *+SP[A0]", r, 0, 0);	// STW  r,*+SP[A0]
+    C67_asm(tcc_state, "STW.D *+SP[A0]", r, 0, 0);	// STW  r,*+SP[A0]
 }
 
-void C67_STB_PTR(int r, int r2)
+void C67_STB_PTR(TCCState* tcc_state, int r, int r2)
 {
-    C67_asm("STB.D *", r, r2, 0);	// STB  r, *r2
+    C67_asm(tcc_state, "STB.D *", r, r2, 0);	// STB  r, *r2
 }
 
-void C67_STH_PTR(int r, int r2)
+void C67_STH_PTR(TCCState* tcc_state, int r, int r2)
 {
-    C67_asm("STH.D *", r, r2, 0);	// STH  r, *r2
+    C67_asm(tcc_state, "STH.D *", r, r2, 0);	// STH  r, *r2
 }
 
-void C67_STW_PTR(int r, int r2)
+void C67_STW_PTR(TCCState* tcc_state, int r, int r2)
 {
-    C67_asm("STW.D *", r, r2, 0);	// STW  r, *r2
+    C67_asm(tcc_state, "STW.D *", r, r2, 0);	// STW  r, *r2
 }
 
-void C67_STW_PTR_PRE_INC(int r, int r2, int n)
+void C67_STW_PTR_PRE_INC(TCCState* tcc_state, int r, int r2, int n)
 {
-    C67_asm("STW.D +*", r, r2, n);	// STW  r, *+r2
+    C67_asm(tcc_state, "STW.D +*", r, r2, n);	// STW  r, *+r2
 }
 
-void C67_PUSH(int r)
+void C67_PUSH(TCCState* tcc_state, int r)
 {
-    C67_asm("STW.D SP POST DEC", r, 0, 0);	// STW  r,*SP--
+    C67_asm(tcc_state, "STW.D SP POST DEC", r, 0, 0);	// STW  r,*SP--
 }
 
-void C67_LDW_SP_A0(int r)
+void C67_LDW_SP_A0(TCCState* tcc_state, int r)
 {
-    C67_asm("LDW.D *+SP[A0]", r, 0, 0);	// LDW  *+SP[A0],r
+    C67_asm(tcc_state, "LDW.D *+SP[A0]", r, 0, 0);	// LDW  *+SP[A0],r
 }
 
-void C67_LDDW_SP_A0(int r)
+void C67_LDDW_SP_A0(TCCState* tcc_state, int r)
 {
-    C67_asm("LDDW.D *+SP[A0]", r, 0, 0);	// LDDW  *+SP[A0],r
+    C67_asm(tcc_state, "LDDW.D *+SP[A0]", r, 0, 0);	// LDDW  *+SP[A0],r
 }
 
-void C67_LDH_SP_A0(int r)
+void C67_LDH_SP_A0(TCCState* tcc_state, int r)
 {
-    C67_asm("LDH.D *+SP[A0]", r, 0, 0);	// LDH  *+SP[A0],r
+    C67_asm(tcc_state, "LDH.D *+SP[A0]", r, 0, 0);	// LDH  *+SP[A0],r
 }
 
-void C67_LDB_SP_A0(int r)
+void C67_LDB_SP_A0(TCCState* tcc_state, int r)
 {
-    C67_asm("LDB.D *+SP[A0]", r, 0, 0);	// LDB  *+SP[A0],r
+    C67_asm(tcc_state, "LDB.D *+SP[A0]", r, 0, 0);	// LDB  *+SP[A0],r
 }
 
-void C67_LDHU_SP_A0(int r)
+void C67_LDHU_SP_A0(TCCState* tcc_state, int r)
 {
-    C67_asm("LDHU.D *+SP[A0]", r, 0, 0);	// LDHU  *+SP[A0],r
+    C67_asm(tcc_state, "LDHU.D *+SP[A0]", r, 0, 0);	// LDHU  *+SP[A0],r
 }
 
-void C67_LDBU_SP_A0(int r)
+void C67_LDBU_SP_A0(TCCState* tcc_state, int r)
 {
-    C67_asm("LDBU.D *+SP[A0]", r, 0, 0);	// LDBU  *+SP[A0],r
+    C67_asm(tcc_state, "LDBU.D *+SP[A0]", r, 0, 0);	// LDBU  *+SP[A0],r
 }
 
-void C67_LDW_PTR(int r, int r2)
+void C67_LDW_PTR(TCCState* tcc_state, int r, int r2)
 {
-    C67_asm("LDW.D *", r, r2, 0);	// LDW  *r,r2
+    C67_asm(tcc_state, "LDW.D *", r, r2, 0);	// LDW  *r,r2
 }
 
-void C67_LDDW_PTR(int r, int r2)
+void C67_LDDW_PTR(TCCState* tcc_state, int r, int r2)
 {
-    C67_asm("LDDW.D *", r, r2, 0);	// LDDW  *r,r2
+    C67_asm(tcc_state, "LDDW.D *", r, r2, 0);	// LDDW  *r,r2
 }
 
-void C67_LDH_PTR(int r, int r2)
+void C67_LDH_PTR(TCCState* tcc_state, int r, int r2)
 {
-    C67_asm("LDH.D *", r, r2, 0);	// LDH  *r,r2
+    C67_asm(tcc_state, "LDH.D *", r, r2, 0);	// LDH  *r,r2
 }
 
-void C67_LDB_PTR(int r, int r2)
+void C67_LDB_PTR(TCCState* tcc_state, int r, int r2)
 {
-    C67_asm("LDB.D *", r, r2, 0);	// LDB  *r,r2
+    C67_asm(tcc_state, "LDB.D *", r, r2, 0);	// LDB  *r,r2
 }
 
-void C67_LDHU_PTR(int r, int r2)
+void C67_LDHU_PTR(TCCState* tcc_state, int r, int r2)
 {
-    C67_asm("LDHU.D *", r, r2, 0);	// LDHU  *r,r2
+    C67_asm(tcc_state, "LDHU.D *", r, r2, 0);	// LDHU  *r,r2
 }
 
-void C67_LDBU_PTR(int r, int r2)
+void C67_LDBU_PTR(TCCState* tcc_state, int r, int r2)
 {
-    C67_asm("LDBU.D *", r, r2, 0);	// LDBU  *r,r2
+    C67_asm(tcc_state, "LDBU.D *", r, r2, 0);	// LDBU  *r,r2
 }
 
-void C67_LDW_PTR_PRE_INC(int r, int r2)
+void C67_LDW_PTR_PRE_INC(TCCState* tcc_state, int r, int r2)
 {
-    C67_asm("LDW.D +*", r, r2, 0);	// LDW  *+r,r2
+    C67_asm(tcc_state, "LDW.D +*", r, r2, 0);	// LDW  *+r,r2
 }
 
-void C67_POP(int r)
+void C67_POP(TCCState* tcc_state, int r)
 {
-    C67_asm("LDW.D SP PRE INC", r, 0, 0);	// LDW  *++SP,r
+    C67_asm(tcc_state, "LDW.D SP PRE INC", r, 0, 0);	// LDW  *++SP,r
 }
 
-void C67_POP_DW(int r)
+void C67_POP_DW(TCCState* tcc_state, int r)
 {
-    C67_asm("LDDW.D SP PRE INC", r, 0, 0);	// LDDW  *++SP,r
+    C67_asm(tcc_state, "LDDW.D SP PRE INC", r, 0, 0);	// LDDW  *++SP,r
 }
 
-void C67_CMPLT(int s1, int s2, int dst)
+void C67_CMPLT(TCCState* tcc_state, int s1, int s2, int dst)
 {
-    C67_asm("CMPLT.L1", s1, s2, dst);
+    C67_asm(tcc_state, "CMPLT.L1", s1, s2, dst);
 }
 
-void C67_CMPGT(int s1, int s2, int dst)
+void C67_CMPGT(TCCState* tcc_state, int s1, int s2, int dst)
 {
-    C67_asm("CMPGT.L1", s1, s2, dst);
+    C67_asm(tcc_state, "CMPGT.L1", s1, s2, dst);
 }
 
-void C67_CMPEQ(int s1, int s2, int dst)
+void C67_CMPEQ(TCCState* tcc_state, int s1, int s2, int dst)
 {
-    C67_asm("CMPEQ.L1", s1, s2, dst);
+    C67_asm(tcc_state, "CMPEQ.L1", s1, s2, dst);
 }
 
-void C67_CMPLTU(int s1, int s2, int dst)
+void C67_CMPLTU(TCCState* tcc_state, int s1, int s2, int dst)
 {
-    C67_asm("CMPLTU.L1", s1, s2, dst);
+    C67_asm(tcc_state, "CMPLTU.L1", s1, s2, dst);
 }
 
-void C67_CMPGTU(int s1, int s2, int dst)
+void C67_CMPGTU(TCCState* tcc_state, int s1, int s2, int dst)
 {
-    C67_asm("CMPGTU.L1", s1, s2, dst);
-}
-
-
-void C67_CMPLTSP(int s1, int s2, int dst)
-{
-    C67_asm("CMPLTSP.S1", s1, s2, dst);
-}
-
-void C67_CMPGTSP(int s1, int s2, int dst)
-{
-    C67_asm("CMPGTSP.S1", s1, s2, dst);
-}
-
-void C67_CMPEQSP(int s1, int s2, int dst)
-{
-    C67_asm("CMPEQSP.S1", s1, s2, dst);
-}
-
-void C67_CMPLTDP(int s1, int s2, int dst)
-{
-    C67_asm("CMPLTDP.S1", s1, s2, dst);
-}
-
-void C67_CMPGTDP(int s1, int s2, int dst)
-{
-    C67_asm("CMPGTDP.S1", s1, s2, dst);
-}
-
-void C67_CMPEQDP(int s1, int s2, int dst)
-{
-    C67_asm("CMPEQDP.S1", s1, s2, dst);
+    C67_asm(tcc_state, "CMPGTU.L1", s1, s2, dst);
 }
 
 
-void C67_IREG_B_REG(int inv, int r1, int r2)	// [!R] B  r2
+void C67_CMPLTSP(TCCState* tcc_state, int s1, int s2, int dst)
 {
-    C67_asm("B.S2", inv, r1, r2);
+    C67_asm(tcc_state, "CMPLTSP.S1", s1, s2, dst);
+}
+
+void C67_CMPGTSP(TCCState* tcc_state, int s1, int s2, int dst)
+{
+    C67_asm(tcc_state, "CMPGTSP.S1", s1, s2, dst);
+}
+
+void C67_CMPEQSP(TCCState* tcc_state, int s1, int s2, int dst)
+{
+    C67_asm(tcc_state, "CMPEQSP.S1", s1, s2, dst);
+}
+
+void C67_CMPLTDP(TCCState* tcc_state, int s1, int s2, int dst)
+{
+    C67_asm(tcc_state, "CMPLTDP.S1", s1, s2, dst);
+}
+
+void C67_CMPGTDP(TCCState* tcc_state, int s1, int s2, int dst)
+{
+    C67_asm(tcc_state, "CMPGTDP.S1", s1, s2, dst);
+}
+
+void C67_CMPEQDP(TCCState* tcc_state, int s1, int s2, int dst)
+{
+    C67_asm(tcc_state, "CMPEQDP.S1", s1, s2, dst);
+}
+
+
+void C67_IREG_B_REG(TCCState* tcc_state, int inv, int r1, int r2)	// [!R] B  r2
+{
+    C67_asm(tcc_state, "B.S2", inv, r1, r2);
 }
 
 
 // call with how many 32 bit words to skip
 // (0 would branch to the branch instruction)
 
-void C67_B_DISP(int disp)	//  B  +2  Branch with constant displacement
+void C67_B_DISP(TCCState* tcc_state, int disp)	//  B  +2  Branch with constant displacement
 {
     // Branch point is relative to the 8 word fetch packet
     //
@@ -1406,154 +1406,154 @@ void C67_B_DISP(int disp)	//  B  +2  Branch with constant displacement
     // so add in how many words into the fetch packet the branch is
 
 
-    C67_asm("B DISP", disp + ((tcc_state->tccgen_ind & 31) >> 2), 0, 0);
+    C67_asm(tcc_state, "B DISP", disp + ((tcc_state->tccgen_ind & 31) >> 2), 0, 0);
 }
 
-void C67_NOP(int n)
+void C67_NOP(TCCState* tcc_state, int n)
 {
-    C67_asm("NOP", n, 0, 0);
+    C67_asm(tcc_state, "NOP", n, 0, 0);
 }
 
-void C67_ADDK(int n, int r)
-{
-    ALWAYS_ASSERT(abs(n) < 32767);
-
-    C67_asm("ADDK", n, r, 0);
-}
-
-void C67_ADDK_PARALLEL(int n, int r)
+void C67_ADDK(TCCState* tcc_state, int n, int r)
 {
     ALWAYS_ASSERT(abs(n) < 32767);
 
-    C67_asm("||ADDK", n, r, 0);
+    C67_asm(tcc_state, "ADDK", n, r, 0);
 }
 
-void C67_Adjust_ADDK(int *inst, int n)
+void C67_ADDK_PARALLEL(TCCState* tcc_state, int n, int r)
+{
+    ALWAYS_ASSERT(abs(n) < 32767);
+
+    C67_asm(tcc_state, "||ADDK", n, r, 0);
+}
+
+void C67_Adjust_ADDK(TCCState* tcc_state, int *inst, int n)
 {
     ALWAYS_ASSERT(abs(n) < 32767);
 
     *inst = (*inst & (~(0xffff << 7))) | ((n & 0xffff) << 7);
 }
 
-void C67_MV(int r, int v)
+void C67_MV(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("MV.L", 0, r, v);
+    C67_asm(tcc_state, "MV.L", 0, r, v);
 }
 
 
-void C67_DPTRUNC(int r, int v)
+void C67_DPTRUNC(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("DPTRUNC.L", 0, r, v);
+    C67_asm(tcc_state, "DPTRUNC.L", 0, r, v);
 }
 
-void C67_SPTRUNC(int r, int v)
+void C67_SPTRUNC(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("SPTRUNC.L", 0, r, v);
+    C67_asm(tcc_state, "SPTRUNC.L", 0, r, v);
 }
 
-void C67_INTSP(int r, int v)
+void C67_INTSP(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("INTSP.L", 0, r, v);
+    C67_asm(tcc_state, "INTSP.L", 0, r, v);
 }
 
-void C67_INTDP(int r, int v)
+void C67_INTDP(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("INTDP.L", 0, r, v);
+    C67_asm(tcc_state, "INTDP.L", 0, r, v);
 }
 
-void C67_INTSPU(int r, int v)
+void C67_INTSPU(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("INTSPU.L", 0, r, v);
+    C67_asm(tcc_state, "INTSPU.L", 0, r, v);
 }
 
-void C67_INTDPU(int r, int v)
+void C67_INTDPU(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("INTDPU.L", 0, r, v);
+    C67_asm(tcc_state, "INTDPU.L", 0, r, v);
 }
 
-void C67_SPDP(int r, int v)
+void C67_SPDP(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("SPDP.L", 0, r, v);
+    C67_asm(tcc_state, "SPDP.L", 0, r, v);
 }
 
-void C67_DPSP(int r, int v)	// note regs must be on the same side
+void C67_DPSP(TCCState* tcc_state, int r, int v)	// note regs must be on the same side
 {
-    C67_asm("DPSP.L", 0, r, v);
+    C67_asm(tcc_state, "DPSP.L", 0, r, v);
 }
 
-void C67_ADD(int r, int v)
+void C67_ADD(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("ADD.L", v, r, v);
+    C67_asm(tcc_state, "ADD.L", v, r, v);
 }
 
-void C67_SUB(int r, int v)
+void C67_SUB(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("SUB.L", v, r, v);
+    C67_asm(tcc_state, "SUB.L", v, r, v);
 }
 
-void C67_AND(int r, int v)
+void C67_AND(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("AND.L", v, r, v);
+    C67_asm(tcc_state, "AND.L", v, r, v);
 }
 
-void C67_OR(int r, int v)
+void C67_OR(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("OR.L", v, r, v);
+    C67_asm(tcc_state, "OR.L", v, r, v);
 }
 
-void C67_XOR(int r, int v)
+void C67_XOR(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("XOR.L", v, r, v);
+    C67_asm(tcc_state, "XOR.L", v, r, v);
 }
 
-void C67_ADDSP(int r, int v)
+void C67_ADDSP(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("ADDSP.L", v, r, v);
+    C67_asm(tcc_state, "ADDSP.L", v, r, v);
 }
 
-void C67_SUBSP(int r, int v)
+void C67_SUBSP(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("SUBSP.L", v, r, v);
+    C67_asm(tcc_state, "SUBSP.L", v, r, v);
 }
 
-void C67_MPYSP(int r, int v)
+void C67_MPYSP(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("MPYSP.M", v, r, v);
+    C67_asm(tcc_state, "MPYSP.M", v, r, v);
 }
 
-void C67_ADDDP(int r, int v)
+void C67_ADDDP(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("ADDDP.L", v, r, v);
+    C67_asm(tcc_state, "ADDDP.L", v, r, v);
 }
 
-void C67_SUBDP(int r, int v)
+void C67_SUBDP(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("SUBDP.L", v, r, v);
+    C67_asm(tcc_state, "SUBDP.L", v, r, v);
 }
 
-void C67_MPYDP(int r, int v)
+void C67_MPYDP(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("MPYDP.M", v, r, v);
+    C67_asm(tcc_state, "MPYDP.M", v, r, v);
 }
 
-void C67_MPYI(int r, int v)
+void C67_MPYI(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("MPYI.M", v, r, v);
+    C67_asm(tcc_state, "MPYI.M", v, r, v);
 }
 
-void C67_SHL(int r, int v)
+void C67_SHL(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("SHL.S", r, v, v);
+    C67_asm(tcc_state, "SHL.S", r, v, v);
 }
 
-void C67_SHRU(int r, int v)
+void C67_SHRU(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("SHRU.S", r, v, v);
+    C67_asm(tcc_state, "SHRU.S", r, v, v);
 }
 
-void C67_SHR(int r, int v)
+void C67_SHR(TCCState* tcc_state, int r, int v)
 {
-    C67_asm("SHR.S", r, v, v);
+    C67_asm(tcc_state, "SHR.S", r, v, v);
 }
 
 
@@ -1619,74 +1619,74 @@ void load(TCCState* tcc_state, int r, SValue * sv)
 	{
 	    if (size == 1) {
 		if (Unsigned)
-		    C67_LDBU_PTR(v, r);	// LDBU  *v,r
+		    C67_LDBU_PTR(tcc_state, v, r);	// LDBU  *v,r
 		else
-		    C67_LDB_PTR(v, r);	// LDB  *v,r
+		    C67_LDB_PTR(tcc_state, v, r);	// LDB  *v,r
 	    } else if (size == 2) {
 		if (Unsigned)
-		    C67_LDHU_PTR(v, r);	// LDHU  *v,r
+		    C67_LDHU_PTR(tcc_state, v, r);	// LDHU  *v,r
 		else
-		    C67_LDH_PTR(v, r);	// LDH  *v,r
+		    C67_LDH_PTR(tcc_state, v, r);	// LDH  *v,r
 	    } else if (size == 4) {
-		C67_LDW_PTR(v, r);	// LDW  *v,r
+		C67_LDW_PTR(tcc_state, v, r);	// LDW  *v,r
 	    } else if (size == 8) {
-		C67_LDDW_PTR(v, r);	// LDDW  *v,r
+		C67_LDDW_PTR(tcc_state, v, r);	// LDDW  *v,r
 	    }
 
-	    C67_NOP(4);		// NOP 4
+	    C67_NOP(tcc_state, 4);		// NOP 4
 	    return;
 	} else if (fr & VT_SYM) {
 	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sv->sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
 	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sv->sym, tcc_state->tccgen_ind + 4, R_C60HI16);
 
 
-	    C67_MVKL(C67_A0, fc);	//r=reg to load,  constant
-	    C67_MVKH(C67_A0, fc);	//r=reg to load,  constant
+	    C67_MVKL(tcc_state, C67_A0, fc);	//r=reg to load,  constant
+	    C67_MVKH(tcc_state, C67_A0, fc);	//r=reg to load,  constant
 
 
 	    if (size == 1) {
 		if (Unsigned)
-		    C67_LDBU_PTR(C67_A0, r);	// LDBU  *A0,r
+		    C67_LDBU_PTR(tcc_state, C67_A0, r);	// LDBU  *A0,r
 		else
-		    C67_LDB_PTR(C67_A0, r);	// LDB  *A0,r
+		    C67_LDB_PTR(tcc_state, C67_A0, r);	// LDB  *A0,r
 	    } else if (size == 2) {
 		if (Unsigned)
-		    C67_LDHU_PTR(C67_A0, r);	// LDHU  *A0,r
+		    C67_LDHU_PTR(tcc_state, C67_A0, r);	// LDHU  *A0,r
 		else
-		    C67_LDH_PTR(C67_A0, r);	// LDH  *A0,r
+		    C67_LDH_PTR(tcc_state, C67_A0, r);	// LDH  *A0,r
 	    } else if (size == 4) {
-		C67_LDW_PTR(C67_A0, r);	// LDW  *A0,r
+		C67_LDW_PTR(tcc_state, C67_A0, r);	// LDW  *A0,r
 	    } else if (size == 8) {
-		C67_LDDW_PTR(C67_A0, r);	// LDDW  *A0,r
+		C67_LDDW_PTR(tcc_state, C67_A0, r);	// LDDW  *A0,r
 	    }
 
-	    C67_NOP(4);		// NOP 4
+	    C67_NOP(tcc_state, 4);		// NOP 4
 	    return;
 	} else {
 	    element = size;
 
 	    // divide offset in bytes to create element index
-	    C67_MVKL(C67_A0, (fc / element) + 8 / element);	//r=reg to load,  constant
-	    C67_MVKH(C67_A0, (fc / element) + 8 / element);	//r=reg to load,  constant
+	    C67_MVKL(tcc_state, C67_A0, (fc / element) + 8 / element);	//r=reg to load,  constant
+	    C67_MVKH(tcc_state, C67_A0, (fc / element) + 8 / element);	//r=reg to load,  constant
 
 	    if (size == 1) {
 		if (Unsigned)
-		    C67_LDBU_SP_A0(r);	// LDBU  r, SP[A0]
+		    C67_LDBU_SP_A0(tcc_state, r);	// LDBU  r, SP[A0]
 		else
-		    C67_LDB_SP_A0(r);	// LDB  r, SP[A0]
+		    C67_LDB_SP_A0(tcc_state, r);	// LDB  r, SP[A0]
 	    } else if (size == 2) {
 		if (Unsigned)
-		    C67_LDHU_SP_A0(r);	// LDHU  r, SP[A0]
+		    C67_LDHU_SP_A0(tcc_state, r);	// LDHU  r, SP[A0]
 		else
-		    C67_LDH_SP_A0(r);	// LDH  r, SP[A0]
+		    C67_LDH_SP_A0(tcc_state, r);	// LDH  r, SP[A0]
 	    } else if (size == 4) {
-		C67_LDW_SP_A0(r);	// LDW  r, SP[A0]
+		C67_LDW_SP_A0(tcc_state, r);	// LDW  r, SP[A0]
 	    } else if (size == 8) {
-		C67_LDDW_SP_A0(r);	// LDDW  r, SP[A0]
+		C67_LDDW_SP_A0(tcc_state, r);	// LDDW  r, SP[A0]
 	    }
 
 
-	    C67_NOP(4);		// NOP 4
+	    C67_NOP(tcc_state, 4);		// NOP 4
 	    return;
 	}
     } else {
@@ -1695,26 +1695,26 @@ void load(TCCState* tcc_state, int r, SValue * sv)
 		greloc(tcc_state, tcc_state->tccgen_cur_text_section, sv->sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
 		greloc(tcc_state, tcc_state->tccgen_cur_text_section, sv->sym, tcc_state->tccgen_ind + 4, R_C60HI16);
 	    }
-	    C67_MVKL(r, fc);	//r=reg to load, constant
-	    C67_MVKH(r, fc);	//r=reg to load, constant
+	    C67_MVKL(tcc_state, r, fc);	//r=reg to load, constant
+	    C67_MVKH(tcc_state, r, fc);	//r=reg to load, constant
 	} else if (v == VT_LOCAL) {
-	    C67_MVKL(r, fc + 8);	//r=reg to load, constant C67 stack points to next free
-	    C67_MVKH(r, fc + 8);	//r=reg to load, constant
-	    C67_ADD(C67_FP, r);	// MV v,r   v -> r
+	    C67_MVKL(tcc_state, r, fc + 8);	//r=reg to load, constant C67 stack points to next free
+	    C67_MVKH(tcc_state, r, fc + 8);	//r=reg to load, constant
+	    C67_ADD(tcc_state, C67_FP, r);	// MV v,r   v -> r
 	} else if (v == VT_CMP) {
-	    C67_MV(tcc_state->C67_compare_reg, r);	// MV v,r   v -> r
+	    C67_MV(tcc_state, tcc_state->C67_compare_reg, r);	// MV v,r   v -> r
 	} else if (v == VT_JMP || v == VT_JMPI) {
 	    t = v & 1;
-	    C67_B_DISP(4);	//  Branch with constant displacement, skip over this branch, load, nop, load
-	    C67_MVKL(r, t);	//  r=reg to load, 0 or 1 (do this while branching)
-	    C67_NOP(4);		//  NOP 4
+	    C67_B_DISP(tcc_state, 4);	//  Branch with constant displacement, skip over this branch, load, nop, load
+	    C67_MVKL(tcc_state, r, t);	//  r=reg to load, 0 or 1 (do this while branching)
+	    C67_NOP(tcc_state, 4);		//  NOP 4
 	    gsym(tcc_state, fc);		//  modifies other branches to branch here
-	    C67_MVKL(r, t ^ 1);	//  r=reg to load, 0 or 1
+	    C67_MVKL(tcc_state, r, t ^ 1);	//  r=reg to load, 0 or 1
 	} else if (v != r) {
-	    C67_MV(v, r);	// MV v,r   v -> r
+	    C67_MV(tcc_state, v, r);	// MV v,r   v -> r
 
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
-		C67_MV(v + 1, r + 1);	// MV v,r   v -> r
+		C67_MV(tcc_state, v + 1, r + 1);	// MV v,r   v -> r
 	}
     }
 }
@@ -1750,18 +1750,18 @@ void store(TCCState* tcc_state, int r, SValue * v)
 		greloc(tcc_state, tcc_state->tccgen_cur_text_section, v->sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
 		greloc(tcc_state, tcc_state->tccgen_cur_text_section, v->sym, tcc_state->tccgen_ind + 4, R_C60HI16);
 	    }
-	    C67_MVKL(C67_A0, fc);	//r=reg to load,  constant
-	    C67_MVKH(C67_A0, fc);	//r=reg to load,  constant
+	    C67_MVKL(tcc_state, C67_A0, fc);	//r=reg to load,  constant
+	    C67_MVKH(tcc_state, C67_A0, fc);	//r=reg to load,  constant
 
 	    if (size == 1)
-		C67_STB_PTR(r, C67_A0);	// STB  r, *A0
+		C67_STB_PTR(tcc_state, r, C67_A0);	// STB  r, *A0
 	    else if (size == 2)
-		C67_STH_PTR(r, C67_A0);	// STH  r, *A0
+		C67_STH_PTR(tcc_state, r, C67_A0);	// STH  r, *A0
 	    else if (size == 4 || size == 8)
-		C67_STW_PTR(r, C67_A0);	// STW  r, *A0
+		C67_STW_PTR(tcc_state, r, C67_A0);	// STW  r, *A0
 
 	    if (size == 8)
-		C67_STW_PTR_PRE_INC(r + 1, C67_A0, 1);	// STW  r, *+A0[1]
+		C67_STW_PTR_PRE_INC(tcc_state, r + 1, C67_A0, 1);	// STW  r, *+A0[1]
 	} else if ((v->r & VT_VALMASK) == VT_LOCAL) {
 	    // check case of storing to passed argument that
 	    // tcc thinks is on the stack but for C67 is
@@ -1792,32 +1792,32 @@ void store(TCCState* tcc_state, int r, SValue * v)
 		element = size;
 
 	    // divide offset in bytes to create word index
-	    C67_MVKL(C67_A0, (fc / element) + 8 / element);	//r=reg to load,  constant
-	    C67_MVKH(C67_A0, (fc / element) + 8 / element);	//r=reg to load,  constant
+	    C67_MVKL(tcc_state, C67_A0, (fc / element) + 8 / element);	//r=reg to load,  constant
+	    C67_MVKH(tcc_state, C67_A0, (fc / element) + 8 / element);	//r=reg to load,  constant
 
 
 
 	    if (size == 1)
-		C67_STB_SP_A0(r);	// STB  r, SP[A0]
+		C67_STB_SP_A0(tcc_state, r);	// STB  r, SP[A0]
 	    else if (size == 2)
-		C67_STH_SP_A0(r);	// STH  r, SP[A0]
+		C67_STH_SP_A0(tcc_state, r);	// STH  r, SP[A0]
 	    else if (size == 4 || size == 8)
-		C67_STW_SP_A0(r);	// STW  r, SP[A0]
+		C67_STW_SP_A0(tcc_state, r);	// STW  r, SP[A0]
 
 	    if (size == 8) {
-		C67_ADDK(1, C67_A0);	//  ADDK 1,A0
-		C67_STW_SP_A0(r + 1);	//  STW  r, SP[A0]
+		C67_ADDK(tcc_state, 1, C67_A0);	//  ADDK 1,A0
+		C67_STW_SP_A0(tcc_state, r + 1);	//  STW  r, SP[A0]
 	    }
 	} else {
 	    if (size == 1)
-		C67_STB_PTR(r, fr);	// STB  r, *fr
+		C67_STB_PTR(tcc_state, r, fr);	// STB  r, *fr
 	    else if (size == 2)
-		C67_STH_PTR(r, fr);	// STH  r, *fr
+		C67_STH_PTR(tcc_state, r, fr);	// STH  r, *fr
 	    else if (size == 4 || size == 8)
-		C67_STW_PTR(r, fr);	// STW  r, *fr
+		C67_STW_PTR(tcc_state, r, fr);	// STW  r, *fr
 
 	    if (size == 8) {
-		C67_STW_PTR_PRE_INC(r + 1, fr, 1);	// STW  r, *+fr[1]
+		C67_STW_PTR_PRE_INC(tcc_state, r + 1, fr, 1);	// STW  r, *+fr[1]
 	    }
 	}
     }
@@ -1839,21 +1839,21 @@ static void gcall_or_jmp(TCCState* tcc_state, int is_jmp)
 	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, tcc_state->tccgen_vtop->sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
 	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, tcc_state->tccgen_vtop->sym, tcc_state->tccgen_ind + 4, R_C60HI16);
 
-	    C67_MVKL(C67_A0, 0);	//r=reg to load, constant
-	    C67_MVKH(C67_A0, 0);	//r=reg to load, constant
-	    C67_IREG_B_REG(0, C67_CREG_ZERO, C67_A0);	//  B.S2x  A0
+	    C67_MVKL(tcc_state, C67_A0, 0);	//r=reg to load, constant
+	    C67_MVKH(tcc_state, C67_A0, 0);	//r=reg to load, constant
+	    C67_IREG_B_REG(tcc_state, 0, C67_CREG_ZERO, C67_A0);	//  B.S2x  A0
 
 	    if (is_jmp) {
-		C67_NOP(5);	// simple jump, just put NOP
+		C67_NOP(tcc_state, 5);	// simple jump, just put NOP
 	    } else {
 		// Call, must load return address into B3 during delay slots
 
 		sym = get_sym_ref(tcc_state, &tcc_state->tccgen_char_pointer_type, tcc_state->tccgen_cur_text_section, tcc_state->tccgen_ind + 12, 0);	// symbol for return address
 		greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
 		greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, tcc_state->tccgen_ind + 4, R_C60HI16);
-		C67_MVKL(C67_B3, 0);	//r=reg to load, constant
-		C67_MVKH(C67_B3, 0);	//r=reg to load, constant
-		C67_NOP(3);	// put remaining NOPs
+		C67_MVKL(tcc_state, C67_B3, 0);	//r=reg to load, constant
+		C67_MVKH(tcc_state, C67_B3, 0);	//r=reg to load, constant
+		C67_NOP(tcc_state, 3);	// put remaining NOPs
 	    }
 	} else {
 	    /* put an empty PC32 relocation */
@@ -1862,19 +1862,19 @@ static void gcall_or_jmp(TCCState* tcc_state, int is_jmp)
     } else {
 	/* otherwise, indirect call */
 	r = gv(tcc_state, RC_INT);
-	C67_IREG_B_REG(0, C67_CREG_ZERO, r);	//  B.S2x  r
+	C67_IREG_B_REG(tcc_state, 0, C67_CREG_ZERO, r);	//  B.S2x  r
 
 	if (is_jmp) {
-	    C67_NOP(5);		// simple jump, just put NOP
+	    C67_NOP(tcc_state, 5);		// simple jump, just put NOP
 	} else {
 	    // Call, must load return address into B3 during delay slots
 
 	    sym = get_sym_ref(tcc_state, &tcc_state->tccgen_char_pointer_type, tcc_state->tccgen_cur_text_section, tcc_state->tccgen_ind + 12, 0);	// symbol for return address
 	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, tcc_state->tccgen_ind, R_C60LO16);	// rem the inst need to be patched
 	    greloc(tcc_state, tcc_state->tccgen_cur_text_section, sym, tcc_state->tccgen_ind + 4, R_C60HI16);
-	    C67_MVKL(C67_B3, 0);	//r=reg to load, constant
-	    C67_MVKH(C67_B3, 0);	//r=reg to load, constant
-	    C67_NOP(3);		// put remaining NOPs
+	    C67_MVKL(tcc_state, C67_B3, 0);	//r=reg to load, constant
+	    C67_MVKH(tcc_state, C67_B3, 0);	//r=reg to load, constant
+	    C67_NOP(tcc_state, 3);		// put remaining NOPs
 	}
     }
 }
@@ -1923,10 +1923,10 @@ void gfunc_call(TCCState* tcc_state, int nb_args)
 	    // must put on stack because with 1 pass compiler , no way to tell
 	    // if an up coming nested call might overwrite these regs
 
-	    C67_PUSH(r);
+	    C67_PUSH(tcc_state, r);
 
 	    if (size == 8) {
-		C67_STW_PTR_PRE_INC(r + 1, C67_SP, 3);	// STW  r, *+SP[3] (go back and put the other)
+		C67_STW_PTR_PRE_INC(tcc_state, r + 1, C67_SP, 3);	// STW  r, *+SP[3] (go back and put the other)
 	    }
 	    args_sizes[i] = size;
 	}
@@ -1938,9 +1938,9 @@ void gfunc_call(TCCState* tcc_state, int nb_args)
     for (i = nb_args - 1; i >= 0; i--) {
 
 	if (args_sizes[i] == 8)
-	    C67_POP_DW(TREG_C67_A4 + i * 2);
+	    C67_POP_DW(tcc_state, TREG_C67_A4 + i * 2);
 	else
-	    C67_POP(TREG_C67_A4 + i * 2);
+	    C67_POP(tcc_state, TREG_C67_A4 + i * 2);
     }
     gcall_or_jmp(tcc_state, 0);
     tcc_state->tccgen_vtop--;
@@ -2004,8 +2004,8 @@ void gfunc_prolog(TCCState* tcc_state, CType * func_type)
     if (func_call == FUNC_STDCALL)
 	tcc_state->func_ret_sub = addr - 8;
 
-    C67_MV(C67_FP, C67_A0);	//  move FP -> A0
-    C67_MV(C67_SP, C67_FP);	//  move SP -> FP
+    C67_MV(tcc_state, C67_FP, C67_A0);	//  move FP -> A0
+    C67_MV(tcc_state, C67_SP, C67_FP);	//  move SP -> FP
 
     // place all the args passed in regs onto the stack
 
@@ -2015,20 +2015,20 @@ void gfunc_prolog(TCCState* tcc_state, CType * func_type)
 	ParamLocOnStack[i] = tcc_state->tccgen_loc;	// remember where the param is
 	tcc_state->tccgen_loc += -8;
 
-	C67_PUSH(TREG_C67_A4 + i * 2);
+	C67_PUSH(tcc_state, TREG_C67_A4 + i * 2);
 
 	if (TranslateStackToReg[i] == 8) {
-	    C67_STW_PTR_PRE_INC(TREG_C67_A4 + i * 2 + 1, C67_SP, 3);	// STW  r, *+SP[1] (go back and put the other)
+	    C67_STW_PTR_PRE_INC(tcc_state, TREG_C67_A4 + i * 2 + 1, C67_SP, 3);	// STW  r, *+SP[1] (go back and put the other)
 	}
     }
 
     TotalBytesPushedOnStack = -tcc_state->tccgen_loc;
 
     tcc_state->func_sub_sp_offset = tcc_state->tccgen_ind;	// remember where we put the stack instruction 
-    C67_ADDK(0, C67_SP);	//  ADDK.L2 loc,SP  (just put zero temporarily)
+    C67_ADDK(tcc_state, 0, C67_SP);	//  ADDK.L2 loc,SP  (just put zero temporarily)
 
-    C67_PUSH(C67_A0);
-    C67_PUSH(C67_B3);
+    C67_PUSH(tcc_state, C67_A0);
+    C67_PUSH(tcc_state, C67_B3);
 }
 
 /* generate function epilog */
@@ -2036,15 +2036,15 @@ void gfunc_epilog(TCCState* tcc_state)
 {
     {
 	int local = (-tcc_state->tccgen_loc + 7) & -8;	// stack must stay aligned to 8 bytes for LDDW instr
-	C67_POP(C67_B3);
-	C67_NOP(4);		// NOP wait for load
-	C67_IREG_B_REG(0, C67_CREG_ZERO, C67_B3);	//  B.S2  B3
-	C67_POP(C67_FP);
-	C67_ADDK(local, C67_SP);	//  ADDK.L2 loc,SP  
-	C67_Adjust_ADDK((int *) (tcc_state->tccgen_cur_text_section->data +
+	C67_POP(tcc_state, C67_B3);
+	C67_NOP(tcc_state, 4);		// NOP wait for load
+	C67_IREG_B_REG(tcc_state, 0, C67_CREG_ZERO, C67_B3);	//  B.S2  B3
+	C67_POP(tcc_state, C67_FP);
+	C67_ADDK(tcc_state, local, C67_SP);	//  ADDK.L2 loc,SP  
+	C67_Adjust_ADDK(tcc_state, (int *) (tcc_state->tccgen_cur_text_section->data +
 				 tcc_state->func_sub_sp_offset),
 			-local + TotalBytesPushedOnStack);
-	C67_NOP(3);		// NOP 
+	C67_NOP(tcc_state, 3);		// NOP 
     }
 }
 
@@ -2053,10 +2053,10 @@ int gjmp(TCCState* tcc_state, int t)
 {
     int ind1 = tcc_state->tccgen_ind;
 
-    C67_MVKL(C67_A0, t);	//r=reg to load,  constant
-    C67_MVKH(C67_A0, t);	//r=reg to load,  constant
-    C67_IREG_B_REG(0, C67_CREG_ZERO, C67_A0);	// [!R] B.S2x  A0
-    C67_NOP(5);
+    C67_MVKL(tcc_state, C67_A0, t);	//r=reg to load,  constant
+    C67_MVKH(tcc_state, C67_A0, t);	//r=reg to load,  constant
+    C67_IREG_B_REG(tcc_state, 0, C67_CREG_ZERO, C67_A0);	// [!R] B.S2x  A0
+    C67_NOP(tcc_state, 5);
     return ind1;
 }
 
@@ -2088,18 +2088,18 @@ int gtst(TCCState* tcc_state, int inv, int t)
 	/* fast case : can jump directly since flags are set */
 	// C67 uses B2 sort of as flags register
 	ind1 = tcc_state->tccgen_ind;
-	C67_MVKL(C67_A0, t);	//r=reg to load, constant
-	C67_MVKH(C67_A0, t);	//r=reg to load, constant
+	C67_MVKL(tcc_state, C67_A0, t);	//r=reg to load, constant
+	C67_MVKH(tcc_state, C67_A0, t);	//r=reg to load, constant
 
 	if (tcc_state->C67_compare_reg != TREG_EAX &&	// check if not already in a conditional test reg
 	    tcc_state->C67_compare_reg != TREG_EDX &&
 	    tcc_state->C67_compare_reg != TREG_ST0 && tcc_state->C67_compare_reg != C67_B2) {
-	    C67_MV(tcc_state->C67_compare_reg, C67_B2);
+	    C67_MV(tcc_state, tcc_state->C67_compare_reg, C67_B2);
 	    tcc_state->C67_compare_reg = C67_B2;
 	}
 
-	C67_IREG_B_REG(tcc_state->C67_invert_test ^ inv, tcc_state->C67_compare_reg, C67_A0);	// [!R] B.S2x  A0
-	C67_NOP(5);
+	C67_IREG_B_REG(tcc_state, tcc_state->C67_invert_test ^ inv, tcc_state->C67_compare_reg, C67_A0);	// [!R] B.S2x  A0
+	C67_NOP(tcc_state, 5);
 	t = ind1;		//return where we need to patch
 
     } else { /* VT_JMP || VT_JMPI */
@@ -2162,45 +2162,45 @@ void gen_opi(TCCState* tcc_state, int op)
 
 
 	if (op == TOK_LT) {
-	    C67_CMPLT(r, fr, C67_B2);
+	    C67_CMPLT(tcc_state, r, fr, C67_B2);
 	    tcc_state->C67_invert_test = FALSE;
 	} else if (op == TOK_GE) {
-	    C67_CMPLT(r, fr, C67_B2);
+	    C67_CMPLT(tcc_state, r, fr, C67_B2);
 	    tcc_state->C67_invert_test = TRUE;
 	} else if (op == TOK_GT) {
-	    C67_CMPGT(r, fr, C67_B2);
+	    C67_CMPGT(tcc_state, r, fr, C67_B2);
 	    tcc_state->C67_invert_test = FALSE;
 	} else if (op == TOK_LE) {
-	    C67_CMPGT(r, fr, C67_B2);
+	    C67_CMPGT(tcc_state, r, fr, C67_B2);
 	    tcc_state->C67_invert_test = TRUE;
 	} else if (op == TOK_EQ) {
-	    C67_CMPEQ(r, fr, C67_B2);
+	    C67_CMPEQ(tcc_state, r, fr, C67_B2);
 	    tcc_state->C67_invert_test = FALSE;
 	} else if (op == TOK_NE) {
-	    C67_CMPEQ(r, fr, C67_B2);
+	    C67_CMPEQ(tcc_state, r, fr, C67_B2);
 	    tcc_state->C67_invert_test = TRUE;
 	} else if (op == TOK_ULT) {
-	    C67_CMPLTU(r, fr, C67_B2);
+	    C67_CMPLTU(tcc_state, r, fr, C67_B2);
 	    tcc_state->C67_invert_test = FALSE;
 	} else if (op == TOK_UGE) {
-	    C67_CMPLTU(r, fr, C67_B2);
+	    C67_CMPLTU(tcc_state, r, fr, C67_B2);
 	    tcc_state->C67_invert_test = TRUE;
 	} else if (op == TOK_UGT) {
-	    C67_CMPGTU(r, fr, C67_B2);
+	    C67_CMPGTU(tcc_state, r, fr, C67_B2);
 	    tcc_state->C67_invert_test = FALSE;
 	} else if (op == TOK_ULE) {
-	    C67_CMPGTU(r, fr, C67_B2);
+	    C67_CMPGTU(tcc_state, r, fr, C67_B2);
 	    tcc_state->C67_invert_test = TRUE;
 	} else if (op == '+')
-	    C67_ADD(fr, r);	// ADD  r,fr,r
+	    C67_ADD(tcc_state, fr, r);	// ADD  r,fr,r
 	else if (op == '-')
-	    C67_SUB(fr, r);	// SUB  r,fr,r
+	    C67_SUB(tcc_state, fr, r);	// SUB  r,fr,r
 	else if (op == '&')
-	    C67_AND(fr, r);	// AND  r,fr,r
+	    C67_AND(tcc_state, fr, r);	// AND  r,fr,r
 	else if (op == '|')
-	    C67_OR(fr, r);	// OR  r,fr,r
+	    C67_OR(tcc_state, fr, r);	// OR  r,fr,r
 	else if (op == '^')
-	    C67_XOR(fr, r);	// XOR  r,fr,r
+	    C67_XOR(tcc_state, fr, r);	// XOR  r,fr,r
 	else
 	    ALWAYS_ASSERT(FALSE);
 
@@ -2235,15 +2235,15 @@ void gen_opi(TCCState* tcc_state, int op)
 	r = tcc_state->tccgen_vtop[-1].r;
 	fr = tcc_state->tccgen_vtop[0].r;
 	tcc_state->tccgen_vtop--;
-	C67_MPYI(fr, r);	// 32 bit bultiply  fr,r,fr
-	C67_NOP(8);		// NOP 8 for worst case
+	C67_MPYI(tcc_state, fr, r);	// 32 bit bultiply  fr,r,fr
+	C67_NOP(tcc_state, 8);		// NOP 8 for worst case
 	break;
     case TOK_SHL:
 	gv2(tcc_state, RC_INT_BSIDE, RC_INT_BSIDE);	// shift amount must be on same side as dst
 	r = tcc_state->tccgen_vtop[-1].r;
 	fr = tcc_state->tccgen_vtop[0].r;
 	tcc_state->tccgen_vtop--;
-	C67_SHL(fr, r);		// arithmetic/logical shift
+	C67_SHL(tcc_state, fr, r);		// arithmetic/logical shift
 	break;
 
     case TOK_SHR:
@@ -2251,7 +2251,7 @@ void gen_opi(TCCState* tcc_state, int op)
 	r = tcc_state->tccgen_vtop[-1].r;
 	fr = tcc_state->tccgen_vtop[0].r;
 	tcc_state->tccgen_vtop--;
-	C67_SHRU(fr, r);	// logical shift
+	C67_SHRU(tcc_state, fr, r);	// logical shift
 	break;
 
     case TOK_SAR:
@@ -2259,7 +2259,7 @@ void gen_opi(TCCState* tcc_state, int op)
 	r = tcc_state->tccgen_vtop[-1].r;
 	fr = tcc_state->tccgen_vtop[0].r;
 	tcc_state->tccgen_vtop--;
-	C67_SHR(fr, r);		// arithmetic shift
+	C67_SHR(tcc_state, fr, r);		// arithmetic shift
 	break;
 
     case '/':
@@ -2321,44 +2321,44 @@ void gen_opf(TCCState* tcc_state, int op)
 
 	if (op == TOK_LT) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
-		C67_CMPLTDP(r, fr, C67_B2);
+		C67_CMPLTDP(tcc_state, r, fr, C67_B2);
 	    else
-		C67_CMPLTSP(r, fr, C67_B2);
+		C67_CMPLTSP(tcc_state, r, fr, C67_B2);
 
 	    tcc_state->C67_invert_test = FALSE;
 	} else if (op == TOK_GE) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
-		C67_CMPLTDP(r, fr, C67_B2);
+		C67_CMPLTDP(tcc_state, r, fr, C67_B2);
 	    else
-		C67_CMPLTSP(r, fr, C67_B2);
+		C67_CMPLTSP(tcc_state, r, fr, C67_B2);
 
 	    tcc_state->C67_invert_test = TRUE;
 	} else if (op == TOK_GT) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
-		C67_CMPGTDP(r, fr, C67_B2);
+		C67_CMPGTDP(tcc_state, r, fr, C67_B2);
 	    else
-		C67_CMPGTSP(r, fr, C67_B2);
+		C67_CMPGTSP(tcc_state, r, fr, C67_B2);
 
 	    tcc_state->C67_invert_test = FALSE;
 	} else if (op == TOK_LE) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
-		C67_CMPGTDP(r, fr, C67_B2);
+		C67_CMPGTDP(tcc_state, r, fr, C67_B2);
 	    else
-		C67_CMPGTSP(r, fr, C67_B2);
+		C67_CMPGTSP(tcc_state, r, fr, C67_B2);
 
 	    tcc_state->C67_invert_test = TRUE;
 	} else if (op == TOK_EQ) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
-		C67_CMPEQDP(r, fr, C67_B2);
+		C67_CMPEQDP(tcc_state, r, fr, C67_B2);
 	    else
-		C67_CMPEQSP(r, fr, C67_B2);
+		C67_CMPEQSP(tcc_state, r, fr, C67_B2);
 
 	    tcc_state->C67_invert_test = FALSE;
 	} else if (op == TOK_NE) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
-		C67_CMPEQDP(r, fr, C67_B2);
+		C67_CMPEQDP(tcc_state, r, fr, C67_B2);
 	    else
-		C67_CMPEQSP(r, fr, C67_B2);
+		C67_CMPEQSP(tcc_state, r, fr, C67_B2);
 
 	    tcc_state->C67_invert_test = TRUE;
 	} else {
@@ -2368,29 +2368,29 @@ void gen_opf(TCCState* tcc_state, int op)
     } else {
 	if (op == '+') {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE) {
-		C67_ADDDP(r, fr);	// ADD  fr,r,fr
-		C67_NOP(6);
+		C67_ADDDP(tcc_state, r, fr);	// ADD  fr,r,fr
+		C67_NOP(tcc_state, 6);
 	    } else {
-		C67_ADDSP(r, fr);	// ADD  fr,r,fr
-		C67_NOP(3);
+		C67_ADDSP(tcc_state, r, fr);	// ADD  fr,r,fr
+		C67_NOP(tcc_state, 3);
 	    }
 	    tcc_state->tccgen_vtop--;
 	} else if (op == '-') {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE) {
-		C67_SUBDP(r, fr);	// SUB  fr,r,fr
-		C67_NOP(6);
+		C67_SUBDP(tcc_state, r, fr);	// SUB  fr,r,fr
+		C67_NOP(tcc_state, 6);
 	    } else {
-		C67_SUBSP(r, fr);	// SUB  fr,r,fr
-		C67_NOP(3);
+		C67_SUBSP(tcc_state, r, fr);	// SUB  fr,r,fr
+		C67_NOP(tcc_state, 3);
 	    }
 	    tcc_state->tccgen_vtop--;
 	} else if (op == '*') {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE) {
-		C67_MPYDP(r, fr);	// MPY  fr,r,fr
-		C67_NOP(9);
+		C67_MPYDP(tcc_state, r, fr);	// MPY  fr,r,fr
+		C67_NOP(tcc_state, 9);
 	    } else {
-		C67_MPYSP(r, fr);	// MPY  fr,r,fr
-		C67_NOP(3);
+		C67_MPYSP(tcc_state, r, fr);	// MPY  fr,r,fr
+		C67_NOP(tcc_state, 3);
 	    }
 	    tcc_state->tccgen_vtop--;
 	} else if (op == '/') {
@@ -2435,18 +2435,18 @@ void gen_cvt_itof(TCCState* tcc_state, int t)
 
     if ((t & VT_BTYPE) == VT_DOUBLE) {
 	if (t & VT_UNSIGNED)
-	    C67_INTDPU(r, r);
+	    C67_INTDPU(tcc_state, r, r);
 	else
-	    C67_INTDP(r, r);
+	    C67_INTDP(tcc_state, r, r);
 
-	C67_NOP(4);
+	C67_NOP(tcc_state, 4);
 	tcc_state->tccgen_vtop->type.t = VT_DOUBLE;
     } else {
 	if (t & VT_UNSIGNED)
-	    C67_INTSPU(r, r);
+	    C67_INTSPU(tcc_state, r, r);
 	else
-	    C67_INTSP(r, r);
-	C67_NOP(3);
+	    C67_INTSP(tcc_state, r, r);
+	C67_NOP(tcc_state, 3);
 	tcc_state->tccgen_vtop->type.t = VT_FLOAT;
     }
 
@@ -2465,11 +2465,11 @@ void gen_cvt_ftoi(TCCState* tcc_state, int t)
 	tcc_error(tcc_state, "long long not supported");
     else {
 	if ((tcc_state->tccgen_vtop->type.t & VT_BTYPE) == VT_DOUBLE) {
-	    C67_DPTRUNC(r, r);
-	    C67_NOP(3);
+	    C67_DPTRUNC(tcc_state, r, r);
+	    C67_NOP(tcc_state, 3);
 	} else {
-	    C67_SPTRUNC(r, r);
-	    C67_NOP(3);
+	    C67_SPTRUNC(tcc_state, r, r);
+	    C67_NOP(tcc_state, 3);
 	}
 
 	tcc_state->tccgen_vtop->type.t = VT_INT;
@@ -2490,8 +2490,8 @@ void gen_cvt_ftof(TCCState* tcc_state, int t)
 
 	r = tcc_state->tccgen_vtop->r;
 
-	C67_DPSP(r, r);		// convert it to SP same register
-	C67_NOP(3);
+	C67_DPSP(tcc_state, r, r);		// convert it to SP same register
+	C67_NOP(tcc_state, 3);
 
 	tcc_state->tccgen_vtop->type.t = VT_FLOAT;
 	tcc_state->tccgen_vtop->r2 = VT_CONST;	// set this as unused
@@ -2512,8 +2512,8 @@ void gen_cvt_ftof(TCCState* tcc_state, int t)
             r2 = 0; /* avoid warning */
         }
 
-	C67_SPDP(r, r);		// convert it to DP same register
-	C67_NOP(1);
+	C67_SPDP(tcc_state, r, r);		// convert it to DP same register
+	C67_NOP(tcc_state, 1);
 
 	tcc_state->tccgen_vtop->type.t = VT_DOUBLE;
 	tcc_state->tccgen_vtop->r2 = r2;		// set this as unused
