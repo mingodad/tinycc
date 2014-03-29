@@ -657,11 +657,11 @@ static void set_exception_handler(void)
 }
 
 #ifdef _WIN64
-static void win64_add_function_table(TCCState *s1)
+static void win64_add_function_table(TCCState *tcc_state)
 {
     RtlAddFunctionTable(
-        (RUNTIME_FUNCTION*)s1->uw_pdata->sh_addr,
-        s1->uw_pdata->data_offset / sizeof (RUNTIME_FUNCTION),
+        (RUNTIME_FUNCTION*)tcc_state->uw_pdata->sh_addr,
+        tcc_state->uw_pdata->data_offset / sizeof (RUNTIME_FUNCTION),
         tcc_state->tccgen_text_section->sh_addr
         );
 }
