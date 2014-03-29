@@ -2,7 +2,7 @@
 /*
  * tiny_impdef creates an export definition file (.def) from a dll
  * on MS-Windows. Usage: tiny_impdef library.dll [-o outputfile]"
- * 
+ *
  *  Copyright (c) 2005,2007 grischka
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,9 +28,11 @@
 #include <io.h>
 #include <malloc.h>
 
-char *get_export_names(tcc_state, int fd);
+typedef char TCCState;
+
+char *get_export_names(TCCState* tcc_state, int fd);
 #define tcc_free free
-#define tcc_realloc realloc
+#define tcc_realloc(t, p, s) realloc(p, s)
 
 /* extract the basename of a file */
 static char *file_basename(const char *name)
@@ -115,7 +117,7 @@ usage:
     if (v)
         printf("--> %s\n", file);
 
-    p = get_export_names(tcc_state, fileno(fp));
+    p = get_export_names(0, fileno(fp));
     if (NULL == p) {
         fprintf(stderr, "tiny_impdef: could not get exported function names.\n");
         goto the_end;
