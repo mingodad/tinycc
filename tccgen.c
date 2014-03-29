@@ -5772,13 +5772,13 @@ static void gen_function(TCCState* tcc_state, Sym *sym)
     gfunc_prolog(tcc_state, &sym->type);
 #ifdef CONFIG_TCC_BCHECK
     if (tcc_state->do_bounds_check
-        && !strcmp(get_tok_str(sym->v, NULL), "main")) {
+        && !strcmp(get_tok_str(tcc_state, sym->v, NULL), "main")) {
         int i;
 
-        for (i = 0, sym = tcc_state->local_stack; i < 2; i++, sym = sym->prev) {
+        for (i = 0, sym = tcc_state->tccgen_local_stack; i < 2; i++, sym = sym->prev) {
             if (sym->v & SYM_FIELD || sym->prev->v & SYM_FIELD)
                 break;
-            vpush_global_sym(&tcc_state->func_old_type, TOK___bound_main_arg);
+            vpush_global_sym(tcc_state, &tcc_state->tccgen_func_old_type, TOK___bound_main_arg);
             vset(tcc_state, &sym->type, sym->r, sym->c);
             gfunc_call(tcc_state, 1);
         }

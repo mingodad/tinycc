@@ -1008,7 +1008,7 @@ static void put_got_entry(TCCState *tcc_state,
                           int reloc_type, unsigned long size, int info,
                           int sym_index)
 {
-    int index;
+    int index, need_plt_entry, got_entry_present = 0;
     const char *name;
     ElfW(Sym) *sym;
     unsigned long offset;
@@ -1017,13 +1017,24 @@ static void put_got_entry(TCCState *tcc_state,
     if (!tcc_state->got)
         build_got(tcc_state);
 
+    need_plt_entry = tcc_state->dynsym &&
+#ifdef TCC_TARGET_X86_64
+        (reloc_type == R_X86_64_JUMP_SLOT);
+#elif defined(TCC_TARGET_I386)
+        (reloc_type == R_386_JMP_SLOT);
+#elif defined(TCC_TARGET_ARM)
+        (reloc_type == R_ARM_JUMP_SLOT);
+#else
+        0;
+#endif
+
     /* if a got entry already exists for that symbol, no need to add one */
     if (sym_index < tcc_state->nb_sym_attrs &&
         tcc_state->sym_attrs[sym_index].got_offset) {
-        if (!tcc_state->need_plt_entry || tcc_state->sym_attrs[sym_index].has_plt_entry)
+        if (!need_plt_entry || tcc_state->sym_attrs[sym_index].has_plt_entry)
             return;
         else
-            tcc_state->got_entry_present = 1;
+            got_entry_present = 1;
     }
 
     alloc_sym_attr(tcc_state, sym_index)->got_offset = tcc_state->got->data_offset;
@@ -1120,7 +1131,7 @@ static void put_got_entry(TCCState *tcc_state,
                the PLT */
             if (tcc_state->output_type == TCC_OUTPUT_EXE)
                 offset = plt->data_offset - 16;
-            s1->sym_attrs[sym_index].has_plt_entry = 1;
+            tcc_state->sym_attrs[sym_index].has_plt_entry = 1;
         }
 #elif defined(TCC_TARGET_C67)
         tcc_error(tcc_state, "C67 got not implemented");
@@ -1129,6 +1140,12 @@ static void put_got_entry(TCCState *tcc_state,
 #endif
         index = put_elf_sym(tcc_state, tcc_state->dynsym, offset,
                             size, info, 0, sym->st_shndx, name);
+        if (got_entry_present) {
+            put_elf_reloc(tcc_state, tcc_state->dynsym, tcc_state->got,
+                          tcc_state->sym_attrs[sym_index].got_offset,
+                          reloc_type, index);
+            return;
+        }
         /* put a got entry */
         put_elf_reloc(tcc_state, tcc_state->dynsym, tcc_state->got,
                       tcc_state->got->data_offset,
