@@ -959,7 +959,9 @@ static int assign_regs(TCCState* tcc_state, int nb_args, int float_abi, struct p
   memset(plan->clsplans, 0, sizeof(plan->clsplans));
   for(i = nb_args; i-- ;) {
     int j, start_vfpreg = 0;
-    size = type_size(&tcc_state->tccgen_vtop[-i].type, &align);
+    CType type = tcc_state->tccgen_vtop[-i].type;
+    type.t &= ~VT_ARRAY;
+    size = type_size(&type, &align);
     size = (size + 3) & ~3;
     align = (align + 3) & ~3;
     switch(tcc_state->tccgen_vtop[-i].type.t & VT_BTYPE) {
