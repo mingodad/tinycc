@@ -5771,7 +5771,7 @@ static void gen_function(TCCState* tcc_state, Sym *sym)
     sym_push2(tcc_state, &tcc_state->tccgen_local_stack, SYM_FIELD, 0, 0);
     gfunc_prolog(tcc_state, &sym->type);
 #ifdef CONFIG_TCC_BCHECK
-    if (tcc_state->do_bound_check
+    if (tcc_state->do_bounds_check
         && !strcmp(get_tok_str(sym->v, NULL), "main")) {
         int i;
 
