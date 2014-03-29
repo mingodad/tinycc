@@ -5770,6 +5770,20 @@ static void gen_function(TCCState* tcc_state, Sym *sym)
     /* push a dummy symbol to enable local sym storage */
     sym_push2(tcc_state, &tcc_state->tccgen_local_stack, SYM_FIELD, 0, 0);
     gfunc_prolog(tcc_state, &sym->type);
+#ifdef CONFIG_TCC_BCHECK
+    if (tcc_state->do_bound_check
+        && !strcmp(get_tok_str(sym->v, NULL), "main")) {
+        int i;
+
+        for (i = 0, sym = tcc_state->local_stack; i < 2; i++, sym = sym->prev) {
+            if (sym->v & SYM_FIELD || sym->prev->v & SYM_FIELD)
+                break;
+            vpush_global_sym(&tcc_state->func_old_type, TOK___bound_main_arg);
+            vset(tcc_state, &sym->type, sym->r, sym->c);
+            gfunc_call(tcc_state, 1);
+        }
+    }
+#endif
     tcc_state->tccgen_rsym = 0;
     block(tcc_state, NULL, NULL, NULL, NULL, 0, 0);
     gsym(tcc_state, tcc_state->tccgen_rsym);
