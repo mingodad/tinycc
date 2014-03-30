@@ -1155,7 +1155,7 @@ PUB_FUNC char *tcc_strdup(TCCState* tcc_state, const char *str);
 #define strdup(s) use_tcc_strdup(s)
 PUB_FUNC void tcc_memstats(void);
 PUB_FUNC void tcc_error_noabort(TCCState* tcc_state, const char *fmt, ...);
-PUB_FUNC void tcc_error(TCCState* tcc_state, const char *fmt, ...);
+PUB_FUNC void tcc_error(TCCState* tcc_state, const char *fmt, ...) __attribute__ ((noreturn));
 PUB_FUNC void tcc_warning(TCCState* tcc_state, const char *fmt, ...);
 
 /* other utilities */
@@ -1253,7 +1253,7 @@ ST_FUNC void preprocess_init(TCCState *tcc_state);
 ST_FUNC void preprocess_new(TCCState* tcc_state);
 ST_FUNC int tcc_preprocess(TCCState *tcc_state);
 ST_FUNC void skip(TCCState* tcc_state, int c);
-ST_FUNC void expect(TCCState* tcc_state, const char *msg);
+ST_FUNC void expect(TCCState* tcc_state, const char *msg) __attribute__ ((noreturn));
 
 /* ------------ tccgen.c ------------ */
 
