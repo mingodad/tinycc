@@ -2827,7 +2827,7 @@ static void struct_decl(TCCState* tcc_state, CType *type, int u, int tdef)
                 if (v < TOK_UIDENT)
                     expect(tcc_state, "identifier");
                 ss = sym_find(tcc_state, v);
-                if (ss)
+                if (ss && !tcc_state->tccgen_local_stack)
                     tcc_error(tcc_state, "redefinition of enumerator '%s'",
                               get_tok_str(tcc_state, v, NULL));
                 next(tcc_state);
