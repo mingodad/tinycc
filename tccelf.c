@@ -802,9 +802,18 @@ ST_FUNC void relocate_section(TCCState *tcc_state, Section *s)
 #elif defined(TCC_TARGET_X86_64)
         case R_X86_64_64:
             if (tcc_state->output_type == TCC_OUTPUT_DLL) {
-                qrel->r_info = ELFW(R_INFO)(0, R_X86_64_RELATIVE);
-                qrel->r_addend = *(long long *)ptr + val;
-                qrel++;
+                esym_index = tcc_state->symtab_to_dynsym[sym_index];
+                qrel->r_offset = rel->r_offset;
+                if (esym_index) {
+                    qrel->r_info = ELFW(R_INFO)(esym_index, R_X86_64_64);
+		    qrel->r_addend = rel->r_addend;
+                    qrel++;
+                    break;
+                } else {
+		    qrel->r_info = ELFW(R_INFO)(0, R_X86_64_RELATIVE);
+		    qrel->r_addend = *(long long *)ptr + val;
+                    qrel++;
+                }
             }
             *(long long *)ptr += val;
             break;
@@ -1013,6 +1022,7 @@ static void put_got_entry(TCCState *tcc_state,
     ElfW(Sym) *sym;
     unsigned long offset;
     int *ptr;
+    struct sym_attr *symattr;
 
     if (!tcc_state->got)
         build_got(tcc_state);
@@ -1037,7 +1047,10 @@ static void put_got_entry(TCCState *tcc_state,
             got_entry_present = 1;
     }
 
-    alloc_sym_attr(tcc_state, sym_index)->got_offset = tcc_state->got->data_offset;
+    symattr = alloc_sym_attr(tcc_state, sym_index);
+    /* Only store the GOT offset if it's not generated for the PLT entry.  */
+    if (!need_plt_entry)
+        symattr->got_offset = tcc_state->got->data_offset;
 
     if (tcc_state->dynsym) {
         sym = &((ElfW(Sym) *)tcc_state->tccgen_symtab_section->data)[sym_index];
@@ -1054,6 +1067,7 @@ static void put_got_entry(TCCState *tcc_state,
             Section *plt;
             uint8_t *p;
             int modrm;
+	    unsigned long relofs;
 
 #if defined(TCC_OUTPUT_DLL_WITH_PLT)
             modrm = 0x25;
@@ -1078,12 +1092,21 @@ static void put_got_entry(TCCState *tcc_state,
                 put32(p + 8, PTR_SIZE * 2);
             }
 
+	    /* The PLT slot refers to the relocation entry it needs
+	       via offset.  The reloc entry is created below, so its
+	       offset is the current data_offset.  */
+	    relofs = tcc_state->got->reloc ? tcc_state->got->reloc->data_offset : 0;
             p = section_ptr_add(tcc_state, plt, 16);
             p[0] = 0xff; /* jmp *(got + x) */
             p[1] = modrm;
             put32(p + 2, tcc_state->got->data_offset);
             p[6] = 0x68; /* push $xxx */
-            put32(p + 7, (plt->data_offset - 32) >> 1);
+#ifdef TCC_TARGET_X86_64
+	    /* On x86-64, the relocation is referred to by _index_.  */
+	    put32(p + 7, relofs / sizeof (ElfW_Rel));
+#else
+            put32(p + 7, relofs);
+#endif
             p[11] = 0xe9; /* jmp plt_start */
             put32(p + 12, -(plt->data_offset));
 
@@ -1093,7 +1116,7 @@ static void put_got_entry(TCCState *tcc_state,
             if (tcc_state->output_type == TCC_OUTPUT_EXE)
 #endif
                 offset = plt->data_offset - 16;
-            tcc_state->sym_attrs[sym_index].has_plt_entry = 1;
+            symattr->has_plt_entry = 1;
         }
 #elif defined(TCC_TARGET_ARM)
         if (reloc_type == R_ARM_JUMP_SLOT) {
@@ -1115,7 +1138,7 @@ static void put_got_entry(TCCState *tcc_state,
                 put32(p+12, 0xe5bef008); /* ldr pc, [lr, #8]! */
             }
 
-            if (tcc_state->sym_attrs[sym_index].plt_thumb_stub) {
+            if (symattr->plt_thumb_stub) {
                 p = section_ptr_add(tcc_state, plt, 20);
                 put32(p,   0x4778); /* bx pc */
                 put32(p+2, 0x46c0); /* nop   */
@@ -1131,26 +1154,23 @@ static void put_got_entry(TCCState *tcc_state,
                the PLT */
             if (tcc_state->output_type == TCC_OUTPUT_EXE)
                 offset = plt->data_offset - 16;
-            tcc_state->sym_attrs[sym_index].has_plt_entry = 1;
+            symattr->has_plt_entry = 1;
         }
 #elif defined(TCC_TARGET_C67)
         tcc_error(tcc_state, "C67 got not implemented");
 #else
 #error unsupported CPU
 #endif
+	/* XXX This might generate multiple syms for name.  */
         index = put_elf_sym(tcc_state, tcc_state->dynsym, offset,
                             size, info, 0, sym->st_shndx, name);
-        if (got_entry_present) {
-            put_elf_reloc(tcc_state, tcc_state->dynsym, tcc_state->got,
-                          tcc_state->sym_attrs[sym_index].got_offset,
-                          reloc_type, index);
-            return;
-        }
-        /* put a got entry */
+        /* Create the relocation (it's against the GOT for PLT
+	   and GOT relocs).  */
         put_elf_reloc(tcc_state, tcc_state->dynsym, tcc_state->got,
                       tcc_state->got->data_offset,
                       reloc_type, index);
     }
+    /* And now create the GOT slot itself.  */
     ptr = section_ptr_add(tcc_state, tcc_state->got, PTR_SIZE);
     *ptr = 0;
 }
@@ -1702,26 +1722,11 @@ static void export_global_syms(TCCState *tcc_state)
     tcc_state->symtab_to_dynsym = tcc_mallocz(tcc_state, sizeof(int) * nb_syms);
     for_each_elem(tcc_state->tccgen_symtab_section, 1, sym, ElfW(Sym)) {
         if (ELFW(ST_BIND)(sym->st_info) != STB_LOCAL) {
-#if defined(TCC_OUTPUT_DLL_WITH_PLT)
-            int type = ELFW(ST_TYPE)(sym->st_info);
-            if ((type == STT_FUNC || type == STT_GNU_IFUNC)
-                && sym->st_shndx == SHN_UNDEF) {
-                int visibility = ELFW(ST_BIND)(sym->st_info);
-                put_got_entry(tcc_state, R_JMP_SLOT, sym->st_size,
-                              ELFW(ST_INFO)(visibility, STT_FUNC),
-                              sym - (ElfW(Sym) *) tcc_state->tccgen_symtab_section->data);
-            } else if (type == STT_OBJECT) {
-                put_got_entry(tcc_state, R_X86_64_GLOB_DAT, sym->st_size, sym->st_info,
-                              sym - (ElfW(Sym) *) tcc_state->tccgen_symtab_section->data);
-            } else
-#endif
-            {
-                name = (char *) tcc_state->tccgen_symtab_section->link->data + sym->st_name;
-                dynindex = put_elf_sym(tcc_state, tcc_state->dynsym, sym->st_value, sym->st_size,
-                                       sym->st_info, 0, sym->st_shndx, name);
-                index = sym - (ElfW(Sym) *) tcc_state->tccgen_symtab_section->data;
-                tcc_state->symtab_to_dynsym[index] = dynindex;
-            }
+	    name = (char *) tcc_state->tccgen_symtab_section->link->data + sym->st_name;
+	    dynindex = put_elf_sym(tcc_state, tcc_state->dynsym, sym->st_value, sym->st_size,
+				   sym->st_info, 0, sym->st_shndx, name);
+	    index = sym - (ElfW(Sym) *) tcc_state->tccgen_symtab_section->data;
+	    tcc_state->symtab_to_dynsym[index] = dynindex;
         }
     }
 }

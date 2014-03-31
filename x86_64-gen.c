@@ -604,7 +604,7 @@ static void gcall_or_jmp(TCCState* tcc_state, int is_jmp)
         if (tcc_state->tccgen_vtop->r & VT_SYM) {
             /* relocation case */
             greloc(tcc_state, tcc_state->tccgen_cur_text_section, tcc_state->tccgen_vtop->sym,
-                   tcc_state->tccgen_ind + 1, R_X86_64_PC32);
+                   tcc_state->tccgen_ind + 1, R_X86_64_PLT32);
         } else {
             /* put an empty PC32 relocation */
             put_elf_reloc(tcc_state, tcc_state->tccgen_symtab_section, tcc_state->tccgen_cur_text_section,
