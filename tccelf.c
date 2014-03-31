@@ -841,8 +841,18 @@ ST_FUNC void relocate_section(TCCState *tcc_state, Section *s)
                     break;
                 }
             }
-            /* fall through */
-        case R_X86_64_PLT32: {
+            goto plt32pc32;
+
+        case R_X86_64_PLT32:
+	    /* We've put the PLT slot offset into r_addend when generating
+	       it, and that's what we must use as relocation value (adjusted
+	       by section offset of course).  */
+	    if (tcc_state->output_type != TCC_OUTPUT_MEMORY)
+	        val = tcc_state->plt->sh_addr + rel->r_addend;
+	    /* fallthrough.  */
+
+	plt32pc32:
+	{
             long long diff;
             diff = (long long)val - addr;
             if (diff <= -2147483647 || diff > 2147483647) {
@@ -1011,13 +1021,14 @@ static void build_got(TCCState *tcc_state)
 #endif
 }
 
-/* put a got entry corresponding to a symbol in symtab_section. 'size'
-   and 'info' can be modifed if more precise info comes from the DLL */
-static void put_got_entry(TCCState *tcc_state,
-                          int reloc_type, unsigned long size, int info,
-                          int sym_index)
+/* put a got or plt entry corresponding to a symbol in symtab_section. 'size'
+   and 'info' can be modifed if more precise info comes from the DLL.
+   Returns offset of GOT or PLT slot.  */
+static unsigned long put_got_entry(TCCState *tcc_state,
+				   int reloc_type, unsigned long size, int info,
+				   int sym_index)
 {
-    int index, need_plt_entry, got_entry_present = 0;
+    int index, need_plt_entry;
     const char *name;
     ElfW(Sym) *sym;
     unsigned long offset;
@@ -1038,16 +1049,16 @@ static void put_got_entry(TCCState *tcc_state,
         0;
 #endif
 
-    /* if a got entry already exists for that symbol, no need to add one */
-    if (sym_index < tcc_state->nb_sym_attrs &&
-        tcc_state->sym_attrs[sym_index].got_offset) {
-        if (!need_plt_entry || tcc_state->sym_attrs[sym_index].has_plt_entry)
-            return;
-        else
-            got_entry_present = 1;
+    /* If a got/plt entry already exists for that symbol, no need to add one */
+    if (sym_index < tcc_state->nb_sym_attrs) {
+	if (need_plt_entry && tcc_state->sym_attrs[sym_index].plt_offset)
+	  return tcc_state->sym_attrs[sym_index].plt_offset;
+	else if (!need_plt_entry && tcc_state->sym_attrs[sym_index].got_offset)
+	  return tcc_state->sym_attrs[sym_index].got_offset;
     }
 
     symattr = alloc_sym_attr(tcc_state, sym_index);
+
     /* Only store the GOT offset if it's not generated for the PLT entry.  */
     if (!need_plt_entry)
         symattr->got_offset = tcc_state->got->data_offset;
@@ -1096,6 +1107,7 @@ static void put_got_entry(TCCState *tcc_state,
 	       via offset.  The reloc entry is created below, so its
 	       offset is the current data_offset.  */
 	    relofs = tcc_state->got->reloc ? tcc_state->got->reloc->data_offset : 0;
+            symattr->plt_offset = plt->data_offset;
             p = section_ptr_add(tcc_state, plt, 16);
             p[0] = 0xff; /* jmp *(got + x) */
             p[1] = modrm;
@@ -1110,13 +1122,11 @@ static void put_got_entry(TCCState *tcc_state,
             p[11] = 0xe9; /* jmp plt_start */
             put32(p + 12, -(plt->data_offset));
 
-            /* the symbol is modified so that it will be relocated to
-               the PLT */
-#if !defined(TCC_OUTPUT_DLL_WITH_PLT)
-            if (tcc_state->output_type == TCC_OUTPUT_EXE)
-#endif
-                offset = plt->data_offset - 16;
-            symattr->has_plt_entry = 1;
+	    /* If this was an UNDEF symbol set the offset in the 
+	       dynsymtab to the PLT slot, so that PC32 relocs to it
+	       can be resolved.  */
+	    if (sym->st_shndx == SHN_UNDEF)
+	        offset = plt->data_offset - 16;
         }
 #elif defined(TCC_TARGET_ARM)
         if (reloc_type == R_ARM_JUMP_SLOT) {
@@ -1138,6 +1148,7 @@ static void put_got_entry(TCCState *tcc_state,
                 put32(p+12, 0xe5bef008); /* ldr pc, [lr, #8]! */
             }
 
+            symattr->plt_offset = plt->data_offset;
             if (symattr->plt_thumb_stub) {
                 p = section_ptr_add(tcc_state, plt, 20);
                 put32(p,   0x4778); /* bx pc */
@@ -1154,7 +1165,6 @@ static void put_got_entry(TCCState *tcc_state,
                the PLT */
             if (tcc_state->output_type == TCC_OUTPUT_EXE)
                 offset = plt->data_offset - 16;
-            symattr->has_plt_entry = 1;
         }
 #elif defined(TCC_TARGET_C67)
         tcc_error(tcc_state, "C67 got not implemented");
@@ -1173,6 +1183,10 @@ static void put_got_entry(TCCState *tcc_state,
     /* And now create the GOT slot itself.  */
     ptr = section_ptr_add(tcc_state, tcc_state->got, PTR_SIZE);
     *ptr = 0;
+    if (need_plt_entry)
+      return symattr->plt_offset;
+    else
+      return symattr->got_offset;
 }
 
 /* build GOT and PLT entries */
@@ -1287,6 +1301,7 @@ ST_FUNC void build_got_entries(TCCState *tcc_state)
                     build_got(tcc_state);
                 if (type == R_X86_64_GOT32 || type == R_X86_64_GOTPCREL ||
                     type == R_X86_64_PLT32) {
+		    unsigned long ofs;
                     sym_index = ELFW(R_SYM)(rel->r_info);
                     sym = &((ElfW(Sym) *)tcc_state->tccgen_symtab_section->data)[sym_index];
                     /* look at the symbol got offset. If none, then add one */
@@ -1294,8 +1309,13 @@ ST_FUNC void build_got_entries(TCCState *tcc_state)
                         reloc_type = R_X86_64_GLOB_DAT;
                     else
                         reloc_type = R_X86_64_JUMP_SLOT;
-                    put_got_entry(tcc_state, reloc_type, sym->st_size, sym->st_info,
-                                  sym_index);
+                    ofs = put_got_entry(tcc_state, reloc_type, sym->st_size,
+					sym->st_info, sym_index);
+		    if (type == R_X86_64_PLT32
+			&& tcc_state->output_type != TCC_OUTPUT_MEMORY)
+		        /* We store the place of the generated PLT slot
+			   in our addend.  */
+		        rel->r_addend += ofs;
                 }
                 break;
 #else
