@@ -1553,16 +1553,16 @@ static void tcc_output_binary(TCCState *tcc_state, FILE *f,
 #define EXTRA_RELITEMS  14
 
 /* move the relocation value from .dynsym to .got */
-void patch_dynsym_undef(TCCState *s1, Section *s)
+void patch_dynsym_undef(TCCState *tcc_state, Section *s)
 {
-    uint32_t *gotd = (void *)s1->got->data;
+    uint32_t *gotd = (void *)tcc_state->got->data;
     ElfW(Sym) *sym;
 
     gotd += 3; /* dummy entries in .got */
     /* relocate symbols in .dynsym */
     for_each_elem(s, 1, sym, ElfW(Sym)) {
         if (sym->st_shndx == SHN_UNDEF) {
-            *gotd++ = syscite spell checkm->st_value + 6; /* XXX 6 is magic ? */
+            *gotd++ = sym->st_value + 6; /* XXX 6 is magic ? */
             sym->st_value = 0;
         }
     }
