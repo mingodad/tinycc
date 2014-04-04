@@ -1179,6 +1179,13 @@ static unsigned long put_got_entry(TCCState *tcc_state,
         put_elf_reloc(tcc_state, tcc_state->dynsym, tcc_state->got,
                       tcc_state->got->data_offset,
                       reloc_type, index);
+    } else {
+	/* Without .dynsym (i.e. static link or memory output) we
+	   still need relocs against the generated got, so as to fill
+	   the entries with the symbol values (determined later).  */
+	put_elf_reloc(symtab_section, s1->got,
+                      s1->got->data_offset,
+                      reloc_type, sym_index);
     }
     /* And now create the GOT slot itself.  */
     ptr = section_ptr_add(tcc_state, tcc_state->got, PTR_SIZE);
