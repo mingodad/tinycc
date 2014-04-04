@@ -329,7 +329,6 @@ static void vsetc(TCCState* tcc_state, CType *type, int r, CValue *vc)
 void vpush(TCCState* tcc_state, CType *type)
 {
     CValue cval;
-    memset(&cval, 0, sizeof(CValue));
     vsetc(tcc_state, type, VT_CONST, &cval);
 }
 
@@ -337,20 +336,15 @@ void vpush(TCCState* tcc_state, CType *type)
 ST_FUNC void vpushi(TCCState* tcc_state, int v)
 {
     CValue cval;
-    memset(&cval, 0, sizeof(CValue));
     cval.i = v;
     vsetc(tcc_state, &tcc_state->tccgen_int_type, VT_CONST, &cval);
 }
 
 /* push a pointer sized constant */
-static void vpushs(TCCState* tcc_state, long long v)
+static void vpushs(TCCState* tcc_state, addr_t v)
 {
   CValue cval;
-  memset(&cval, 0, sizeof(CValue));
-  if (PTR_SIZE == 4)
-    cval.i = (int)v;
-  else
-    cval.ull = v;
+  cval.ptr_offset = v;
   vsetc(tcc_state, &tcc_state->tccgen_size_type, VT_CONST, &cval);
 }
 
@@ -358,7 +352,6 @@ static void vpushs(TCCState* tcc_state, long long v)
 void vpush64(TCCState* tcc_state, int ty, unsigned long long v)
 {
     CValue cval;
-    memset(&cval, 0, sizeof(CValue));
     CType ctype;
     ctype.t = ty;
     ctype.ref = NULL;
@@ -376,9 +369,7 @@ static inline void vpushll(TCCState* tcc_state, long long v)
 static inline void vpushsym(TCCState* tcc_state, CType *type, Sym *sym)
 {
     CValue cval;
-    memset(&cval, 0, sizeof(CValue));
-
-    cval.ull = 0;
+    cval.ptr_offset = 0;
     vsetc(tcc_state, type, VT_CONST | VT_SYM, &cval);
     tcc_state->tccgen_vtop->sym = sym;
 }
@@ -451,7 +442,6 @@ ST_FUNC void vpush_global_sym(TCCState* tcc_state, CType *type, int v)
 ST_FUNC void vset(TCCState* tcc_state, CType *type, int r, int v)
 {
     CValue cval;
-    memset(&cval, 0, sizeof(CValue));
 
     cval.i = v;
     vsetc(tcc_state, type, r, &cval);
@@ -737,7 +727,6 @@ ST_FUNC int gv(TCCState* tcc_state, int rc)
             unsigned long offset;
 #if defined(TCC_TARGET_ARM) && !defined(TCC_ARM_VFP)
             CValue check;
-            memset(&check, 0, sizeof(CValue));
 #endif
             
             /* XXX: unify with initializers handling ? */
@@ -770,7 +759,7 @@ ST_FUNC int gv(TCCState* tcc_state, int rc)
             sym = get_sym_ref(tcc_state, &tcc_state->tccgen_vtop->type, tcc_state->tccgen_data_section, offset, size << 2);
             tcc_state->tccgen_vtop->r |= VT_LVAL | VT_SYM;
             tcc_state->tccgen_vtop->sym = sym;
-            tcc_state->tccgen_vtop->c.ull = 0;
+            tcc_state->tccgen_vtop->c.ptr_offset = 0;
         }
 #ifdef CONFIG_TCC_BCHECK
         if (tcc_state->tccgen_vtop->r & VT_MUSTBOUND) 
@@ -1581,7 +1570,7 @@ static inline int is_null_pointer(SValue *p)
         return 0;
     return ((p->type.t & VT_BTYPE) == VT_INT && p->c.i == 0) ||
         ((p->type.t & VT_BTYPE) == VT_LLONG && p->c.ll == 0) ||
-	((p->type.t & VT_BTYPE) == VT_PTR && p->c.ptr == 0);
+	((p->type.t & VT_BTYPE) == VT_PTR && p->c.ptr_offset == 0);
 }
 
 static inline int is_integer_btype(int bt)
@@ -3886,8 +3875,7 @@ ST_FUNC void unary(TCCState* tcc_state)
             mk_pointer(tcc_state, &s->type);
             s->type.t |= VT_STATIC;
         }
-        vset(tcc_state, &s->type, VT_CONST | VT_SYM, 0);
-        tcc_state->tccgen_vtop->sym = s;
+        vpushsym(tcc_state, &s->type, s);
         next(tcc_state);
         break;
     
@@ -3939,7 +3927,7 @@ ST_FUNC void unary(TCCState* tcc_state)
         /* if forward reference, we must point to s */
         if (tcc_state->tccgen_vtop->r & VT_SYM) {
             tcc_state->tccgen_vtop->sym = s;
-	    tcc_state->tccgen_vtop->c.ull = 0;
+	    tcc_state->tccgen_vtop->c.ptr_offset = 0;
         }
         break;
     }
