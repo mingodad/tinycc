@@ -3901,13 +3901,19 @@ ST_FUNC void unary(TCCState* tcc_state)
             expect(tcc_state, "identifier");
         s = sym_find(tcc_state, t);
         if (!s) {
+            const char *name = get_tok_str(tcc_state, t, NULL);
             if (tcc_state->tccpp_tok != '(')
-                tcc_error(tcc_state, "'%s' undeclared", get_tok_str(tcc_state, t, NULL));
+                tcc_error(tcc_state, "'%s' undeclared", name);
             /* for simple function calls, we tolerate undeclared
                external reference to int() function */
-            if (tcc_state->warn_implicit_function_declaration)
-                tcc_warning(tcc_state, "implicit declaration of function '%s'",
-                        get_tok_str(tcc_state, t, NULL));
+            if (tcc_state->warn_implicit_function_declaration
+#ifdef TCC_TARGET_PE
+                /* people must be warned about using undeclared WINAPI functions
+                   (which usually start with uppercase letter) */
+                || (name[0] >= 'A' && name[0] <= 'Z')
+#endif
+            )
+                tcc_warning(tcc_state, "implicit declaration of function '%s'", name);
             s = external_global_sym(tcc_state, t, &tcc_state->tccgen_func_old_type, 0); 
         }
         if ((s->type.t & (VT_STATIC | VT_INLINE | VT_BTYPE)) ==
