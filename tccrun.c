@@ -200,6 +200,7 @@ static int tcc_relocate_ex(TCCState *tcc_state, void *ptr)
         if (s->reloc)
             relocate_section(tcc_state, s);
     }
+    relocate_plt(tcc_state);
 
     for(i = 1; i < tcc_state->nb_sections; i++) {
         s = tcc_state->sections[i];
