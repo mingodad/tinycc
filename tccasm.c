@@ -232,7 +232,7 @@ static inline void asm_expr_sum(TCCState *tcc_state, ExprValue *pe)
                 } else {
                     goto cannot_relocate;
                 }
-                pe->sym = NULL; /* same symbols can be substracted to NULL */
+                pe->sym = NULL; /* same symbols can be subtracted to NULL */
             } else {
             cannot_relocate:
                 tcc_error(tcc_state, "invalid operation with label");

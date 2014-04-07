@@ -1382,7 +1382,7 @@ ST_FUNC void subst_asm_operand(TCCState* tcc_state, CString *add_str,
     }
 }
 
-/* generate prolog and epilog code for asm statment */
+/* generate prolog and epilog code for asm statement */
 ST_FUNC void asm_gen_code(TCCState* tcc_state, ASMOperand *operands, int nb_operands,
                          int nb_outputs, int is_output,
                          uint8_t *clobber_regs,
