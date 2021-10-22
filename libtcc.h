@@ -15,25 +15,8 @@ typedef struct TCCState TCCState;
 
 typedef void (*TCCErrorFunc)(void *opaque, const char *msg);
 
-#if defined(__APPLE__) || defined(__MINGW32__) || defined(__TINYC__)
 #include <stddef.h>
 #include <stdio.h>
-#else
-#ifndef _OFF_T_DEFINED
-#define _OFF_T_DEFINED
-#ifndef _OFF_T_
-#define _OFF_T_
-  typedef long _off_t;
-#if !defined(_SIZE_T_)
-#define _SIZE_T_
-  typedef unsigned long size_t;
-#endif
-#if !defined(NO_OLDNAMES) || defined(_POSIX)
-  typedef long off_t;
-#endif
-#endif
-#endif
-#endif
 
 struct vio_module_t;
 
