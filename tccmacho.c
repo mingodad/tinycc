@@ -898,7 +898,7 @@ ST_FUNC const char* macho_tbd_soname(TCCState *S, const char* filename) {
 
     int fd = open(filename,O_RDONLY);
     if (fd<0) return ret;
-    pos = data = tcc_load_text(fd);
+    pos = data = tcc_load_text(S, fd);
     if (!tbd_parse_movepast("install-name: ")) goto the_end;
     tbd_parse_skipws;
     tbd_parse_tramplequote;
