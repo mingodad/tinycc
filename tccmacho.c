@@ -871,28 +871,28 @@ ST_FUNC void tcc_add_macos_sdkpath(TCCState *S)
     void* xcs = dlopen("libxcselect.dylib", RTLD_GLOBAL | RTLD_LAZY);
     CString path;
     int (*f)(unsigned int, char**) = dlsym(xcs, "xcselect_host_sdk_path");
-    cstr_new(&path);
+    cstr_new(S, &path);
     if (f) f(1, &sdkroot);
     if (sdkroot)
         pos = strstr(sdkroot,"SDKs/MacOSX");
     if (pos)
-        cstr_printf(&path, "%.*s.sdk/usr/lib", (int)(pos - sdkroot + 11), sdkroot);
+        cstr_printf(S, &path, "%.*s.sdk/usr/lib", (int)(pos - sdkroot + 11), sdkroot);
     /* must use free from libc directly */
 #pragma push_macro("free")
 #undef free
     free(sdkroot);
 #pragma pop_macro("free")
     if (path.size)
-        tcc_add_library_path(s, (char*)path.data);
+        tcc_add_library_path(S, (char*)path.data);
     else
-        tcc_add_library_path(s,
+        tcc_add_library_path(S,
             "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib"
             ":" "/Applications/Xcode.app/Developer/SDKs/MacOSX.sdk/usr/lib"
             );
-    cstr_free(&path);
+    cstr_free(S, &path);
 }
 
-ST_FUNC const char* macho_tbd_soname(const char* filename) {
+ST_FUNC const char* macho_tbd_soname(TCCState *S, const char* filename) {
     char *soname, *data, *pos;
     const char *ret = filename;
 
@@ -905,9 +905,9 @@ ST_FUNC const char* macho_tbd_soname(const char* filename) {
     soname = pos;
     if (!tbd_parse_movetoany("\n \"'")) goto the_end;
     tbd_parse_trample;
-    ret = tcc_strdup(soname);
+    ret = tcc_strdup(S, soname);
 the_end:
-    tcc_free(data);
+    tcc_free(S, data);
     return ret;
 }
 #endif /* TCC_IS_NATIVE */

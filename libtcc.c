@@ -1115,7 +1115,7 @@ ST_FUNC int tcc_add_file_internal(TCCState *S, const char *filename, int flags)
                 void* dl;
                 const char* soname = filename;
                 if (obj_type != AFF_BINTYPE_DYN)
-                    soname = macho_tbd_soname(filename);
+                    soname = macho_tbd_soname(S, filename);
                 dl = dlopen(soname, RTLD_GLOBAL | RTLD_LAZY);
                 if (dl)
                     tcc_add_dllref(S, soname)->handle = dl, ret = 0;

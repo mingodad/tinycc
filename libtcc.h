@@ -24,7 +24,7 @@ typedef void (*TCCErrorFunc)(void *opaque, const char *msg);
 #define _SIZE_T_
   typedef unsigned long size_t;
 #endif
-#if !defined(NO_OLDNAMES) || defined(_POSIX)
+#if !defined(__APPLE__) && (!defined(NO_OLDNAMES) || defined(_POSIX))
   typedef long off_t;
 #endif
 #endif

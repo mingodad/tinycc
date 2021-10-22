@@ -1897,7 +1897,7 @@ ST_FUNC int macho_load_dll(TCCState *S, int fd, const char *filename, int lev);
 ST_FUNC int macho_load_tbd(TCCState *S, int fd, const char *filename, int lev);
 #ifdef TCC_IS_NATIVE
 ST_FUNC void tcc_add_macos_sdkpath(TCCState *S);
-ST_FUNC const char* macho_tbd_soname(const char* filename);
+ST_FUNC const char* macho_tbd_soname(TCCState *S, const char* filename);
 #endif
 #endif
 /* ------------ tccrun.c ----------------- */
