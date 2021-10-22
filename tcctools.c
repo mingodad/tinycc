@@ -430,7 +430,7 @@ ST_FUNC void tcc_tool_cross(TCCState *S, char **argv, int option)
 #ifdef _WIN32
 #include <process.h>
 
-static char *str_replace(const char *str, const char *p, const char *r)
+static char *str_replace(TCCState *S, const char *str, const char *p, const char *r)
 {
     const char *s, *s0;
     char *d, *d0;
@@ -454,20 +454,22 @@ static char *str_replace(const char *str, const char *p, const char *r)
     }
 }
 
-static int execvp_win32(const char *prog, char **argv)
+static int execvp_win32(TCCState *S, const char *prog, char **argv)
 {
     int ret; char **p;
     /* replace all " by \" */
     for (p = argv; *p; ++p)
         if (strchr(*p, '"'))
-            *p = str_replace(*p, "\"", "\\\"");
+            *p = str_replace(S, *p, "\"", "\\\"");
     ret = _spawnvp(P_NOWAIT, prog, (const char *const*)argv);
     if (-1 == ret)
         return ret;
     _cwait(&ret, ret, WAIT_CHILD);
     exit(ret);
 }
-#define execvp execvp_win32
+#define cross_execvp(a, b) execvp_win32(S, a, b)
+#else
+#define cross_execvp(a, b) execvp(a, b)
 #endif /* _WIN32 */
 
 ST_FUNC void tcc_tool_cross(TCCState *S, char **argv, int target)
@@ -488,7 +490,7 @@ ST_FUNC void tcc_tool_cross(TCCState *S, char **argv, int target)
         , prefix, a0, target == 64 ? "x86_64" : "i386");
 
     if (strcmp(a0, program))
-        execvp(argv[0] = program, argv);
+        cross_execvp(argv[0] = program, argv);
     tcc_error(S, "could not run '%s'", program);
 }
 
