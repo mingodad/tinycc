@@ -52,7 +52,9 @@ jobs:
     # build project amd64
     - name: build amd64
       run: |
-        ./configure
+        cd win32
+        build-tcc.bat
+        cd ..
         make
     # run tests
     - name: run test_exs amd64
