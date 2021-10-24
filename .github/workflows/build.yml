@@ -52,9 +52,12 @@ jobs:
     # build project amd64
     - name: build amd64
       run: |
-        cd win32
-        build-tcc.bat
-        cd ..
+        echo '#define TCC_VERSION "0.9.27"' > config.h
+        echo #ifdef TCC_TARGET_X86_64 >> config.h
+        echo '#define TCC_LIBTCC1 "libtcc1-64.a"' >> config.h
+        echo #else >> config.h
+        echo '#define TCC_LIBTCC1 "libtcc1-32.a"' >> config.h
+        echo #endif >> config.h
         make
     # run tests
     - name: run test_exs amd64
