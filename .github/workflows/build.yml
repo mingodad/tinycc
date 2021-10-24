@@ -48,7 +48,8 @@ jobs:
     name: tinycc master windows/amd64 on Windows
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v2 
+    - uses: msys2/setup-msys2@v2
     # build project amd64
     - name: build amd64
       run: |
