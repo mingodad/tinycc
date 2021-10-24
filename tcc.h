@@ -375,7 +375,7 @@ extern long double strtold (const char *__nptr, char **__endptr);
 
 /* support using libtcc from threads */
 #ifndef CONFIG_TCC_SEMLOCK
-# define CONFIG_TCC_SEMLOCK 1
+# define CONFIG_TCC_SEMLOCK 0
 #endif
 
 #if ONE_SOURCE
