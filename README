@@ -1,3 +1,5 @@
+On this fork I've added a modified `qsort` source code from `musl` libc https://musl.libc.org/ for `tccmacho.c`.
+
 Tiny C Compiler - C Scripting Everywhere - The Smallest ANSI C compiler
 -----------------------------------------------------------------------
 
