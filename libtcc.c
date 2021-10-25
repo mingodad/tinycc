@@ -1011,6 +1011,12 @@ LIBTCCAPI int tcc_set_output_type(TCCState *S, int output_type)
             tcc_add_crt(S, "crtbeginS.o");
         else
             tcc_add_crt(S, "crtbegin.o");
+#elif TARGETOS_ANDROID
+        if (output_type != TCC_OUTPUT_DLL) {
+            tcc_add_crt(S, "crtbegin_dynamic.o");
+        } else {
+            tcc_add_crt(S, "crtbegin_so.o");
+        }
 #else
         if (output_type != TCC_OUTPUT_DLL)
             tcc_add_crt(S, "crt1.o");
