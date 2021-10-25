@@ -155,20 +155,6 @@ ST_DATA const int reg_classes[NB_REGS] = {
 // the stack offsets so we can translate to the appropriate 
 // reg (pair)
 
-#define NoCallArgsPassedOnStack 10
-int NoOfCurFuncArgs;
-int TranslateStackToReg[NoCallArgsPassedOnStack];
-int ParamLocOnStack[NoCallArgsPassedOnStack];
-int TotalBytesPushedOnStack;
-
-#ifndef FALSE
-# define FALSE 0
-# define TRUE 1
-#endif
-
-#undef BOOL
-#define BOOL int
-
 #define ALWAYS_ASSERT(x) \
 do {\
    if (!(x))\
@@ -176,15 +162,6 @@ do {\
 } while (0)
 
 /******************************************************/
-static unsigned long func_sub_sp_offset;
-static int func_ret_sub;
-
-static BOOL C67_invert_test;
-static int C67_compare_reg;
-
-#ifdef ASSEMBLY_LISTING_C67
-FILE *f = NULL;
-#endif
 
 void C67_g(TCCState *S, int c)
 {
@@ -1596,12 +1573,12 @@ void load(TCCState *S, int r, SValue * sv)
 		if (fc == stack_pos)
 		    break;
 
-		stack_pos += TranslateStackToReg[t];
+		stack_pos += S->sf_TranslateStackToReg[t];
 	    }
 
 	    // param has been pushed on stack, get it like a local var
 
-	    fc = ParamLocOnStack[t] - 8;
+	    fc = S->sf_ParamLocOnStack[t] - 8;
 	}
 
 	if ((fr & VT_VALMASK) < VT_CONST)	// check for pure indirect
@@ -1691,7 +1668,7 @@ void load(TCCState *S, int r, SValue * sv)
 	    C67_MVKH(S, r, fc + 8);	//r=reg to load, constant
 	    C67_ADD(S, C67_FP, r);	// MV v,r   v -> r
 	} else if (v == VT_CMP) {
-	    C67_MV(S, C67_compare_reg, r);	// MV v,r   v -> r
+	    C67_MV(S, S->sf_C67_compare_reg, r);	// MV v,r   v -> r
 	} else if (v == VT_JMP || v == VT_JMPI) {
 	    t = v & 1;
 	    C67_B_DISP(S, 4);	//  Branch with constant displacement, skip over this branch, load, nop, load
@@ -1768,11 +1745,11 @@ void store(TCCState *S, int r, SValue * v)
 		    if (fc == stack_pos)
 			break;
 
-		    stack_pos += TranslateStackToReg[t];
+		    stack_pos += S->sf_TranslateStackToReg[t];
 		}
 
 		// param has been pushed on stack, get it like a local var
-		fc = ParamLocOnStack[t] - 8;
+		fc = S->sf_ParamLocOnStack[t] - 8;
 	    }
 
 	    if (size == 8)
@@ -1870,7 +1847,7 @@ static void gcall_or_jmp(TCCState *S, int is_jmp)
 
 /* Return the number of registers needed to return the struct, or 0 if
    returning via struct pointer. */
-ST_FUNC int gfunc_sret(CType *vt, int variadic, CType *ret, int *ret_align, int *regsize) {
+ST_FUNC int gfunc_sret(TCCState *S, CType *vt, int variadic, CType *ret, int *ret_align, int *regsize) {
     *ret_align = 1; // Never have to re-align return values for x86-64
     return 0;
 }
@@ -1963,7 +1940,7 @@ void gfunc_prolog(TCCState *S, Sym *func_sym)
 	addr += 4;
     }
 
-    NoOfCurFuncArgs = 0;
+    S->sf_NoOfCurFuncArgs = 0;
 
     /* define parameters */
     while ((sym = sym->next) != NULL) {
@@ -1976,8 +1953,8 @@ void gfunc_prolog(TCCState *S, Sym *func_sym)
 	// we can translate where tcc thinks they
 	// are on the stack into the appropriate reg
 
-	TranslateStackToReg[NoOfCurFuncArgs] = size;
-	NoOfCurFuncArgs++;
+	S->sf_TranslateStackToReg[S->sf_NoOfCurFuncArgs] = size;
+	S->sf_NoOfCurFuncArgs++;
 
 #ifdef FUNC_STRUCT_PARAM_AS_PTR
 	/* structs are passed as pointer */
@@ -1987,10 +1964,10 @@ void gfunc_prolog(TCCState *S, Sym *func_sym)
 #endif
 	addr += size;
     }
-    func_ret_sub = 0;
+    S->sf_func_ret_sub = 0;
     /* pascal type call ? */
     if (func_call == FUNC_STDCALL)
-	func_ret_sub = addr - 8;
+	S->sf_func_ret_sub = addr - 8;
 
     C67_MV(S, C67_FP, C67_A0);	//  move FP -> A0
     C67_MV(S, C67_SP, C67_FP);	//  move SP -> FP
@@ -1998,21 +1975,21 @@ void gfunc_prolog(TCCState *S, Sym *func_sym)
     // place all the args passed in regs onto the stack
 
     S->loc = 0;
-    for (i = 0; i < NoOfCurFuncArgs; i++) {
+    for (i = 0; i < S->sf_NoOfCurFuncArgs; i++) {
 
-	ParamLocOnStack[i] = S->loc;	// remember where the param is
+	S->sf_ParamLocOnStack[i] = S->loc;	// remember where the param is
 	S->loc += -8;
 
 	C67_PUSH(S, TREG_C67_A4 + i * 2);
 
-	if (TranslateStackToReg[i] == 8) {
+	if (S->sf_TranslateStackToReg[i] == 8) {
 	    C67_STW_PTR_PRE_INC(S, TREG_C67_A4 + i * 2 + 1, C67_SP, 3);	// STW  r, *+SP[1] (go back and put the other)
 	}
     }
 
-    TotalBytesPushedOnStack = -S->loc;
+    S->sf_TotalBytesPushedOnStack = -S->loc;
 
-    func_sub_sp_offset = S->ind;	// remember where we put the stack instruction 
+    S->sf_func_sub_sp_offset = S->ind;	// remember where we put the stack instruction 
     C67_ADDK(S, 0, C67_SP);	//  ADDK.L2 loc,SP  (just put zero temporarily)
 
     C67_PUSH(S, C67_A0);
@@ -2030,8 +2007,8 @@ void gfunc_epilog(TCCState *S)
 	C67_POP(S, C67_FP);
 	C67_ADDK(S, local, C67_SP);	//  ADDK.L2 loc,SP  
 	C67_Adjust_ADDK(S, (int *) (cur_text_section->data +
-				 func_sub_sp_offset),
-			-local + TotalBytesPushedOnStack);
+				 S->sf_func_sub_sp_offset),
+			-local + S->sf_TotalBytesPushedOnStack);
 	C67_NOP(S, 3);		// NOP 
     }
 }
@@ -2091,14 +2068,14 @@ ST_FUNC int gjmp_cond(TCCState *S, int op, int t)
 	C67_MVKL(S, C67_A0, t);	//r=reg to load, constant
 	C67_MVKH(S, C67_A0, t);	//r=reg to load, constant
 
-	if (C67_compare_reg != TREG_EAX &&	// check if not already in a conditional test reg
-	    C67_compare_reg != TREG_EDX &&
-	    C67_compare_reg != TREG_ST0 && C67_compare_reg != C67_B2) {
-	    C67_MV(S, C67_compare_reg, C67_B2);
-	    C67_compare_reg = C67_B2;
+	if (S->sf_C67_compare_reg != TREG_EAX &&	// check if not already in a conditional test reg
+	    S->sf_C67_compare_reg != TREG_EDX &&
+	    S->sf_C67_compare_reg != TREG_ST0 && S->sf_C67_compare_reg != C67_B2) {
+	    C67_MV(S, S->sf_C67_compare_reg, C67_B2);
+	    S->sf_C67_compare_reg = C67_B2;
 	}
 
-	C67_IREG_B_REG(S, C67_invert_test ^ inv, C67_compare_reg, C67_A0);	// [!R] B.S2x  A0
+	C67_IREG_B_REG(S, S->sf_C67_invert_test ^ inv, S->sf_C67_compare_reg, C67_A0);	// [!R] B.S2x  A0
 	C67_NOP(S, 5);
 	t = ind1;		//return where we need to patch
 
@@ -2153,39 +2130,39 @@ void gen_opi(TCCState *S, int op)
 	r = S->vtop[-1].r;
 	fr = S->vtop[0].r;
 
-	C67_compare_reg = C67_B2;
+	S->sf_C67_compare_reg = C67_B2;
 
 
 	if (op == TOK_LT) {
 	    C67_CMPLT(S, r, fr, C67_B2);
-	    C67_invert_test = FALSE;
+	    S->sf_C67_invert_test = FALSE;
 	} else if (op == TOK_GE) {
 	    C67_CMPLT(S, r, fr, C67_B2);
-	    C67_invert_test = TRUE;
+	    S->sf_C67_invert_test = TRUE;
 	} else if (op == TOK_GT) {
 	    C67_CMPGT(S, r, fr, C67_B2);
-	    C67_invert_test = FALSE;
+	    S->sf_C67_invert_test = FALSE;
 	} else if (op == TOK_LE) {
 	    C67_CMPGT(S, r, fr, C67_B2);
-	    C67_invert_test = TRUE;
+	    S->sf_C67_invert_test = TRUE;
 	} else if (op == TOK_EQ) {
 	    C67_CMPEQ(S, r, fr, C67_B2);
-	    C67_invert_test = FALSE;
+	    S->sf_C67_invert_test = FALSE;
 	} else if (op == TOK_NE) {
 	    C67_CMPEQ(S, r, fr, C67_B2);
-	    C67_invert_test = TRUE;
+	    S->sf_C67_invert_test = TRUE;
 	} else if (op == TOK_ULT) {
 	    C67_CMPLTU(S, r, fr, C67_B2);
-	    C67_invert_test = FALSE;
+	    S->sf_C67_invert_test = FALSE;
 	} else if (op == TOK_UGE) {
 	    C67_CMPLTU(S, r, fr, C67_B2);
-	    C67_invert_test = TRUE;
+	    S->sf_C67_invert_test = TRUE;
 	} else if (op == TOK_UGT) {
 	    C67_CMPGTU(S, r, fr, C67_B2);
-	    C67_invert_test = FALSE;
+	    S->sf_C67_invert_test = FALSE;
 	} else if (op == TOK_ULE) {
 	    C67_CMPGTU(S, r, fr, C67_B2);
-	    C67_invert_test = TRUE;
+	    S->sf_C67_invert_test = TRUE;
 	} else if (op == '+')
 	    C67_ADD(S, fr, r);	// ADD  r,fr,r
 	else if (op == '-')
@@ -2310,7 +2287,7 @@ void gen_opf(TCCState *S, int op)
 	r = S->vtop[-1].r;
 	fr = S->vtop[0].r;
 
-	C67_compare_reg = C67_B2;
+	S->sf_C67_compare_reg = C67_B2;
 
 	if (op == TOK_LT) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
@@ -2318,42 +2295,42 @@ void gen_opf(TCCState *S, int op)
 	    else
 		C67_CMPLTSP(S, r, fr, C67_B2);
 
-	    C67_invert_test = FALSE;
+	    S->sf_C67_invert_test = FALSE;
 	} else if (op == TOK_GE) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
 		C67_CMPLTDP(S, r, fr, C67_B2);
 	    else
 		C67_CMPLTSP(S, r, fr, C67_B2);
 
-	    C67_invert_test = TRUE;
+	    S->sf_C67_invert_test = TRUE;
 	} else if (op == TOK_GT) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
 		C67_CMPGTDP(S, r, fr, C67_B2);
 	    else
 		C67_CMPGTSP(S, r, fr, C67_B2);
 
-	    C67_invert_test = FALSE;
+	    S->sf_C67_invert_test = FALSE;
 	} else if (op == TOK_LE) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
 		C67_CMPGTDP(S, r, fr, C67_B2);
 	    else
 		C67_CMPGTSP(S, r, fr, C67_B2);
 
-	    C67_invert_test = TRUE;
+	    S->sf_C67_invert_test = TRUE;
 	} else if (op == TOK_EQ) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
 		C67_CMPEQDP(S, r, fr, C67_B2);
 	    else
 		C67_CMPEQSP(S, r, fr, C67_B2);
 
-	    C67_invert_test = FALSE;
+	    S->sf_C67_invert_test = FALSE;
 	} else if (op == TOK_NE) {
 	    if ((ft & VT_BTYPE) == VT_DOUBLE)
 		C67_CMPEQDP(S, r, fr, C67_B2);
 	    else
 		C67_CMPEQSP(S, r, fr, C67_B2);
 
-	    C67_invert_test = TRUE;
+	    S->sf_C67_invert_test = TRUE;
 	} else {
 	    ALWAYS_ASSERT(FALSE);
 	}

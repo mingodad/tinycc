@@ -21,32 +21,12 @@
 
 #include "tcc.h"
 
-#define MAXNSCNS 255		/* MAXIMUM NUMBER OF SECTIONS         */
-#define MAX_STR_TABLE 1000000
-AOUTHDR o_filehdr;		/* OPTIONAL (A.OUT) FILE HEADER       */
-
-SCNHDR section_header[MAXNSCNS];
-
-#define MAX_FUNCS 1000
-#define MAX_FUNC_NAME_LENGTH 128
-
-int nFuncs;
-char Func[MAX_FUNCS][MAX_FUNC_NAME_LENGTH];
-char AssociatedFile[MAX_FUNCS][MAX_FUNC_NAME_LENGTH];
-int LineNoFilePtr[MAX_FUNCS];
-int EndAddress[MAX_FUNCS];
-int LastLineNo[MAX_FUNCS];
-int FuncEntries[MAX_FUNCS];
-
 int OutputTheSection(Section * sect);
 short int GetCoffFlags(const char *s);
 void SortSymbolTable(TCCState *S);
 Section *FindSection(TCCState * S, const char *sname);
 
-int C67_main_entry_point;
-
 int FindCoffSymbolIndex(TCCState * S, const char *func_name);
-int nb_syms;
 
 typedef struct {
     long tag;
@@ -91,7 +71,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
     sdata = FindSection(S, ".data");
     sbss = FindSection(S, ".bss");
 
-    nb_syms = symtab_section->data_offset / sizeof(Elf32_Sym);
+    S->tcccoff_nb_syms = symtab_section->data_offset / sizeof(Elf32_Sym);
     coff_nb_syms = FindCoffSymbolIndex(S, "XXXXXXXXXX1");
 
     file_hdr.f_magic = COFF_C67_MAGIC;	/* magic number */
@@ -100,14 +80,14 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
     file_hdr.f_flags = 0x1143;	/* flags (copied from what code composer does) */
     file_hdr.f_TargetID = 0x99;	/* for C6x = 0x0099 */
 
-    o_filehdr.magic = 0x0108;	/* see magic.h                          */
-    o_filehdr.vstamp = 0x0190;	/* version stamp                        */
-    o_filehdr.tsize = stext->data_offset;	/* text size in bytes, padded to FW bdry */
-    o_filehdr.dsize = sdata->data_offset;	/* initialized data "  "                */
-    o_filehdr.bsize = sbss->data_offset;	/* uninitialized data "   "             */
-    o_filehdr.entrypt = C67_main_entry_point;	/* entry pt.                          */
-    o_filehdr.text_start = stext->sh_addr;	/* base of text used for this file      */
-    o_filehdr.data_start = sdata->sh_addr;	/* base of data used for this file      */
+    S->tcccoff_o_filehdr.magic = 0x0108;	/* see magic.h                          */
+    S->tcccoff_o_filehdr.vstamp = 0x0190;	/* version stamp                        */
+    S->tcccoff_o_filehdr.tsize = stext->data_offset;	/* text size in bytes, padded to FW bdry */
+    S->tcccoff_o_filehdr.dsize = sdata->data_offset;	/* initialized data "  "                */
+    S->tcccoff_o_filehdr.bsize = sbss->data_offset;	/* uninitialized data "   "             */
+    S->tcccoff_o_filehdr.entrypt = S->tcccoff_C67_main_entry_point;	/* entry pt.                          */
+    S->tcccoff_o_filehdr.text_start = stext->sh_addr;	/* base of text used for this file      */
+    S->tcccoff_o_filehdr.data_start = sdata->sh_addr;	/* base of data used for this file      */
 
 
     // create all the section headers
@@ -117,7 +97,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
     CoffTextSectionNo = -1;
 
     for (i = 1; i < S->nb_sections; i++) {
-	coff_sec = &section_header[i];
+	coff_sec = &S->tcccoff_section_header[i];
 	tcc_sect = S->sections[i];
 
 	if (OutputTheSection(tcc_sect)) {
@@ -150,7 +130,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 
 
     for (i = 1; i < S->nb_sections; i++) {
-	coff_sec = &section_header[i];
+	coff_sec = &S->tcccoff_section_header[i];
 	tcc_sect = S->sections[i];
 
 	if (OutputTheSection(tcc_sect)) {
@@ -164,7 +144,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
     // for the relocation data
 
     for (i = 1; i < S->nb_sections; i++) {
-	coff_sec = &section_header[i];
+	coff_sec = &S->tcccoff_section_header[i];
 	tcc_sect = S->sections[i];
 
 	if (OutputTheSection(tcc_sect)) {
@@ -180,7 +160,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
     // for the line number data
 
     for (i = 1; i < S->nb_sections; i++) {
-	coff_sec = &section_header[i];
+	coff_sec = &S->tcccoff_section_header[i];
 	tcc_sect = S->sections[i];
 
 	coff_sec->s_nlnno = 0;
@@ -215,7 +195,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 		(Stab_Sym *) (stab_section->data +
 			      stab_section->data_offset);
 
-	    nFuncs = 0;
+	    S->tcccoff_nFuncs = 0;
 	    while (sym < sym_end) {
 		switch (sym->n_type) {
 		    /* function start or end */
@@ -229,15 +209,15 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 			pc = sym->n_value + func_addr;
 			func_name[0] = '\0';
 			func_addr = 0;
-			EndAddress[nFuncs] = pc;
-			FuncEntries[nFuncs] =
+			S->tcccoff_EndAddress[S->tcccoff_nFuncs] = pc;
+			S->tcccoff_FuncEntries[S->tcccoff_nFuncs] =
 			    (file_pointer -
-			     LineNoFilePtr[nFuncs]) / LINESZ - 1;
-			LastLineNo[nFuncs++] = last_line_num + 1;
+			     S->tcccoff_LineNoFilePtr[S->tcccoff_nFuncs]) / LINESZ - 1;
+			S->tcccoff_LastLineNo[S->tcccoff_nFuncs++] = last_line_num + 1;
 		    } else {
 			// beginning of function
 
-			LineNoFilePtr[nFuncs] = file_pointer;
+			S->tcccoff_LineNoFilePtr[S->tcccoff_nFuncs] = file_pointer;
 			coff_sec->s_nlnno++;
 			file_pointer += LINESZ;
 
@@ -248,18 +228,18 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 			p = strchr(str, ':');
 			if (!p) {
 			    pstrcpy(func_name, sizeof(func_name), str);
-			    pstrcpy(Func[nFuncs], sizeof(func_name), str);
+			    pstrcpy(S->tcccoff_Func[S->tcccoff_nFuncs], sizeof(func_name), str);
 			} else {
 			    len = p - str;
 			    if (len > sizeof(func_name) - 1)
 				len = sizeof(func_name) - 1;
 			    memcpy(func_name, str, len);
-			    memcpy(Func[nFuncs], str, len);
+			    memcpy(S->tcccoff_Func[S->tcccoff_nFuncs], str, len);
 			    func_name[len] = '\0';
 			}
 
 			// save the file that it came in so we can sort later
-			pstrcpy(AssociatedFile[nFuncs], sizeof(func_name),
+			pstrcpy(S->tcccoff_AssociatedFile[S->tcccoff_nFuncs], sizeof(func_name),
 				incl_files[incl_index - 1]);
 
 			func_addr = sym->n_value;
@@ -325,11 +305,11 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 
 
     fwrite(&file_hdr, FILHSZ, 1, f);
-    fwrite(&o_filehdr, sizeof(o_filehdr), 1, f);
+    fwrite(&S->tcccoff_o_filehdr, sizeof(S->tcccoff_o_filehdr), 1, f);
 
     // write section headers
     for (i = 1; i < S->nb_sections; i++) {
-	coff_sec = &section_header[i];
+	coff_sec = &S->tcccoff_section_header[i];
 	tcc_sect = S->sections[i];
 
 	if (OutputTheSection(tcc_sect)) {
@@ -339,7 +319,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 
     // write raw data
     for (i = 1; i < S->nb_sections; i++) {
-	coff_sec = &section_header[i];
+	coff_sec = &S->tcccoff_section_header[i];
 	tcc_sect = S->sections[i];
 
 	if (OutputTheSection(tcc_sect)) {
@@ -349,7 +329,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 
     // write relocation data
     for (i = 1; i < S->nb_sections; i++) {
-	coff_sec = &section_header[i];
+	coff_sec = &S->tcccoff_section_header[i];
 	tcc_sect = S->sections[i];
 
 	if (OutputTheSection(tcc_sect)) {
@@ -371,7 +351,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
     // write line no data
 
     for (i = 1; i < S->nb_sections; i++) {
-	coff_sec = &section_header[i];
+	coff_sec = &S->tcccoff_section_header[i];
 	tcc_sect = S->sections[i];
 
 	if (S->do_debug && tcc_sect == stext) {
@@ -521,7 +501,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 	p = (Elf32_Sym *) symtab_section->data;
 
 
-	for (i = 0; i < nb_syms; i++) {
+	for (i = 0; i < S->tcccoff_nb_syms; i++) {
 
 	    name = symtab_section->link->data + p->st_name;
 
@@ -557,12 +537,12 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 	    } else if (p->st_info == 0x12) {
 		// find the function data
 
-		for (k = 0; k < nFuncs; k++) {
-		    if (strcmp(name, Func[k]) == 0)
+		for (k = 0; k < S->tcccoff_nFuncs; k++) {
+		    if (strcmp(name, S->tcccoff_Func[k]) == 0)
 			break;
 		}
 
-		if (k >= nFuncs) {
+		if (k >= S->tcccoff_nFuncs) {
 		    tcc_error(S, "debug info can't find function: %s", name);
 		}
 		// put a Function Name
@@ -577,8 +557,8 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 		// now put aux info
 
 		auxfunc.tag = 0;
-		auxfunc.size = EndAddress[k] - p->st_value;
-		auxfunc.fileptr = LineNoFilePtr[k];
+		auxfunc.size = S->tcccoff_EndAddress[k] - p->st_value;
+		auxfunc.fileptr = S->tcccoff_LineNoFilePtr[k];
 		auxfunc.nextsym = n + 6;	// tktk
 		auxfunc.dummy = 0;
 		fwrite(&auxfunc, 18, 1, f);
@@ -597,7 +577,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 
 		auxbf.regmask = 0;
 		auxbf.lineno = 0;
-		auxbf.nentries = FuncEntries[k];
+		auxbf.nentries = S->tcccoff_FuncEntries[k];
 		auxbf.localframe = 0;
 		auxbf.nextentry = n + 6;
 		auxbf.dummy = 0;
@@ -606,7 +586,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 		// put a .ef
 
 		strcpy(csym._n._n_name, ".ef");
-		csym.n_value = EndAddress[k];	// physical address  
+		csym.n_value = S->tcccoff_EndAddress[k];	// physical address  
 		csym.n_scnum = CoffTextSectionNo;
 		csym.n_type = 0;
 		csym.n_sclass = C_FCN;
@@ -616,7 +596,7 @@ ST_FUNC int tcc_output_coff(TCCState *S, FILE *f)
 		// now put aux info
 
 		auxef.dummy = 0;
-		auxef.lineno = LastLineNo[k];
+		auxef.lineno = S->tcccoff_LastLineNo[k];
 		auxef.dummy1 = 0;
 		auxef.dummy2 = 0;
 		auxef.dummy3 = 0;
@@ -696,7 +676,7 @@ void SortSymbolTable(TCCState *S)
     Elf32_Sym *p, *p2, *NewTable;
     char *name, *name2;
 
-    NewTable = (Elf32_Sym *) tcc_malloc(S, nb_syms * sizeof(Elf32_Sym));
+    NewTable = (Elf32_Sym *) tcc_malloc(S, S->tcccoff_nb_syms * sizeof(Elf32_Sym));
 
     p = (Elf32_Sym *) symtab_section->data;
 
@@ -705,7 +685,7 @@ void SortSymbolTable(TCCState *S)
     // then scan the whole symbol list and copy any function
     // symbols that match the file association
 
-    for (i = 0; i < nb_syms; i++) {
+    for (i = 0; i < S->tcccoff_nb_syms; i++) {
 	if (p->st_info == 4) {
 	    name = (char *) symtab_section->link->data + p->st_name;
 
@@ -715,7 +695,7 @@ void SortSymbolTable(TCCState *S)
 
 	    p2 = (Elf32_Sym *) symtab_section->data;
 
-	    for (j = 0; j < nb_syms; j++) {
+	    for (j = 0; j < S->tcccoff_nb_syms; j++) {
 		if (p2->st_info == 0x12) {
 		    // this is a func symbol
 
@@ -724,16 +704,16 @@ void SortSymbolTable(TCCState *S)
 
 		    // find the function data index
 
-		    for (k = 0; k < nFuncs; k++) {
-			if (strcmp(name2, Func[k]) == 0)
+		    for (k = 0; k < S->tcccoff_nFuncs; k++) {
+			if (strcmp(name2, S->tcccoff_Func[k]) == 0)
 			    break;
 		    }
 
-		    if (k >= nFuncs) {
+		    if (k >= S->tcccoff_nFuncs) {
                         tcc_error(S, "debug (sort) info can't find function: %s", name2);
 		    }
 
-		    if (strcmp(AssociatedFile[k], name) == 0) {
+		    if (strcmp(S->tcccoff_AssociatedFile[k], name) == 0) {
 			// yes they match copy it over
 
 			NewTable[n++] = *p2;
@@ -749,20 +729,20 @@ void SortSymbolTable(TCCState *S)
     // copy all the rest over (all except file and funcs)
 
     p = (Elf32_Sym *) symtab_section->data;
-    for (i = 0; i < nb_syms; i++) {
+    for (i = 0; i < S->tcccoff_nb_syms; i++) {
 	if (p->st_info != 4 && p->st_info != 0x12) {
 	    NewTable[n++] = *p;
 	}
 	p++;
     }
 
-    if (n != nb_syms)
+    if (n != S->tcccoff_nb_syms)
 	tcc_error(S, "Internal Compiler error, debug info");
 
     // copy it all back
 
     p = (Elf32_Sym *) symtab_section->data;
-    for (i = 0; i < nb_syms; i++) {
+    for (i = 0; i < S->tcccoff_nb_syms; i++) {
 	*p++ = NewTable[i];
     }
 
@@ -778,7 +758,7 @@ int FindCoffSymbolIndex(TCCState *S, const char *func_name)
 
     p = (Elf32_Sym *) symtab_section->data;
 
-    for (i = 0; i < nb_syms; i++) {
+    for (i = 0; i < S->tcccoff_nb_syms; i++) {
 
 	name = (char *) symtab_section->link->data + p->st_name;
 
@@ -878,7 +858,7 @@ ST_FUNC int tcc_load_coff(TCCState * S, int fd)
     if (fread(&file_hdr, FILHSZ, 1, f) != 1)
 	tcc_error(S, "error reading .out file for input");
 
-    if (fread(&o_filehdr, sizeof(o_filehdr), 1, f) != 1)
+    if (fread(&S->tcccoff_o_filehdr, sizeof(S->tcccoff_o_filehdr), 1, f) != 1)
 	tcc_error(S, "error reading .out file for input");
 
     // first read the string table

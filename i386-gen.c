@@ -97,8 +97,6 @@ ST_DATA const int reg_classes[NB_REGS] = {
     /* st0 */ RC_FLOAT | RC_ST0,
 };
 
-static unsigned long func_sub_sp_offset;
-static int func_ret_sub;
 #ifdef CONFIG_TCC_BCHECK
 static void gen_bounds_prolog(TCCState *S);
 static void gen_bounds_epilog(TCCState *S);
@@ -374,7 +372,7 @@ static const uint8_t fastcallw_regs[2] = { TREG_ECX, TREG_EDX };
 
 /* Return the number of registers needed to return the struct, or 0 if
    returning via struct pointer. */
-ST_FUNC int gfunc_sret(CType *vt, int variadic, CType *ret, int *ret_align, int *regsize)
+ST_FUNC int gfunc_sret(TCCState *S, CType *vt, int variadic, CType *ret, int *ret_align, int *regsize)
 {
 #if defined(TCC_TARGET_PE) || TARGETOS_FreeBSD || TARGETOS_OpenBSD
     int size, align;
@@ -539,7 +537,7 @@ ST_FUNC void gfunc_prolog(TCCState *S, Sym *func_sym)
     param_index = 0;
 
     S->ind += FUNC_PROLOG_SIZE;
-    func_sub_sp_offset = S->ind;
+    S->sf_func_sub_sp_offset = S->ind;
     /* if the function returns a structure, then add an
        implicit pointer parameter */
 #if defined(TCC_TARGET_PE) || TARGETOS_FreeBSD || TARGETOS_OpenBSD
@@ -579,13 +577,13 @@ ST_FUNC void gfunc_prolog(TCCState *S, Sym *func_sym)
                  VT_LOCAL | VT_LVAL, param_addr);
         param_index++;
     }
-    func_ret_sub = 0;
+    S->sf_func_ret_sub = 0;
     /* pascal type call or fastcall ? */
     if (func_call == FUNC_STDCALL || func_call == FUNC_FASTCALLW)
-        func_ret_sub = addr - 8;
+        S->sf_func_ret_sub = addr - 8;
 #if !defined(TCC_TARGET_PE) && !TARGETOS_FreeBSD || TARGETOS_OpenBSD
     else if (S->tccgen_func_vc)
-        func_ret_sub = 4;
+        S->sf_func_ret_sub = 4;
 #endif
 
 #ifdef CONFIG_TCC_BCHECK
@@ -613,15 +611,15 @@ ST_FUNC void gfunc_epilog(TCCState *S)
 #endif
 
     o(S, 0xc9); /* leave */
-    if (func_ret_sub == 0) {
+    if (S->sf_func_ret_sub == 0) {
         o(S, 0xc3); /* ret */
     } else {
         o(S, 0xc2); /* ret n */
-        g(S, func_ret_sub);
-        g(S, func_ret_sub >> 8);
+        g(S, S->sf_func_ret_sub);
+        g(S, S->sf_func_ret_sub >> 8);
     }
     saved_ind = S->ind;
-    S->ind = func_sub_sp_offset - FUNC_PROLOG_SIZE;
+    S->ind = S->sf_func_sub_sp_offset - FUNC_PROLOG_SIZE;
 #ifdef TCC_TARGET_PE
     if (v >= 4096) {
         oad(S, 0xb8, v); /* mov stacksize, %eax */

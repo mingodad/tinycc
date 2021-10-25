@@ -639,11 +639,9 @@ static void asm_rex(TCCState *S, int width64, Operand *ops, int nb_ops, int *op_
 #endif
 
 
-static void maybe_print_stats (void)
+static void maybe_print_stats (TCCState *S)
 {
-    static int already;
-
-    if (0 && !already)
+    if (0 && !S->maybe_print_stats_already)
     /* print stats about opcodes */
     {
         const struct ASMInstr *pa;
@@ -651,7 +649,7 @@ static void maybe_print_stats (void)
         int op_vals[500];
         int nb_op_vals, i, j;
 
-	already = 1;
+	S->maybe_print_stats_already = 1;
         nb_op_vals = 0;
         memset(freq, 0, sizeof(freq));
         for(pa = asm_instrs; pa->sym != 0; pa++) {
@@ -693,7 +691,7 @@ ST_FUNC void asm_opcode(TCCState *S, int opcode)
     int rex64;
 #endif
 
-    maybe_print_stats();
+    maybe_print_stats(S);
     /* force synthetic ';' after prefix instruction, so we can handle */
     /* one-line things like "rep stosb" instead of only "rep\nstosb" */
     if (opcode >= TOK_ASM_wait && opcode <= TOK_ASM_repnz)

@@ -750,7 +750,7 @@ static int using_regs(int size)
 
 /* Return the number of registers needed to return the struct, or 0 if
    returning via struct pointer. */
-ST_FUNC int gfunc_sret(CType *vt, int variadic, CType *ret, int *ret_align, int *regsize)
+ST_FUNC int gfunc_sret(TCCState *S, CType *vt, int variadic, CType *ret, int *ret_align, int *regsize)
 {
     int size, align;
     *ret_align = 1; // Never have to re-align return values for x86-64
@@ -1192,7 +1192,7 @@ ST_FUNC int classify_x86_64_va_arg(CType *ty)
 
 /* Return the number of registers needed to return the struct, or 0 if
    returning via struct pointer. */
-ST_FUNC int gfunc_sret(CType *vt, int variadic, CType *ret, int *ret_align, int *regsize)
+ST_FUNC int gfunc_sret(TCCState *S, CType *vt, int variadic, CType *ret, int *ret_align, int *regsize)
 {
     int size, align, reg_count;
     *ret_align = 1; // Never have to re-align return values for x86-64

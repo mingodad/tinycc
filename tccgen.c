@@ -6369,7 +6369,7 @@ special_math_val:
             /* compute first implicit argument if a structure is returned */
             if ((s->type.t & VT_BTYPE) == VT_STRUCT) {
                 variadic = (s->f.func_type == FUNC_ELLIPSIS);
-                ret_nregs = gfunc_sret(&s->type, variadic, &ret.type,
+                ret_nregs = gfunc_sret(S, &s->type, variadic, &ret.type,
                                        &ret_align, &regsize);
                 if (ret_nregs <= 0) {
                     /* get some space for the returned structure */
@@ -6903,7 +6903,7 @@ static void gfunc_return(TCCState *S, CType *func_type)
     if ((func_type->t & VT_BTYPE) == VT_STRUCT) {
         CType type, ret_type;
         int ret_align, ret_nregs, regsize;
-        ret_nregs = gfunc_sret(func_type, S->tccgen_func_var, &ret_type,
+        ret_nregs = gfunc_sret(S, func_type, S->tccgen_func_var, &ret_type,
                                &ret_align, &regsize);
         if (ret_nregs < 0) {
 #ifdef TCC_TARGET_RISCV64

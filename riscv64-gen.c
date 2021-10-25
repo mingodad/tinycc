@@ -843,7 +843,7 @@ ST_FUNC void gfunc_prolog(TCCState *S, Sym *func_sym)
 #endif
 }
 
-ST_FUNC int gfunc_sret(CType *vt, int variadic, CType *ret,
+ST_FUNC int gfunc_sret(TCCState *S, CType *vt, int variadic, CType *ret,
                        int *ret_align, int *regsize)
 {
     int align, size = type_size(vt, &align), nregs;

@@ -875,14 +875,76 @@ struct TCCState {
 #endif
 #ifdef TCC_TARGET_ARM
     unsigned char float_abi; /* float ABI of the generated code*/
+    /*To make reentrant*/
+    int sf_func_sub_sp_offset, sf_last_itod_magic;
+    int sf_leaffunc;
 #endif
+
+#ifdef TCC_TARGET_ARM64
+    /*To make reentrant*/
+    unsigned long sf_arm64_func_va_list_stack;
+    int sf_arm64_func_va_list_gr_offs;
+    int sf_arm64_func_va_list_vr_offs;
+    int sf_arm64_func_sub_sp_offset;
+#endif
+    
+#ifdef TCC_TARGET_C67
+    /*To make reentrant*/
+#define NoCallArgsPassedOnStack 10
+    int sf_NoOfCurFuncArgs;
+    int sf_TranslateStackToReg[NoCallArgsPassedOnStack];
+    int sf_ParamLocOnStack[NoCallArgsPassedOnStack];
+    int sf_TotalBytesPushedOnStack;
+
+    unsigned long sf_func_sub_sp_offset;
+    int sf_func_ret_sub;
+
+#ifndef FALSE
+# define FALSE 0
+# define TRUE 1
+#endif
+
+#undef BOOL
+#define BOOL int
+
+    BOOL sf_C67_invert_test;
+    int sf_C67_compare_reg;
+
+#ifdef ASSEMBLY_LISTING_C67
+    FILE *sf_f;
+#endif
+    
+    /*From tcccoff.c*/
+#define MAXNSCNS 255		/* MAXIMUM NUMBER OF SECTIONS         */
+#define MAX_STR_TABLE 1000000
+AOUTHDR tcccoff_o_filehdr;		/* OPTIONAL (A.OUT) FILE HEADER       */
+
+    SCNHDR tcccoff_section_header[MAXNSCNS];
+
+    #define MAX_FUNCS 1000
+    #define MAX_FUNC_NAME_LENGTH 128
+
+    int tcccoff_nFuncs;
+    char tcccoff_Func[MAX_FUNCS][MAX_FUNC_NAME_LENGTH];
+    char tcccoff_AssociatedFile[MAX_FUNCS][MAX_FUNC_NAME_LENGTH];
+    int tcccoff_LineNoFilePtr[MAX_FUNCS];
+    int tcccoff_EndAddress[MAX_FUNCS];
+    int tcccoff_LastLineNo[MAX_FUNCS];
+    int tcccoff_FuncEntries[MAX_FUNCS];
+    int tcccoff_C67_main_entry_point;
+    int tcccoff_nb_syms;
+
+#endif    
 
     unsigned char has_text_addr;
     addr_t text_addr; /* address of text section */
     unsigned section_align; /* section alignment */
 #ifdef TCC_TARGET_I386
     int seg_size; /* 32. Can be 16 with i386 assembler (.code16) */
+    unsigned long sf_func_sub_sp_offset;
+    int sf_func_ret_sub;
 #endif
+    int maybe_print_stats_already;
 
     char *tcc_lib_path; /* CONFIG_TCCDIR or -B option */
     char *soname; /* as specified on the command line (-soname) */
@@ -1736,7 +1798,7 @@ ST_FUNC void gsym_addr(TCCState *S, int t, int a);
 ST_FUNC void gsym(TCCState *S, int t);
 ST_FUNC void load(TCCState *S, int r, SValue *sv);
 ST_FUNC void store(TCCState *S, int r, SValue *v);
-ST_FUNC int gfunc_sret(CType *vt, int variadic, CType *ret, int *align, int *regsize);
+ST_FUNC int gfunc_sret(TCCState *S, CType *vt, int variadic, CType *ret, int *align, int *regsize);
 ST_FUNC void gfunc_call(TCCState *S, int nb_args);
 ST_FUNC void gfunc_prolog(TCCState *S, Sym *func_sym);
 ST_FUNC void gfunc_epilog(TCCState *S);

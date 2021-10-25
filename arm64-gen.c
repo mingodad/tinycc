@@ -1145,11 +1145,6 @@ ST_FUNC void gfunc_call(TCCState *S, int nb_args)
     tcc_free(S, t);
 }
 
-static unsigned long arm64_func_va_list_stack;
-static int arm64_func_va_list_gr_offs;
-static int arm64_func_va_list_vr_offs;
-static int arm64_func_sub_sp_offset;
-
 ST_FUNC void gfunc_prolog(TCCState *S, Sym *func_sym)
 {
     CType *func_type = &func_sym->type;
@@ -1169,7 +1164,7 @@ ST_FUNC void gfunc_prolog(TCCState *S, Sym *func_sym)
     for (sym = func_type->ref; sym; sym = sym->next)
         t[i++] = &sym->type;
 
-    arm64_func_va_list_stack = arm64_pcs(n - 1, t, a);
+    S->sf_arm64_func_va_list_stack = arm64_pcs(n - 1, t, a);
 
     o(S, 0xa9b27bfd); // stp x29,x30,[sp,#-224]!
     o(S, 0xad0087e0); // stp q0,q1,[sp,#16]
@@ -1182,8 +1177,8 @@ ST_FUNC void gfunc_prolog(TCCState *S, Sym *func_sym)
     o(S, 0xa90c17e4); // stp x4,x5,[sp,#192]
     o(S, 0xa90d1fe6); // stp x6,x7,[sp,#208]
 
-    arm64_func_va_list_gr_offs = -64;
-    arm64_func_va_list_vr_offs = -128;
+    S->sf_arm64_func_va_list_gr_offs = -64;
+    S->sf_arm64_func_va_list_vr_offs = -128;
 
     for (i = 1, sym = func_type->ref->next; sym; i++, sym = sym->next) {
         int off = (a[i] < 16 ? 160 + a[i] / 2 * 8 :
@@ -1195,12 +1190,12 @@ ST_FUNC void gfunc_prolog(TCCState *S, Sym *func_sym)
 
         if (a[i] < 16) {
             int align, size = type_size(&sym->type, &align);
-            arm64_func_va_list_gr_offs = (a[i] / 2 - 7 +
+            S->sf_arm64_func_va_list_gr_offs = (a[i] / 2 - 7 +
                                           (!(a[i] & 1) && size > 8)) * 8;
         }
         else if (a[i] < 32) {
             uint32_t hfa = arm64_hfa(&sym->type, 0);
-            arm64_func_va_list_vr_offs = (a[i] / 2 - 16 +
+            S->sf_arm64_func_va_list_vr_offs = (a[i] / 2 - 16 +
                                           (hfa ? hfa : 1)) * 16;
         }
 
@@ -1220,7 +1215,7 @@ ST_FUNC void gfunc_prolog(TCCState *S, Sym *func_sym)
     tcc_free(S, t);
 
     o(S, 0x910003fd); // mov x29,sp
-    arm64_func_sub_sp_offset = S->ind;
+    S->sf_arm64_func_sub_sp_offset = S->ind;
     // In gfunc_epilog these will be replaced with code to decrement SP:
     o(S, 0xd503201f); // nop
     o(S, 0xd503201f); // nop
@@ -1238,30 +1233,30 @@ ST_FUNC void gen_va_start(TCCState *S)
     gaddrof(S);
     r = intr(S, gv(S, RC_INT));
 
-    if (arm64_func_va_list_stack) {
+    if (S->sf_arm64_func_va_list_stack) {
         //xx could use add (immediate) here
-        arm64_movimm(S, 30, arm64_func_va_list_stack + 224);
+        arm64_movimm(S, 30, S->sf_arm64_func_va_list_stack + 224);
         o(S, 0x8b1e03be); // add x30,x29,x30
     }
     else
         o(S, 0x910383be); // add x30,x29,#224
     o(S, 0xf900001e | r << 5); // str x30,[x(r)]
 
-    if (arm64_func_va_list_gr_offs) {
-        if (arm64_func_va_list_stack)
+    if (S->sf_arm64_func_va_list_gr_offs) {
+        if (S->sf_arm64_func_va_list_stack)
             o(S, 0x910383be); // add x30,x29,#224
         o(S, 0xf900041e | r << 5); // str x30,[x(r),#8]
     }
 
-    if (arm64_func_va_list_vr_offs) {
+    if (S->sf_arm64_func_va_list_vr_offs) {
         o(S, 0x910243be); // add x30,x29,#144
         o(S, 0xf900081e | r << 5); // str x30,[x(r),#16]
     }
 
-    arm64_movimm(S, 30, arm64_func_va_list_gr_offs);
+    arm64_movimm(S, 30, S->sf_arm64_func_va_list_gr_offs);
     o(S, 0xb900181e | r << 5); // str w30,[x(r),#24]
 
-    arm64_movimm(S, 30, arm64_func_va_list_vr_offs);
+    arm64_movimm(S, 30, S->sf_arm64_func_va_list_vr_offs);
     o(S, 0xb9001c1e | r << 5); // str w30,[x(r),#28]
 
     --S->vtop;
@@ -1344,7 +1339,7 @@ ST_FUNC void gen_va_arg(TCCState *S, CType *t)
     }
 }
 
-ST_FUNC int gfunc_sret(CType *vt, int variadic, CType *ret,
+ST_FUNC int gfunc_sret(TCCState *S, CType *vt, int variadic, CType *ret,
                        int *align, int *regsize)
 {
     return 0;
@@ -1406,7 +1401,7 @@ ST_FUNC void gfunc_epilog(TCCState *S)
 
     if (S->loc) {
         // Insert instructions to subtract size of stack frame from SP.
-        unsigned char *ptr = cur_text_section->data + arm64_func_sub_sp_offset;
+        unsigned char *ptr = cur_text_section->data + S->sf_arm64_func_sub_sp_offset;
         uint64_t diff = (-S->loc + 15) & ~15;
         if (!(diff >> 24)) {
             if (diff & 0xfff) // sub sp,sp,#(diff & 0xfff)

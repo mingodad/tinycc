@@ -1549,6 +1549,15 @@ ST_FUNC void tcc_add_runtime(TCCState *S)
         /* add crt end if not memory output */
         if (S->output_type != TCC_OUTPUT_MEMORY)
             tcc_add_crt(S, "crtn.o");
+#elif TCC_TARGETOS_ANDROID
+        /* add crt end if not memory output */
+        if (S->output_type != TCC_OUTPUT_MEMORY) {
+            if (S->output_type == TCC_OUTPUT_DLL) {
+                tcc_add_crt(S, "crtend_so.o");
+            } else {
+                tcc_add_crt(S, "crtend_android.o");
+            }
+        }
 #endif
     }
 }
