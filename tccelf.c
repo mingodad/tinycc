@@ -1534,6 +1534,7 @@ ST_FUNC void tcc_add_runtime(TCCState *S)
         if (TCC_LIBTCC1[0])
             tcc_add_support(S, TCC_LIBTCC1);
 
+#if !defined TCC_TARGET_PE && !defined TCC_TARGET_MACHO
 #if TARGETOS_OpenBSD || TARGETOS_FreeBSD || TARGETOS_NetBSD
         /* add crt end if not memory output */
 	if (S->output_type != TCC_OUTPUT_MEMORY) {
@@ -1558,6 +1559,7 @@ ST_FUNC void tcc_add_runtime(TCCState *S)
                 tcc_add_crt(S, "crtend_android.o");
             }
         }
+#endif
 #endif
     }
 }
