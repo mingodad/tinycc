@@ -3403,7 +3403,7 @@ redo:
                 gen_cast_s(S, VT_INT);
 #endif
             type1 = S->vtop[-1].type;
-            if (S->vtop[-1].type.t & VT_VLA)
+            if (S->vtop[-1].type.ref->type.t & VT_VLA)
                 vla_runtime_pointed_size(S, &S->vtop[-1].type);
             else {
                 u = pointed_size(&S->vtop[-1].type);
