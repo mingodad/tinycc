@@ -3494,7 +3494,7 @@ ST_FUNC int tcc_load_dll(TCCState *S, int fd, const char *filename, int level)
         if (dt->d_tag == DT_SONAME) {
             soname = dynstr + dt->d_un.d_val;
         } else if (dt->d_tag == DT_RPATH) {
-            S->rpath = tcc_strdup(S, dynstr + dt->d_un.d_val);
+            tcc_add_library_path(S, dynstr + dt->d_un.d_val);
         }
     }
 
