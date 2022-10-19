@@ -3192,7 +3192,7 @@ void local_label_test(void)
 /* from linux kernel */
 static char * strncat1(char * dest,const char * src,size_t count)
 {
-long d0, d1, d2, d3;
+size_t d0, d1, d2, d3;
 __asm__ __volatile__(
 	"repne\n\t"
 	"scasb\n\t"
@@ -3214,7 +3214,7 @@ return dest;
 
 static char * strncat2(char * dest,const char * src,size_t count)
 {
-long d0, d1, d2, d3;
+size_t d0, d1, d2, d3;
 __asm__ __volatile__(
 	"repne scasb\n\t" /* one-line repne prefix + string op */
 	"dec %1\n\t"
@@ -4214,7 +4214,8 @@ void whitespace_test(void)
 {
     char *str;
 
-#if 1
+
+#if 1
     pri\
 ntf("whitspace:\n");
 #endif
@@ -4237,7 +4238,8 @@ ntf("min=%d\n", 4);
 ";
     printf("len1=%d str[0]=%d\n", strlen(str), str[0]);
 #endif
-    printf("len1=%d\n", strlen("a
+    printf("len1=%d\n", strlen("
+a
 "));
 #else
     printf("len1=1\nlen1=1 str[0]=10\nlen1=3\n");
